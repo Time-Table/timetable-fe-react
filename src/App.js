@@ -1,33 +1,18 @@
-import logo from "./logo.svg";
 import "./App.css";
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import CreatePage from "./page/create/CreatePage";
+import UsePage from "./page/use/UsePage";
+import Header from "./component/Header";
 
 function App() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:3001/test")
-      .then((response) => {
-        setData(response.data);
-        console.log(response);
-      })
-      .catch((error) => {
-        console.error("에러 ", error);
-      });
-  }, []);
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <div>
-          <h1>API Data</h1>
-          {data ? <pre>{JSON.stringify(data, null, 2)}</pre> : <p>로딩</p>}
-        </div>
-      </header>
-    </div>
+    <Router>
+      <Header />
+      <Routes>
+        <Route path="/" element={<CreatePage />}></Route>
+        <Route path="/use" element={<UsePage />}></Route>
+      </Routes>
+    </Router>
   );
 }
 
