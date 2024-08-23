@@ -23,7 +23,7 @@ export default function Header() {
           }}
         />
         <Button
-          title="약속 잡기"
+          title="일정 생성"
           onClick={() => {
             console.log("약속 잡기");
           }}
@@ -40,16 +40,16 @@ const HeaderLayout = styled.div`
   height: 70px;
 
   button {
-    height: 28px;
+    font-size: 20px;
   }
 
   @media (max-width: 480px) {
     align-items: end;
-    font-size: 20px;
     padding: 11px 20px;
 
     button {
       font-size: 12px;
+      height: 28px;
     }
   }
 `;
