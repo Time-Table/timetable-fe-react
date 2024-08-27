@@ -3,11 +3,11 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
-const Calendar = () => {
+export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState([]);
-  const maxDate = new Date(); // 현재 날짜
-  maxDate.setMonth(maxDate.getMonth() + 11); // 현재 날짜로부터 12개월 후
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 11);
 
   const month = () => {
     const month = currentDate.toLocaleDateString("ko-KR", {
@@ -59,7 +59,6 @@ const Calendar = () => {
     return (
       <DaysRow>
         {days.map((day, index) => {
-          //   console.log(day);
           return <Day key={index}>{day}</Day>;
         })}
       </DaysRow>
@@ -93,7 +92,7 @@ const Calendar = () => {
     while (startDate <= monthEnd) {
       for (let i = 0; i < 7; i++) {
         const dateString = startDate.toDateString();
-        const isPastDate = startDate < today && startDate.getMonth() === today.getMonth();
+        const isPastDate = startDate < today && startDate.toDateString() !== today.toDateString();
         const isSelected = selectedDates.includes(dateString);
 
         days.push(
@@ -124,9 +123,7 @@ const Calendar = () => {
       {cells()}
     </CalendarWrapper>
   );
-};
-
-export default Calendar;
+}
 
 const CalendarWrapper = styled.div`
   ${theme.styles.flexCenterColumn}
