@@ -7,9 +7,9 @@ const color = {
   timeGrid: {
     20: "#FAE7C4",
     40: "#FFDA95",
-    40: "#FFB062",
-    40: "#FF6F6F",
-    40: "#FD2734",
+    60: "#FFB062",
+    80: "#FF6F6F",
+    100: "#FD2734",
     blur: "#D7D7D7",
     line: "#868686",
     selected: "#FE6F6F",
