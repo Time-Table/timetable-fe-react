@@ -3,6 +3,10 @@ const color = {
   button: {
     blue: "#4E87E9",
     primary: "#FE6F6F",
+    neutral: {
+      100: "#EEF1F3",
+      300: "#B6BDC6",
+    },
   },
   timeGrid: {
     20: "#FAE7C4",

@@ -2,31 +2,40 @@ import theme from "../theme";
 
 export default function Button({
   title = "다음",
-  onClick,
-  width,
+  onClick = () => {},
+  width = "100%",
   fontSize,
   background = theme.color.button.primary,
   color = "white",
+  height = "100%",
+  fontFamily = "Pretendard-Bold",
+  StyleDiv = {},
+  StyleButton = {},
+  disabled,
 }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        color: color,
-        width: `${width}px`,
-        background: background,
-        fontSize: `${fontSize}px`,
-        fontFamily: "Pretendard-Bold",
-        border: 0,
-        borderRadius: 10,
-        cursor: "pointer",
-        padding: "16px",
-      }}
-    >
-      {title}
-    </button>
+    <div style={{ display: "flex", width: width, ...StyleDiv }} onClick={onClick}>
+      <button
+        disabled={disabled}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          color: disabled ? theme.color.button.neutral[300] : color,
+          width: "100%",
+          height: height,
+          background: disabled ? theme.color.button.neutral[100] : background,
+          fontSize: fontSize,
+          fontFamily: fontFamily,
+          border: 0,
+          borderRadius: 10,
+          cursor: "pointer",
+          // padding: "16px",
+          ...StyleButton,
+        }}
+      >
+        {title}
+      </button>
+    </div>
   );
 }

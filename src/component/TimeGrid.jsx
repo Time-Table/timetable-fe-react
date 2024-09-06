@@ -3,8 +3,7 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
-const TimeGrid = ({ dates, startHour, endHour }) => {
-  const [selectedCells, setSelectedCells] = useState([]);
+export default function TimeGrid({ dates, startHour, endHour, selectedCells, setSelectedCells }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -41,10 +40,20 @@ const TimeGrid = ({ dates, startHour, endHour }) => {
 
   const generateTimeRange = (start, end) => {
     const times = [];
-    for (let hour = start; hour < end; hour++) {
-      times.push(`${hour.toString().padStart(2, "0")}:00`);
-      times.push(`${hour.toString().padStart(2, "0")}:30`);
+
+    let [startHour] = start.split(":").map(Number);
+    let [endHour] = end.split(":").map(Number);
+
+    if (startHour > endHour) {
+      [startHour, endHour] = [endHour, startHour];
     }
+
+    while (startHour < endHour || (startHour === endHour && times.length === 0)) {
+      times.push(`${startHour.toString().padStart(2, "0")}:00`);
+      times.push(`${startHour.toString().padStart(2, "0")}:30`);
+      startHour++;
+    }
+
     return times;
   };
 
@@ -140,11 +149,12 @@ const TimeGrid = ({ dates, startHour, endHour }) => {
         })}
       </Grid>
       <WeekNavigation>
-        <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek} isLeft={true}>
+        <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
           <Arrow
             width={10}
             height={20}
             color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
+            isLeft={true}
           />
         </ArrowLayout>
         <ArrowLayout onClick={nextWeek} disabled={currentWeekIndex === weeks.length - 1}>
@@ -157,22 +167,22 @@ const TimeGrid = ({ dates, startHour, endHour }) => {
       </WeekNavigation>
     </GridWrapper>
   );
-};
-
-export default TimeGrid;
+}
 
 const GridWrapper = styled.div`
   ${theme.styles.flexCenterColumn};
   user-select: none;
-  width: 500px;
   gap: 30px;
 `;
 
 const MonthDisplay = styled.div`
   text-align: center;
   font-family: "Pretendard-Medium";
-  font-size: 25px;
+  font-size: 23px;
   margin-bottom: 10px;
+  @media (max-width: 480px) {
+    font-size: 20px;
+  }
 `;
 
 const WeekNavigation = styled.div`
@@ -181,6 +191,9 @@ const WeekNavigation = styled.div`
   padding-right: 80px;
   gap: 20px;
   width: 100%;
+  @media (max-width: 480px) {
+    padding-right: 40px;
+  }
 `;
 
 const Grid = styled.div`
@@ -193,6 +206,7 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
+  background-color: red;
   font-size: 16px;
   display: contents;
 `;
@@ -207,12 +221,20 @@ const HeaderCell = styled.div`
   font-family: "Pretendard-Regular";
   font-size: 20px;
   pointer-events: ${(props) => (props.isDisabled ? "none" : "auto")};
+
+  @media (max-width: 480px) {
+    width: 41px;
+    font-size: 18px;
+  }
 `;
 
 const TimeCell = styled.div`
   grid-column: span 1;
   text-align: right;
   padding-right: 10px;
+  @media (max-width: 480px) {
+    padding-right: 5px;
+  }
 `;
 
 const Cell = styled.div`
@@ -225,14 +247,11 @@ const Cell = styled.div`
   border-top: ${(props) => {
     if (props.timeIndex === 0) return "none";
     else if (props.timeIndex % 2 === 0 && !props.isDisabled)
-      return `2px solid ${theme.text.gamma[500]}`;
+      return `2px solid ${theme.text.gamma[800]}`;
     else if (!props.isDisabled) return `1px solid ${theme.text.gamma[800]}`;
     return `2px solid ${theme.text.gamma[800]}`;
   }};
-  /* TODO: 시간 선 투명도 조정 
-  opacity: ${(props) => {
-    if (props.timeIndex % 2 === 0 && !props.isDisabled) return `60%`;
-  }}; */
+
   background-color: ${(props) =>
     props.isSelected
       ? `${theme.color.primary}`
@@ -240,12 +259,21 @@ const Cell = styled.div`
       ? `${theme.text.gamma[800]}`
       : "white"};
   cursor: ${(props) => (props.isDisabled ? "not-allowed" : "pointer")};
+
+  @media (max-width: 480px) {
+    width: 46px;
+    height: 20px;
+  }
 `;
 
 const WeekBox = styled.div`
   ${theme.styles.flexCenterColumn}
   width: 60px;
   height: 40px;
+
+  @media (max-width: 480px) {
+    width: 40px;
+  }
 `;
 
 const ArrowLayout = styled.button`
@@ -256,7 +284,6 @@ const ArrowLayout = styled.button`
   border: none;
   cursor: pointer;
   pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-  transform: ${(props) => (props.isLeft ? "rotate(180deg)" : "none")};
 
   svg {
     width: ${(props) => (props.width ? `${props.width}px` : "10px")};

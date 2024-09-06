@@ -3,9 +3,8 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
-export default function Calendar() {
+export default function Calendar({ selectedDates, setSelectedDates }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDates, setSelectedDates] = useState([]);
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 11);
 
@@ -31,15 +30,12 @@ export default function Calendar() {
 
     return (
       <MonthLayout>
-        <ArrowLayout
-          disabled={prevMonthDisabled}
-          onClick={prevMonthDisabled ? null : prevMonth}
-          isLeft={true}
-        >
+        <ArrowLayout disabled={prevMonthDisabled} onClick={prevMonthDisabled ? null : prevMonth}>
           <Arrow
             width={10}
             height={20}
             color={prevMonthDisabled ? theme.text.gamma[800] : "black"}
+            isLeft={true}
           />
         </ArrowLayout>
         <Month>{month}</Month>
@@ -81,11 +77,9 @@ export default function Calendar() {
       if (selectedDates.includes(day)) {
         const newDates = selectedDates.filter((date) => date !== day);
         setSelectedDates(newDates);
-        console.log(newDates);
       } else {
         const newDates = [...selectedDates, day];
         setSelectedDates(newDates);
-        console.log(newDates);
       }
     };
 
@@ -127,8 +121,7 @@ export default function Calendar() {
 
 const CalendarWrapper = styled.div`
   ${theme.styles.flexCenterColumn}
-  width: 510px;
-  background: white;
+  width: 100%;
 `;
 
 const MonthLayout = styled.div`
@@ -224,7 +217,6 @@ const ArrowLayout = styled.button`
   border: none;
   cursor: pointer;
   pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-  transform: ${(props) => (props.isLeft ? "rotate(180deg)" : "none")};
 
   svg {
     width: ${(props) => (props.width ? `${props.width}px` : "10px")};

@@ -14,20 +14,21 @@ export default function Header() {
         <span style={{ color: theme.color.timeGrid.select }}>Table</span>
       </TitleLayout>
       <div style={{ display: "flex", flexDirection: "row", alignItems: "end" }}>
-        <Button
-          title="FAQ"
-          background="white"
-          color="black"
+        <ButtonDiv
           onClick={() => {
             console.log("FAQ");
           }}
-        />
-        <Button
-          title="일정 생성"
+        >
+          <Button title="FAQ" background="white" color="black" onClick={() => {}} />
+        </ButtonDiv>
+
+        <ButtonDiv
           onClick={() => {
-            console.log("약속 잡기");
+            window.location.href = "/";
           }}
-        />
+        >
+          <Button title="일정 생성" />
+        </ButtonDiv>
       </div>
     </HeaderLayout>
   );
@@ -39,18 +40,9 @@ const HeaderLayout = styled.div`
   padding: 11px 60px;
   height: 70px;
 
-  button {
-    font-size: 20px;
-  }
-
   @media (max-width: 480px) {
     align-items: end;
     padding: 11px 20px;
-
-    button {
-      font-size: 12px;
-      height: 28px;
-    }
   }
 `;
 
@@ -60,5 +52,23 @@ const TitleLayout = styled.div`
 
   @media (max-width: 480px) {
     font-size: 20px;
+  }
+`;
+
+const ButtonDiv = styled.div`
+  display: flex;
+  justify-content: end;
+  width: 106px;
+  height: 52px;
+  button {
+    font-size: 20px;
+  }
+  @media (max-width: 480px) {
+    width: 70px;
+    height: 30px;
+
+    button {
+      font-size: 12px;
+    }
   }
 `;
