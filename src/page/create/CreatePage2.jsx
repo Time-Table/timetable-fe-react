@@ -1,17 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Button from "../../component/Button";
 import Input from "../../component/Input";
 import Arrow from "../../assets/svg/Arrow";
 
-export default function CreatePage2() {
+export default function CreatePage2({
+  onNext,
+  onBack,
+  startHour,
+  endHour,
+  tableTitle,
+  endTimeClicked,
+  dates,
+}) {
   const [startDropdown, setStartDropdown] = useState(false);
   const [endDropdown, setEndDropdown] = useState(false);
-  const [startTime, setStartTime] = useState("00:00");
-  const [endTime, setEndTime] = useState("-- : --");
+  const [sHour, setSHour] = useState("00:00");
+  const [eHour, setEHour] = useState("-- : --");
   const [isEndTimeClicked, setIsEndTimeClicked] = useState(0);
-  const [tableTitle, setTableTitle] = useState("");
+  const [title, setTitle] = useState("");
+
+  useEffect(() => {
+    if (startHour && endHour && tableTitle && dates && endTimeClicked) {
+      setSHour(startHour);
+      setEHour(endHour);
+      setTitle(tableTitle);
+      setIsEndTimeClicked(endTimeClicked);
+    }
+  }, [sHour && eHour && title && dates && endTimeClicked]);
 
   const genStartTime = () => {
     const times = [];
@@ -42,14 +59,14 @@ export default function CreatePage2() {
               <TimeSlotDiv
                 key={index}
                 onClick={() => {
-                  if (time.split(":")[0] < endTime.split(":")[0]) {
-                    setStartTime(time);
+                  if (time.split(":")[0] < eHour.split(":")[0]) {
+                    setSHour(time);
                   } else {
-                    setStartTime(time);
+                    setSHour(time);
                     if (index + 1 < startTimeList.length) {
-                      setEndTime(startTimeList[index + 1]);
+                      setEHour(startTimeList[index + 1]);
                     } else {
-                      setEndTime(endTimeList[index]);
+                      setEHour(endTimeList[index]);
                     }
                   }
                   setIsEndTimeClicked(isEndTimeClicked + 1);
@@ -72,14 +89,14 @@ export default function CreatePage2() {
               <TimeSlotDiv
                 key={index}
                 onClick={() => {
-                  if (time.split(":")[0] > startTime.split(":")[0]) {
-                    setEndTime(time);
+                  if (time.split(":")[0] > sHour.split(":")[0]) {
+                    setEHour(time);
                   } else {
-                    setEndTime(time);
+                    setEHour(time);
                     if (index - 1 >= 0) {
-                      setStartTime(endTimeList[index - 1]);
+                      setSHour(endTimeList[index - 1]);
                     } else {
-                      setStartTime(startTimeList[index]);
+                      setSHour(startTimeList[index]);
                     }
                   }
                   setIsEndTimeClicked(isEndTimeClicked + 1);
@@ -101,14 +118,13 @@ export default function CreatePage2() {
     const handleEndTime = () => {
       setEndDropdown(!endDropdown);
     };
-    console.log(isEndTimeClicked);
 
     return (
       <TimeLayout>
         <Button
           width="80px"
           height="40px"
-          title={startTime}
+          title={sHour}
           fontFamily="Pretendard-Medium"
           onClick={handleStartTime}
           StyleButton={{ letterSpacing: "0.07em" }}
@@ -118,7 +134,7 @@ export default function CreatePage2() {
         <Button
           width="80px"
           height="40px"
-          title={endTime}
+          title={eHour}
           fontFamily="Pretendard-Medium"
           onClick={handleEndTime}
           StyleButton={{ letterSpacing: "0.07em" }}
@@ -133,7 +149,11 @@ export default function CreatePage2() {
       <ContentDiv>
         <Question2Div>
           <div style={{ width: "100%" }}>
-            <ArrowLayout onClick={() => (window.location.href = "/")}>
+            <ArrowLayout
+              onClick={() => {
+                onBack(dates);
+              }}
+            >
               <Arrow width={10} height={20} isLeft={true} />
             </ArrowLayout>
           </div>
@@ -148,27 +168,19 @@ export default function CreatePage2() {
             <Input
               maxLength={25}
               onChange={(e) => {
-                setTableTitle(e.target.value);
+                setTitle(e.target.value);
               }}
               placeholder={"ex: 공학설계입문 2조 회의 시간"}
-              value={tableTitle}
+              value={title}
             />
           </InputLayout>
         </Question3Div>
         <ButtonLayout>
           <ButtonDiv>
             <Button
-              disabled={!tableTitle ? true : false}
+              disabled={!title ? true : false}
               onClick={() => {
-                console.log(
-                  "text: ",
-                  tableTitle,
-                  "\nstartTime: ",
-                  startTime,
-                  "\nendTime: ",
-                  endTime
-                );
-                window.location.href = "/CreatePage3";
+                onNext(sHour, eHour, title, isEndTimeClicked);
               }}
             />
           </ButtonDiv>

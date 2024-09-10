@@ -5,38 +5,24 @@ import Button from "../../component/Button";
 import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 
-const MOCKDATA = {
-  dates: [
-    "Mon Sep 23 2024",
-    "Tue Sep 24 2024",
-    "Wed Sep 25 2024",
-    "Thu Oct 10 2024",
-    "Fri Nov 15 2024",
-    "Sat Dec 20 2024",
-    "Sun Jan 05 2025",
-    "Mon Feb 10 2025",
-    "Tue Mar 11 2025",
-    "Wed Apr 23 2025",
-    "Thu May 30 2025",
-    "Fri Jun 13 2025",
-    "Sat Jul 19 2025",
-  ],
-  startHour: "00:00",
-  endHour: "10:00",
-  tableTitle: "공학설계입문 2조 회의 시간",
-};
-
-export default function CreatePage3() {
+export default function CreatePage3({
+  startHour,
+  endHour,
+  dates,
+  tableTitle,
+  onBack,
+  endTimeClicked,
+}) {
   const [selectedCells, setSelectedCells] = useState([]);
 
   const formattedDates = () => {
-    const dates = [];
-    MOCKDATA.dates.map((date) => {
+    const dateList = [];
+    dates.map((date) => {
       let formatteddate = new Date(date);
       formatteddate = formatteddate.toISOString().split("T")[0];
-      dates.push(formatteddate);
+      dateList.push(formatteddate);
     });
-    return dates;
+    return dateList;
   };
 
   return (
@@ -44,7 +30,11 @@ export default function CreatePage3() {
       <ContentDiv>
         <QuestionDiv>
           <div style={{ width: "100%" }}>
-            <ArrowLayout onClick={() => (window.location.href = "/createPage2")}>
+            <ArrowLayout
+              onClick={() => {
+                onBack(startHour, endHour, tableTitle, endTimeClicked);
+              }}
+            >
               <Arrow width={10} height={20} isLeft={true} />
             </ArrowLayout>
           </div>
@@ -56,8 +46,8 @@ export default function CreatePage3() {
         </QuestionDiv>
         <TimeGrid
           dates={formattedDates()}
-          startHour={MOCKDATA.startHour}
-          endHour={MOCKDATA.endHour}
+          startHour={startHour}
+          endHour={endHour}
           selectedCells={selectedCells}
           setSelectedCells={setSelectedCells}
         />

@@ -1,117 +1,52 @@
-import { useState } from "react";
-import styled from "@emotion/styled/macro";
-import theme from "../../theme";
-import Calendar from "../../component/Calendar";
-import Button from "../../component/Button";
+import { useFunnel } from "@use-funnel/react-router-dom";
+import CreatePage1 from "./CreatePage1";
+import CreatePage2 from "./CreatePage2";
+import CreatePage3 from "./CreatePage3";
 
 export default function CreatePage() {
-  const [selectedDates, setSelectedDates] = useState([]);
+  const funnel = useFunnel({
+    id: "createPage",
+    initial: {
+      step: "CreatePage1",
+      context: {},
+    },
+  });
 
   return (
-    <CreatePageDiv>
-      <ContentDiv>
-        <QuestionDiv>
-          <Q>Q1.</Q>
-          <Title>언제 만나시나요?</Title>
-        </QuestionDiv>
-        <CalendarLayout>
-          <Calendar selectedDates={selectedDates} setSelectedDates={setSelectedDates} />
-        </CalendarLayout>
-        <ButtonLayout>
-          <ButtonDiv>
-            <Button
-              disabled={selectedDates.length === 0 ? true : false}
-              onClick={() => {
-                console.log(selectedDates);
-                window.location.href = "/CreatePage2";
-              }}
-            />
-          </ButtonDiv>
-        </ButtonLayout>
-      </ContentDiv>
-    </CreatePageDiv>
+    <funnel.Render
+      CreatePage1={({ history, context }) => (
+        <CreatePage1
+          onNext={(dates) => history.push("CreatePage2", { dates })}
+          dates={context?.dates ?? []}
+        />
+      )}
+      CreatePage2={({ history, context }) => (
+        <CreatePage2
+          dates={context.dates}
+          startHour={context?.startHour}
+          endHour={context?.endHour}
+          tableTitle={context?.tableTitle}
+          endTimeClicked={context.endTimeClicked}
+          onNext={(startHour, endHour, tableTitle, endTimeClicked) => {
+            history.push("CreatePage3", { startHour, endHour, tableTitle, endTimeClicked });
+          }}
+          onBack={(dates) => {
+            history.push("CreatePage1", { dates });
+          }}
+        />
+      )}
+      CreatePage3={({ context, history }) => (
+        <CreatePage3
+          dates={context.dates}
+          startHour={context.startHour}
+          endHour={context.endHour}
+          tableTitle={context.tableTitle}
+          endTimeClicked={context.endTimeClicked}
+          onBack={(startHour, endHour, tableTitle, endTimeClicked) => {
+            history.push("CreatePage2", { startHour, endHour, tableTitle, endTimeClicked });
+          }}
+        />
+      )}
+    />
   );
 }
-
-const CreatePageDiv = styled.div`
-  ${theme.styles.flexCenterColumn}
-  width: 100%;
-`;
-
-const QuestionDiv = styled.div`
-  ${theme.styles.flexCenterColumn}
-  gap: 12px;
-`;
-const ContentDiv = styled.div`
-  ${theme.styles.flexCenterColumn}
-  gap: 40px;
-  margin: 50px 0;
-  width: 510px;
-  opacity: 0;
-  transform: translateY(-30px);
-  animation: fadeIn 1.2s ease-in-out forwards;
-
-  @media (max-width: 480px) {
-    width: 380px;
-  }
-
-  @keyframes fadeIn {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-const CalendarLayout = styled.div`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-`;
-
-const ButtonLayout = styled.div`
-  /* height: 3rem; */
-  width: 100%;
-  display: flex;
-  justify-content: end;
-  align-items: center;
-  @media (max-width: 480px) {
-    width: 320px;
-  }
-`;
-
-const ButtonDiv = styled.div`
-  display: flex;
-  width: 160px;
-  height: 56px;
-  button {
-    font-size: 20px;
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    height: 50px;
-    button {
-      font-size: 16px;
-    }
-  }
-`;
-
-const Q = styled.span`
-  font-family: "Pretendard-SemiBold";
-  font-size: 28px;
-  color: ${theme.color.primary};
-
-  @media (max-width: 480px) {
-    font-size: 24px;
-  }
-`;
-
-const Title = styled.span`
-  font-family: "Pretendard-SemiBold";
-  font-size: 32px;
-
-  @media (max-width: 480px) {
-    font-size: 28px;
-  }
-`;

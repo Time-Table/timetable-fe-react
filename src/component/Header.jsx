@@ -24,7 +24,7 @@ export default function Header() {
 
         <ButtonDiv
           onClick={() => {
-            window.location.href = "/";
+            window.location.href = "/CreatePage";
           }}
         >
           <Button title="일정 생성" />
