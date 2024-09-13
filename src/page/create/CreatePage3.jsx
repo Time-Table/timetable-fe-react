@@ -19,9 +19,12 @@ export default function CreatePage3({
     const dateList = [];
     dates.map((date) => {
       let formatteddate = new Date(date);
+      formatteddate.setHours(formatteddate.getHours() + 9);
       formatteddate = formatteddate.toISOString().split("T")[0];
       dateList.push(formatteddate);
     });
+    console.log(dateList);
+    console.log(startHour, endHour);
     return dateList;
   };
 
