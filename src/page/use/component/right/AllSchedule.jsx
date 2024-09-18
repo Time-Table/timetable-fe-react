@@ -1,80 +1,71 @@
 import styled from "@emotion/styled/macro";
 import Share from "../../../../assets/svg/Share";
-import Button from "../../../../component/Button";
+import Input from "../../../../component/Input";
 import theme from "../../../../theme";
+import { MOCKDATA } from "../../MOCKDATA";
 
 export default function AllSchedule() {
-  const url = "https://www.naver.com";
-  const title = "공학 설계 입문 12차 회의";
+  const memberName = MOCKDATA.memberNames;
   return (
     <>
-      <ButtonLayout>
-        <ButtonDiv>
-          <Button background={theme.color.button.blue} title="초대하기" />
-        </ButtonDiv>
-        <ButtonDiv>
-          <Button background={theme.color.primary} title="일정추가" />
-        </ButtonDiv>
-      </ButtonLayout>
-      <TitleFrame>
-        <div style={{ fontSize: "32px" }}>{title}</div>
-        <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
-      </TitleFrame>
+      <MembersLayout>
+        {memberName.map((name) => {
+          return <MemberDiv>{name}</MemberDiv>;
+        })}
+      </MembersLayout>
 
-      <DefaultFrame>
-        <div style={{ fontSize: "32px" }}>링크를 복사하여 초대하세요.</div>
-        <UrlDiv>
-          <Share />
-          {url}
-        </UrlDiv>
-      </DefaultFrame>
+      <ChatLayout>
+        채팅
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            width: "423px",
+          }}
+        >
+          {MOCKDATA.chatLog.map((chat) => (
+            <ChatDiv key={chat.id}>
+              <div>{chat.name} :</div> {chat.message}
+            </ChatDiv>
+          ))}
+        </div>
+        <div style={{ width: "423px" }}>
+          <Input fontSize={"22px"} placeholder={"일정을 추가하고 채팅을 이용해 보세요."} />
+        </div>{" "}
+      </ChatLayout>
     </>
   );
 }
 
-const TitleFrame = styled.div`
+const MembersLayout = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
   width: 100%;
+  gap: 10px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid ${theme.text.gamma[800]};
 `;
 
-const DefaultFrame = styled.div`
+const MemberDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  font-family: Pretendard-SemiBold;
-  width: 100%;
-  gap: 30px;
-`;
-
-const UrlDiv = styled.div`
-  ${theme.styles.flexCenterRow}
-  background-color:${theme.text.gamma[900]};
-  font-family: Pretendard-Regular;
+  font-family: Pretendard-Light;
   font-size: 24px;
-  width: 100%;
-  height: 50px;
-  border-radius: 10px;
 `;
-const ButtonLayout = styled.div`
+
+const ChatLayout = styled.div`
+  ${theme.styles.flexCenterColumn}
+  font-family: Pretendard-SemiBold;
+  width: 100%;
+  gap: 20px;
+  font-size: 25px;
+`;
+
+const ChatDiv = styled.div`
   ${theme.styles.flexCenterRow}
-  width: 100%;
-  @media (max-width: 480px) {
-    width: 320px;
-  }
-`;
+  font-family: Pretendard-Light;
 
-const ButtonDiv = styled.div`
-  display: flex;
-  width: 160px;
-  height: 56px;
-  button {
-    font-size: 20px;
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    height: 50px;
-    button {
-      font-size: 16px;
-    }
-  }
+  gap: 10px;
+  font-size: 22px;
 `;

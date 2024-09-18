@@ -7,7 +7,7 @@ export default function Header() {
     <HeaderLayout>
       <TitleLayout
         onClick={() => {
-          console.log("TimeTable");
+          window.location.href = "/";
         }}
       >
         <span style={{ color: theme.color.timeGrid.selected }}>Time</span>
@@ -46,9 +46,15 @@ const HeaderLayout = styled.div`
   }
 `;
 
-const TitleLayout = styled.div`
+const TitleLayout = styled.button`
   ${theme.styles.flexCenterRow}
   font-size: 28px;
+  background: none;
+  border: none;
+  padding: 0;
+  letter-spacing: -0.05em;
+  font-family: Pretendard-ExtraLight;
+  cursor: pointer;
 
   @media (max-width: 480px) {
     font-size: 20px;

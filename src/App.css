@@ -2,6 +2,10 @@
   text-align: center;
 }
 
+body {
+  letter-spacing: -0.05em;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

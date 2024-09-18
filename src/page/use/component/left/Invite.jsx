@@ -2,10 +2,11 @@ import styled from "@emotion/styled/macro";
 import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
+import { MOCKDATA } from "../../MOCKDATA";
 
 export default function Invite() {
-  const url = "https://www.naver.com";
-  const title = "공학 설계 입문 12차 회의";
+  const url = MOCKDATA.MeetingUrl;
+  const title = MOCKDATA.title;
   return (
     <>
       <TitleFrame>
@@ -13,7 +14,7 @@ export default function Invite() {
         <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
       </TitleFrame>
 
-      <DefaultFrame>
+      <ContentFrame>
         <div style={{ fontSize: "32px" }}>링크를 복사하여 초대하세요.</div>
         <UrlDiv>
           <Share />
@@ -24,7 +25,7 @@ export default function Invite() {
             <Button background={theme.color.button.blue} />
           </ButtonDiv>
         </ButtonLayout>
-      </DefaultFrame>
+      </ContentFrame>
     </>
   );
 }
@@ -35,7 +36,7 @@ const TitleFrame = styled.div`
   width: 100%;
 `;
 
-const DefaultFrame = styled.div`
+const ContentFrame = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
   width: 100%;
