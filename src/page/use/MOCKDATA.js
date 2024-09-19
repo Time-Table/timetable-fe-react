@@ -15,7 +15,16 @@ export const MOCKDATA = {
   ],
   memberNames: ["홍길동", "차은우", "설윤아", "박보검", "이상혁"],
   chatLog: [
-    { id: 1, name: "홍길동", message: "고민하시다가 3일 오후 10시까지 꼭 투표 해주셔야 합니다" },
+    {
+      id: 0,
+      name: "개똥벌레친구가없네",
+      message: "고민하시다가 3일 오후 10시까지 꼭 투표 해주셔야 합니다.",
+    },
+    {
+      id: 1,
+      name: "홍길동",
+      message: "고민하시다가 3일 오후 10시까지 꼭 투표 해주셔야 합니다.",
+    },
     { id: 2, name: "차은우", message: "넵" },
     { id: 3, name: "설윤아", message: "알겠습니다." },
     { id: 4, name: "이상혁", message: "ㅋㅋ" },

@@ -16,8 +16,9 @@ export default function UsePage() {
   const startHour = MOCKDATA.startHour;
   const endHour = MOCKDATA.endHour;
   // console.log(dates, startHour, endHour);
-  const [leftScreen, setLeftScreen] = useState(Invite());
-  const [rightScreen, setRightScreen] = useState(AllSchedule());
+  const [leftScreen, setLeftScreen] = useState(<Invite />);
+
+  const [rightScreen, setRightScreen] = useState(<AllSchedule />);
 
   return (
     <UsePageLayout>
@@ -28,43 +29,51 @@ export default function UsePage() {
             <Button
               background={theme.color.button.blue}
               title="초대하기"
-              onClick={() => setLeftScreen(Invite())}
+              onClick={() => setLeftScreen(<Invite />)}
             />
           </ButtonDiv>
           <ButtonDiv>
             <Button
               background={theme.color.primary}
               title="일정 추가"
-              onClick={() => setLeftScreen(AddUser())}
+              onClick={() => setLeftScreen(<AddUser />)}
             />
           </ButtonDiv>
         </ButtonLayout>
 
         <ToggleLayout>
-          <Button
-            width="70px"
-            fontFamily="Pretendard-Regular"
-            title="전체 일정"
-            background="none"
-            color="black"
-            onClick={() => setRightScreen(AllSchedule())}
-          />
-          <Button
-            width="70px"
-            fontFamily="Pretendard-Regular"
-            title="내 일정"
-            background="none"
-            color="black"
-            onClick={() => setRightScreen(MySchedule())}
-          ></Button>
-          <Button
-            width="70px"
-            fontFamily="Pretendard-Regular"
-            title="순위"
-            background="none"
-            color="black"
-            onClick={() => setRightScreen(Rank())}
-          ></Button>
+          <ToggleButtonDiv>
+            <Button
+              fontFamily="Pretendard-Regular"
+              title={`전체 일정(${MOCKDATA.memberNames.length})`}
+              background="none"
+              color="black"
+              onClick={() => {
+                setRightScreen(<AllSchedule />);
+                setLeftScreen(
+                  <AllTimeGrid dates={dates} startHour={startHour} endHour={endHour} />
+                );
+              }}
+            />
+          </ToggleButtonDiv>
+          <ToggleButtonDiv>
+            <Button
+              fontFamily="Pretendard-Regular"
+              title="내 일정"
+              background="none"
+              color="black"
+              onClick={() => setRightScreen(<MySchedule />)}
+            />
+          </ToggleButtonDiv>
+          <ToggleButtonDiv>
+            <Button
+              fontFamily="Pretendard-Regular"
+              title="순위"
+              background="none"
+              color="black"
+              onClick={() => setRightScreen(<Rank />)}
+            />
+          </ToggleButtonDiv>
         </ToggleLayout>
         {rightScreen}
       </RightArea>
@@ -137,10 +146,21 @@ const ToggleLayout = styled.div`
   justify-content: center;
   align-items: center;
   width: 100%;
+  height: 30px;
   gap: 20px;
+`;
 
+const ToggleButtonDiv = styled.div`
+  display: flex;
   button {
     font-size: 25px;
-    letter-spacing: -0.05em;
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    height: 50px;
+    button {
+      font-size: 16px;
+    }
   }
 `;

@@ -3,8 +3,11 @@ import Share from "../../../../assets/svg/Share";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
+import Send from "../../../../assets/svg/Send";
+import { useState } from "react";
 
 export default function AllSchedule() {
+  const [message, setMessage] = useState();
   const memberName = MOCKDATA.memberNames;
   return (
     <>
@@ -16,24 +19,36 @@ export default function AllSchedule() {
 
       <ChatLayout>
         채팅
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-            alignItems: "flex-start",
-            width: "423px",
-          }}
-        >
+        <ChatingDiv>
           {MOCKDATA.chatLog.map((chat) => (
             <ChatDiv key={chat.id}>
-              <div>{chat.name} :</div> {chat.message}
+              <NameDiv>{chat.name} :</NameDiv>
+              <div style={{ width: "343px", height: "100%" }}>{chat.message}</div>
             </ChatDiv>
           ))}
-        </div>
-        <div style={{ width: "423px" }}>
-          <Input fontSize={"22px"} placeholder={"일정을 추가하고 채팅을 이용해 보세요."} />
-        </div>{" "}
+        </ChatingDiv>
+        <InputLayout>
+          <Input
+            fontSize={"22px"}
+            placeholder={"일정을 추가하고 채팅을 이용해 보세요."}
+            maxLength={300}
+            onChange={(e) => {
+              setMessage(e.target.value);
+            }}
+            value={message}
+          />
+          <SendButtonBox
+            onClick={() => {
+              if (message) {
+                console.log(message); // message가 있는 경우에만 출력
+              } else {
+                console.log("메시지를 입력해주세요."); // message가 없을 때 안내 메시지 출력
+              }
+            }}
+          >
+            <Send />
+          </SendButtonBox>
+        </InputLayout>
       </ChatLayout>
     </>
   );
@@ -62,10 +77,43 @@ const ChatLayout = styled.div`
   font-size: 25px;
 `;
 
+const ChatingDiv = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 423px;
+  gap: 10px;
+  max-height: 166px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+`;
+
 const ChatDiv = styled.div`
   ${theme.styles.flexCenterRow}
   font-family: Pretendard-Light;
-
-  gap: 10px;
+  width: 100%;
+  gap: auto;
   font-size: 22px;
+`;
+
+const NameDiv = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: Pretendard-Regular;
+  font-size: 22px;
+  width: 70px;
+  height: 100%;
+`;
+
+const InputLayout = styled.div`
+  ${theme.styles.flexCenterRow}
+  width: 423px;
+`;
+
+const SendButtonBox = styled.button`
+  ${theme.styles.flexCenterRow}
+  background: none;
+  border: none;
 `;

@@ -9,6 +9,7 @@ export default function TimeGrid({ dates, startHour, endHour, selectedCells, set
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
+    console.log(dates, startHour, endHour);
     const groupedWeeks = groupDatesByWeek(dates);
     setWeeks(groupedWeeks);
   }, [dates]);
