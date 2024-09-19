@@ -29,4 +29,121 @@ export const MOCKDATA = {
     { id: 3, name: "설윤아", message: "알겠습니다." },
     { id: 4, name: "이상혁", message: "ㅋㅋ" },
   ],
+  rank: [
+    {
+      id: 0,
+      sum: 115,
+      date: ["2024-09-09-16:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+
+    {
+      id: 1,
+      sum: 4,
+      date: ["2024-09-08-16:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+    {
+      id: 2,
+      sum: 3,
+      date: ["2024-09-08-15:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+    {
+      id: 3,
+      sum: 2,
+      date: ["2024-09-08-14:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+    {
+      id: 5,
+      sum: 1,
+      date: ["2024-09-08-13:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+    {
+      id: 6,
+      sum: 1,
+      date: ["2024-09-10-12:00"],
+      members: [
+        {
+          id: 0,
+          name: "홍길동",
+        },
+        {
+          id: 1,
+          name: "박보검",
+        },
+        { id: 2, name: "차은우" },
+        { id: 3, name: "카리나" },
+        { id: 4, name: "설윤아" },
+        { id: 5, name: "이상혁" },
+      ],
+    },
+  ],
 };

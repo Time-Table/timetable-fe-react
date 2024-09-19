@@ -2,8 +2,11 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Input from "../../../../component/Input";
+import { useState } from "react";
 
-export default function AddUser() {
+export default function AddUser({ setLeftScreen, setRightScreen }) {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   return (
     <>
       <TitleFrame>
@@ -13,15 +16,33 @@ export default function AddUser() {
       <ContentFrame>
         <div style={{ fontSize: "28px" }}>이름</div>
         <div style={{ width: "423px" }}>
-          <Input placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."} />
+          <Input
+            placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
+            onChange={(e) => setName(e.target.value)}
+            value={name}
+          />
         </div>
         <div style={{ fontSize: "28px" }}>비밀번호(선택)</div>
         <div style={{ width: "423px" }}>
-          <Input placeholder={"일정 수정 및 삭제에 이용될 비밀번호 4자리를 입력하세요"} />
+          <Input
+            placeholder={"일정 수정 및 삭제에 이용될 비밀번호 4자리를 입력하세요"}
+            onChange={(e) => setPassword(e.target.value)}
+            value={password}
+          />
         </div>
         <ButtonLayout>
           <ButtonDiv>
-            <Button title="완료" />
+            <Button
+              title="완료"
+              onClick={() => {
+                console.log("name: ", name);
+                console.log("password: ", password);
+                setLeftScreen("AllTimeGrid");
+                setRightScreen("MySchedule");
+              }}
+              //TODO: 닉넴 중복? 비번 자리 수 체크
+              disabled={name.length === 0 || password.length === 0 ? true : false}
+            />
           </ButtonDiv>
         </ButtonLayout>
       </ContentFrame>

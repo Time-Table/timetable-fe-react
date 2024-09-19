@@ -4,7 +4,7 @@ import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
 
-export default function Invite() {
+export default function Invite({ setLeftScreen }) {
   const url = MOCKDATA.MeetingUrl;
   const title = MOCKDATA.title;
   return (
@@ -22,7 +22,10 @@ export default function Invite() {
         </UrlDiv>
         <ButtonLayout>
           <ButtonDiv>
-            <Button background={theme.color.button.blue} />
+            <Button
+              background={theme.color.button.blue}
+              onClick={() => setLeftScreen("AllTimeGrid")}
+            />
           </ButtonDiv>
         </ButtonLayout>
       </ContentFrame>

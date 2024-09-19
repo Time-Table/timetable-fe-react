@@ -4,11 +4,19 @@ import Input from "../../../../component/Input";
 import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
 import Send from "../../../../assets/svg/Send";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function AllSchedule() {
   const [message, setMessage] = useState();
   const memberName = MOCKDATA.memberNames;
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
+    }
+  }, []);
+
   return (
     <>
       <MembersLayout>
@@ -19,7 +27,7 @@ export default function AllSchedule() {
 
       <ChatLayout>
         채팅
-        <ChatingDiv>
+        <ChatingDiv ref={chatEndRef}>
           {MOCKDATA.chatLog.map((chat) => (
             <ChatDiv key={chat.id}>
               <NameDiv>{chat.name} :</NameDiv>
@@ -87,6 +95,12 @@ const ChatingDiv = styled.div`
   max-height: 166px;
   overflow-y: auto;
   scroll-behavior: smooth;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none; //IE and Edge
+  scrollbar-width: none; //Firefox
 `;
 
 const ChatDiv = styled.div`

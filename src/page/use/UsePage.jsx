@@ -16,27 +16,50 @@ export default function UsePage() {
   const startHour = MOCKDATA.startHour;
   const endHour = MOCKDATA.endHour;
   // console.log(dates, startHour, endHour);
-  const [leftScreen, setLeftScreen] = useState(<Invite />);
+  const [leftScreen, setLeftScreen] = useState("Invite");
+  const [rightScreen, setRightScreen] = useState("AllSchedule");
+  const [selectedToggle, setSelectedToggle] = useState(false);
 
-  const [rightScreen, setRightScreen] = useState(<AllSchedule />);
+  const handleToggle = (button) => {
+    setSelectedToggle(button);
+  };
+
+  const showScreen = (Screen) => {
+    switch (Screen) {
+      case "AddUser":
+        return <AddUser setLeftScreen={setLeftScreen} setRightScreen={setRightScreen} />;
+      case "Invite":
+        return <Invite setLeftScreen={setLeftScreen} />;
+      case "AllTimeGrid":
+        return <AllTimeGrid dates={dates} startHour={startHour} endHour={endHour} />;
+      case "AllSchedule":
+        return <AllSchedule />;
+      case "MySchedule":
+        return <MySchedule dates={dates} startHour={startHour} endHour={endHour} />;
+      case "Rank":
+        return <Rank />;
+      default:
+        return "예상치 못한 에러입니다. 다시 시도해주세요.";
+    }
+  };
 
   return (
     <UsePageLayout>
-      <LeftArea>{leftScreen}</LeftArea>
+      <LeftArea>{showScreen(leftScreen)}</LeftArea>
       <RightArea>
         <ButtonLayout>
           <ButtonDiv>
             <Button
               background={theme.color.button.blue}
               title="초대하기"
-              onClick={() => setLeftScreen(<Invite />)}
+              onClick={() => setLeftScreen("Invite")}
             />
           </ButtonDiv>
           <ButtonDiv>
             <Button
               background={theme.color.primary}
               title="일정 추가"
-              onClick={() => setLeftScreen(<AddUser />)}
+              onClick={() => setLeftScreen("AddUser")}
             />
           </ButtonDiv>
         </ButtonLayout>
@@ -44,38 +67,45 @@ export default function UsePage() {
         <ToggleLayout>
           <ToggleButtonDiv>
             <Button
-              fontFamily="Pretendard-Regular"
+              fontFamily={selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
               title={`전체 일정(${MOCKDATA.memberNames.length})`}
               background="none"
-              color="black"
+              color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
               onClick={() => {
-                setRightScreen(<AllSchedule />);
-                setLeftScreen(
-                  <AllTimeGrid dates={dates} startHour={startHour} endHour={endHour} />
-                );
+                setRightScreen("AllSchedule");
+                setLeftScreen("AllTimeGrid");
+                handleToggle("전체 일정");
               }}
             />
           </ToggleButtonDiv>
           <ToggleButtonDiv>
             <Button
-              fontFamily="Pretendard-Regular"
+              fontFamily={selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
               title="내 일정"
               background="none"
-              color="black"
-              onClick={() => setRightScreen(<MySchedule />)}
+              color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
+              onClick={() => {
+                setRightScreen("MySchedule");
+                setLeftScreen("AllTimeGrid");
+                handleToggle("내 일정");
+              }}
             />
           </ToggleButtonDiv>
           <ToggleButtonDiv>
             <Button
-              fontFamily="Pretendard-Regular"
+              fontFamily={selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"}
               title="순위"
               background="none"
-              color="black"
-              onClick={() => setRightScreen(<Rank />)}
+              color={selectedToggle === "순위" ? theme.color.primary : "black"}
+              onClick={() => {
+                setRightScreen("Rank");
+                setLeftScreen("AllTimeGrid");
+                handleToggle("순위");
+              }}
             />
           </ToggleButtonDiv>
         </ToggleLayout>
-        {rightScreen}
+        {showScreen(rightScreen)}
       </RightArea>
     </UsePageLayout>
   );
@@ -87,13 +117,15 @@ const UsePageLayout = styled.div`
 `;
 
 const LeftArea = styled.div`
-  ${theme.styles.flexCenterColumn}
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
   gap: 30px;
-  margin: 50px 0;
   width: 583px;
-  height: 500px;
-  padding: 200px 0;
-
+  height: 900px;
+  padding-top: 60px;
+  padding-bottom: 10px;
   @media (max-width: 480px) {
     width: 380px;
   }
@@ -104,7 +136,7 @@ const RightArea = styled.div`
   justify-content: flex-start;
   align-items: center;
   gap: 30px;
-  margin-top: 60px;
+  padding-top: 60px;
   width: 583px;
   height: 900px;
 
@@ -115,8 +147,8 @@ const RightArea = styled.div`
 
 const ButtonLayout = styled.div`
   ${theme.styles.flexCenterRow}
-  justify-content: end;
-  width: 100%;
+  justify-content: flex-end;
+  width: 490px;
   gap: 12px;
   @media (max-width: 480px) {
     width: 320px;
