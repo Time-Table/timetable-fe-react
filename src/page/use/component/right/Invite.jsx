@@ -8,7 +8,7 @@ export default function Invite({ setLeftScreen }) {
   const url = MOCKDATA.MeetingUrl;
   const title = MOCKDATA.title;
   return (
-    <>
+    <Frame>
       <TitleFrame>
         <div style={{ fontSize: "32px" }}>{title}</div>
         <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
@@ -23,15 +23,23 @@ export default function Invite({ setLeftScreen }) {
         <ButtonLayout>
           <ButtonDiv>
             <Button
+              title="링크 복사"
               background={theme.color.button.blue}
               onClick={() => setLeftScreen("AllTimeGrid")}
             />
           </ButtonDiv>
         </ButtonLayout>
       </ContentFrame>
-    </>
+    </Frame>
   );
 }
+const Frame = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: 140px;
+  gap: 50px;
+  width: 100%;
+`;
 
 const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}

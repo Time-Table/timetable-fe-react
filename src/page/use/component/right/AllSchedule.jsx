@@ -20,8 +20,8 @@ export default function AllSchedule() {
   return (
     <>
       <MembersLayout>
-        {memberName.map((name) => {
-          return <MemberDiv>{name}</MemberDiv>;
+        {memberName.map((name, index) => {
+          return <MemberDiv key={index}>{name}</MemberDiv>;
         })}
       </MembersLayout>
 

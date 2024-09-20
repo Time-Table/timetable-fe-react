@@ -2,7 +2,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Button from "../../component/Button";
 import Share from "../../assets/svg/Share";
-import Invite from "./component/left/Invite";
+import Invite from "./component/right/Invite";
 import AllSchedule from "./component/right/AllSchedule";
 import MySchedule from "./component/right/MySchedule";
 import AddUser from "./component/left/AddUser";
@@ -59,7 +59,10 @@ export default function UsePage() {
             <Button
               background={theme.color.primary}
               title="일정 추가"
-              onClick={() => setLeftScreen("AddUser")}
+              onClick={() => {
+                setLeftScreen("AllTimeGrid");
+                setRightScreen("AddUser");
+              }}
             />
           </ButtonDiv>
         </ButtonLayout>

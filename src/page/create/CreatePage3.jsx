@@ -38,7 +38,7 @@ export default function CreatePage3({
                 onBack(startHour, endHour, tableTitle, endTimeClicked);
               }}
             >
-              <Arrow width={10} height={20} isLeft={true} />
+              <Arrow width={10} height={20} angle={180} />
             </ArrowLayout>
           </div>
           <Q>Q4.</Q>

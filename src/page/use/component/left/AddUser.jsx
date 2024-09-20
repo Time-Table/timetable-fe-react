@@ -8,45 +8,49 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   return (
-    <>
+    <Frame>
       <TitleFrame>
         <div style={{ fontSize: "32px" }}>{"추가 및 수정"}</div>
       </TitleFrame>
 
       <ContentFrame>
-        <div style={{ fontSize: "28px" }}>이름</div>
-        <div style={{ width: "423px" }}>
-          <Input
-            placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
-            onChange={(e) => setName(e.target.value)}
-            value={name}
-          />
-        </div>
-        <div style={{ fontSize: "28px" }}>비밀번호(선택)</div>
-        <div style={{ width: "423px" }}>
-          <Input
-            placeholder={"일정 수정 및 삭제에 이용될 비밀번호 4자리를 입력하세요"}
-            onChange={(e) => setPassword(e.target.value)}
-            value={password}
-          />
-        </div>
-        <ButtonLayout>
-          <ButtonDiv>
-            <Button
-              title="완료"
-              onClick={() => {
-                console.log("name: ", name);
-                console.log("password: ", password);
-                setLeftScreen("AllTimeGrid");
-                setRightScreen("MySchedule");
-              }}
-              //TODO: 닉넴 중복? 비번 자리 수 체크
-              disabled={name.length === 0 || password.length === 0 ? true : false}
+        <ContentDiv>
+          <div style={{ fontSize: "28px" }}>이름</div>
+          <div style={{ width: "423px" }}>
+            <Input
+              placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
+              onChange={(e) => setName(e.target.value)}
+              value={name}
             />
-          </ButtonDiv>
-        </ButtonLayout>
+          </div>
+        </ContentDiv>
+        <ContentDiv>
+          <div style={{ fontSize: "28px" }}>비밀번호(선택)</div>
+          <div style={{ width: "423px" }}>
+            <Input
+              placeholder={"일정 수정 및 삭제에 이용될 비밀번호 4자리를 입력하세요"}
+              onChange={(e) => setPassword(e.target.value)}
+              value={password}
+            />
+          </div>
+        </ContentDiv>
       </ContentFrame>
-    </>
+      <ButtonLayout>
+        <ButtonDiv>
+          <Button
+            title="생성"
+            onClick={() => {
+              console.log("name: ", name);
+              console.log("password: ", password);
+              setLeftScreen("AllTimeGrid");
+              setRightScreen("MySchedule");
+            }}
+            //TODO: 닉넴 중복? 비번 자리 수 체크
+            disabled={name.length === 0 || password.length === 0 ? true : false}
+          />
+        </ButtonDiv>
+      </ButtonLayout>
+    </Frame>
   );
 }
 
@@ -63,15 +67,13 @@ const ContentFrame = styled.div`
   gap: 30px;
 `;
 
-const UrlDiv = styled.div`
-  ${theme.styles.flexCenterRow}
-  background-color:${theme.text.gamma[900]};
-  font-family: Pretendard-Regular;
-  font-size: 24px;
-  width: 100%;
-  height: 50px;
-  border-radius: 10px;
+const Frame = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-top: 50px;
+  gap: 50px;
 `;
+
 const ButtonLayout = styled.div`
   ${theme.styles.flexCenterRow}
   width: 100%;
@@ -95,4 +97,9 @@ const ButtonDiv = styled.div`
       font-size: 16px;
     }
   }
+`;
+
+const ContentDiv = styled.div`
+  ${theme.styles.flexCenterColumn};
+  gap: 20px;
 `;

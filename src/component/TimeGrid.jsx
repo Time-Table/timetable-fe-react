@@ -154,7 +154,7 @@ export default function TimeGrid({ dates, startHour, endHour, selectedCells, set
             width={10}
             height={20}
             color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
-            isLeft={true}
+            angle={180}
           />
         </ArrowLayout>
         <ArrowLayout onClick={nextWeek} disabled={currentWeekIndex === weeks.length - 1}>
