@@ -15,7 +15,7 @@ export default function UsePage() {
   const dates = MOCKDATA.dates;
   const startHour = MOCKDATA.startHour;
   const endHour = MOCKDATA.endHour;
-  // console.log(dates, startHour, endHour);
+
   const [leftScreen, setLeftScreen] = useState("Invite");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
   const [selectedToggle, setSelectedToggle] = useState(false);

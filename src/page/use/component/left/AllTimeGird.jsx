@@ -3,6 +3,7 @@ import TimeGrid from "../../../../component/TimeGrid";
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
 import { MOCKDATA } from "../../MOCKDATA";
+import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
 
 export default function AllTimeGrid({ dates, startHour, endHour }) {
   const [selectedCells, setSelectedCells] = useState([]);
@@ -15,12 +16,12 @@ export default function AllTimeGrid({ dates, startHour, endHour }) {
         <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
       </TitleFrame>
       <ContentFrame>
-        <TimeGrid
+        <TimeGridViewMode
           dates={dates}
           startHour={startHour}
           endHour={endHour}
           selectedCells={selectedCells}
-          setSelectedCells={setSelectedCells}
+          isViewMode={true}
         />
       </ContentFrame>
     </>
