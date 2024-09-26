@@ -7,6 +7,7 @@ export default function Input({
   onChange = () => {},
   value,
   maxLength,
+  type,
 }) {
   return (
     <div style={{ width: "100%", borderBottom: `1px solid ${theme.text.gamma[500]}` }}>
@@ -23,6 +24,7 @@ export default function Input({
           fontFamily: "pretendard-light",
           fontSize: fontSize,
         }}
+        type={type}
       ></input>
     </div>
   );

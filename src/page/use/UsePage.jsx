@@ -5,7 +5,7 @@ import Share from "../../assets/svg/Share";
 import Invite from "./component/right/Invite";
 import AllSchedule from "./component/right/AllSchedule";
 import MySchedule from "./component/right/MySchedule";
-import AddUser from "./component/left/AddUser";
+import AddUser from "./component/right/AddUser";
 import AllTimeGrid from "./component/left/AllTimeGird";
 import Rank from "./component/right/Rank";
 import { MOCKDATA } from "./MOCKDATA";

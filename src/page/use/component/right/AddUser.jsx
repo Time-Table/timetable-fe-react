@@ -7,6 +7,8 @@ import { useState } from "react";
 export default function AddUser({ setLeftScreen, setRightScreen }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
+
   return (
     <Frame>
       <TitleFrame>
@@ -19,8 +21,14 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
           <div style={{ width: "423px" }}>
             <Input
               placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (e.target.value.length >= 15) {
+                  alert("최대 15글자까지만 입력 가능합니다.");
+                }
+              }}
               value={name}
+              maxLength={15}
             />
           </div>
         </ContentDiv>
@@ -28,9 +36,16 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
           <div style={{ fontSize: "28px" }}>비밀번호(선택)</div>
           <div style={{ width: "423px" }}>
             <Input
-              placeholder={"일정 수정 및 삭제에 이용될 비밀번호 4자리를 입력하세요"}
-              onChange={(e) => setPassword(e.target.value)}
+              placeholder={"*비밀번호는 일정 수정과 삭제에 사용됩니다."}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (e.target.value.length >= 15) {
+                  alert("최대 15글자까지만 입력 가능합니다.");
+                }
+              }}
               value={password}
+              maxLength={15}
+              type={"password"}
             />
           </div>
         </ContentDiv>
@@ -40,13 +55,25 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
           <Button
             title="생성"
             onClick={() => {
-              console.log("name: ", name);
-              console.log("password: ", password);
-              setLeftScreen("AllTimeGrid");
-              setRightScreen("MySchedule");
+              if (inputCondition.test(name)) {
+                if (inputCondition.test(password) || password === "") {
+                  console.log("name: ", name);
+                  console.log("password: ", password);
+                  // LocalStorage로 저장
+                  localStorage.clear();
+                  localStorage.setItem("name", name);
+
+                  setLeftScreen("AllTimeGrid");
+                  setRightScreen("MySchedule");
+                } else {
+                  alert("비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
+                }
+              } else {
+                alert("이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
+              }
             }}
             //TODO: 닉넴 중복? 비번 자리 수 체크
-            disabled={name.length === 0 || password.length === 0 ? true : false}
+            disabled={name.length === 0 ? true : false}
           />
         </ButtonDiv>
       </ButtonLayout>

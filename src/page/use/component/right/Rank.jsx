@@ -27,7 +27,7 @@ export default function Rank() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "50px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {rankData.map((rank, index) => {
         const ranking = index + 1;
         const sum = rank.sum;
@@ -88,5 +88,4 @@ const MemberDiv = styled.div`
   padding:  10px 16px;
   font-family: Pretendard-Light;
   font-size: 20px;
-  /* background-color: aqua; */
 `;

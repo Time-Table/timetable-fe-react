@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TimeGrid from "../../../../component/TimeGrid";
 import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
@@ -6,6 +6,20 @@ import Button from "../../../../component/Button";
 
 export default function MySchedule({ dates, startHour, endHour }) {
   const [selectedCells, setSelectedCells] = useState([]);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+
+  useEffect(() => {
+    if (selectedCells.length > 0) {
+      setIsButtonDisabled(false);
+    }
+  }, [selectedCells]);
+
+  const handleButtonClick = () => {
+    if (selectedCells.length > 0) {
+      // 내정보 저장 api 연결
+    }
+    setIsButtonDisabled(true);
+  };
 
   return (
     <>
@@ -18,7 +32,7 @@ export default function MySchedule({ dates, startHour, endHour }) {
       />
       <ButtonLayout>
         <ButtonDiv>
-          <Button title="저장" />
+          <Button onClick={handleButtonClick} disabled={isButtonDisabled} title="저장" />
         </ButtonDiv>
       </ButtonLayout>
     </>
