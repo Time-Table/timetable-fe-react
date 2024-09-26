@@ -3,10 +3,25 @@ import TimeGrid from "../../../../component/TimeGrid";
 import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import Button from "../../../../component/Button";
+import Swal from "sweetalert2";
 
-export default function MySchedule({ dates, startHour, endHour }) {
+export default function MySchedule({ dates, startHour, endHour, setRightScreen }) {
   const [selectedCells, setSelectedCells] = useState([]);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+
+  useEffect(() => {
+    const name = localStorage.getItem("name");
+    if (!name) {
+      Swal.fire({
+        title: "정보를 먼저 입력해주세요!",
+        text: "정보를 등록하고 일정을 추가해보세요.",
+        icon: "question",
+        confirmButtonText: "확인",
+        confirmButtonColor: `${theme.color.primary}`,
+      });
+      setRightScreen("AddUser");
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedCells.length > 0) {
@@ -17,8 +32,16 @@ export default function MySchedule({ dates, startHour, endHour }) {
   const handleButtonClick = () => {
     if (selectedCells.length > 0) {
       // 내정보 저장 api 연결
+      Swal.fire({
+        icon: "success",
+        iconColor: `${theme.color.primary}`,
+        title: "저장되었습니다!",
+
+        showConfirmButton: false,
+        timer: 1000,
+      });
+      setIsButtonDisabled(true);
     }
-    setIsButtonDisabled(true);
   };
 
   return (
@@ -28,6 +51,7 @@ export default function MySchedule({ dates, startHour, endHour }) {
         startHour={startHour}
         endHour={endHour}
         selectedCells={selectedCells}
+        selectedCellColor={theme.color.primaryTint}
         setSelectedCells={setSelectedCells}
       />
       <ButtonLayout>

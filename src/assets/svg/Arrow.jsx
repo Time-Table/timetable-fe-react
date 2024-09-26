@@ -11,9 +11,9 @@ export default function ({ width = 10, height = 10, color = "black", angle = "no
       <path
         d="M1.27177 21.3679L10.5437 11.184L1.27177 1.00003"
         stroke={color}
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

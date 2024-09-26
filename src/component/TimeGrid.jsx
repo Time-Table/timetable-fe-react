@@ -9,6 +9,7 @@ export default function TimeGrid({
   endHour,
   selectedCells,
   setSelectedCells,
+  selectedCellColor,
   isViewMode,
 }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -145,6 +146,7 @@ export default function TimeGrid({
                     timeIndex={timeIndex}
                     key={dateIndex}
                     isSelected={isSelected}
+                    selectedCellColor={selectedCellColor}
                     isDisabled={isDisabled}
                     isViewMode={isViewMode}
                     onMouseDown={() => !isDisabled && handleMouseDown(date, time)}
@@ -262,7 +264,7 @@ const Cell = styled.div`
 
   background-color: ${(props) =>
     props.isSelected
-      ? `${theme.color.primary}`
+      ? `${props.selectedCellColor}`
       : props.isDisabled
       ? `${theme.text.gamma[800]}`
       : "white"};

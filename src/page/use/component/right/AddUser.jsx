@@ -59,7 +59,7 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
                 if (inputCondition.test(password) || password === "") {
                   console.log("name: ", name);
                   console.log("password: ", password);
-                  // LocalStorage로 저장
+
                   localStorage.clear();
                   localStorage.setItem("name", name);
 

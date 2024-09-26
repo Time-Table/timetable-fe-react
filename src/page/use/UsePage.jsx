@@ -35,7 +35,14 @@ export default function UsePage() {
       case "AllSchedule":
         return <AllSchedule />;
       case "MySchedule":
-        return <MySchedule dates={dates} startHour={startHour} endHour={endHour} />;
+        return (
+          <MySchedule
+            dates={dates}
+            startHour={startHour}
+            endHour={endHour}
+            setRightScreen={setRightScreen}
+          />
+        );
       case "Rank":
         return <Rank />;
       default:
@@ -58,7 +65,7 @@ export default function UsePage() {
           <ButtonDiv>
             <Button
               background={theme.color.primary}
-              title="일정 추가"
+              title="참여하기"
               onClick={() => {
                 setLeftScreen("AllTimeGrid");
                 setRightScreen("AddUser");
