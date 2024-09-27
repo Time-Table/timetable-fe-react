@@ -30,14 +30,14 @@ export default function AllSchedule() {
         <ChatingDiv ref={chatEndRef}>
           {MOCKDATA.chatLog.map((chat) => (
             <ChatDiv key={chat.id}>
-              <NameDiv>{chat.name} :</NameDiv>
-              <div style={{ width: "343px", height: "100%" }}>{chat.message}</div>
+              <NameDiv>{chat.name}</NameDiv>
+              <MessageDiv>{chat.message}</MessageDiv>
             </ChatDiv>
           ))}
         </ChatingDiv>
         <InputLayout>
           <Input
-            fontSize={"22px"}
+            // fontSize={"22px"}
             placeholder={"일정을 추가하고 채팅을 이용해 보세요."}
             maxLength={300}
             onChange={(e) => {
@@ -66,7 +66,7 @@ const MembersLayout = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
   width: 100%;
-  gap: 10px;
+  gap: 20px;
   padding-bottom: 30px;
   border-bottom: 1px solid ${theme.text.gamma[800]};
 `;
@@ -75,6 +75,10 @@ const MemberDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-Light;
   font-size: 24px;
+
+  @media (max-width: 480px) {
+    font-size: 20px;
+  }
 `;
 
 const ChatLayout = styled.div`
@@ -83,6 +87,10 @@ const ChatLayout = styled.div`
   width: 100%;
   gap: 20px;
   font-size: 25px;
+
+  @media (max-width: 480px) {
+    font-size: 20px;
+  }
 `;
 
 const ChatingDiv = styled.div`
@@ -101,6 +109,10 @@ const ChatingDiv = styled.div`
   }
   -ms-overflow-style: none; //IE and Edge
   scrollbar-width: none; //Firefox
+
+  @media (max-width: 480px) {
+    width: 90%;
+  }
 `;
 
 const ChatDiv = styled.div`
@@ -109,21 +121,50 @@ const ChatDiv = styled.div`
   width: 100%;
   gap: auto;
   font-size: 22px;
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
 `;
 
 const NameDiv = styled.div`
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  font-family: Pretendard-Regular;
+  font-family: Pretendard-Medium;
   font-size: 22px;
   width: 70px;
   height: 100%;
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+    width: 20%;
+  }
+`;
+
+const MessageDiv = styled.div`
+  height: 100%;
+  width: 343px;
+  font-family: Pretendard-Light;
+
+  @media (max-width: 480px) {
+    width: 80%;
+    font-size: 18px;
+  }
 `;
 
 const InputLayout = styled.div`
   ${theme.styles.flexCenterRow}
   width: 423px;
+
+  @media (max-width: 480px) {
+    width: 90%;
+
+    //TODO: input fontsize 조절
+    input {
+      font-size: 18px;
+    }
+  }
 `;
 
 const SendButtonBox = styled.button`

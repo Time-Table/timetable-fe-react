@@ -12,8 +12,8 @@ export default function AllTimeGrid({ dates, startHour, endHour }) {
   return (
     <>
       <TitleFrame>
-        <div style={{ fontSize: "32px" }}>{title}</div>
-        <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
+        <TitleDiv>{title}</TitleDiv>
+        <TitleDiv color={theme.color.primary}>타임테이블</TitleDiv>
       </TitleFrame>
       <ContentFrame>
         <TimeGridViewMode
@@ -37,4 +37,13 @@ const TitleFrame = styled.div`
 const ContentFrame = styled.div`
   margin-top: 46px;
   ${theme.styles.flexCenterColumn}
+`;
+
+const TitleDiv = styled.div`
+  font-size: 32px;
+  color: ${(props) => props.color};
+
+  @media (max-width: 480px) {
+    font-size: 24px;
+  }
 `;

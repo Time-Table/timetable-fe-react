@@ -69,12 +69,13 @@ const ButtonLayout = styled.div`
   width: 490px;
 
   @media (max-width: 480px) {
-    width: 320px;
+    width: 100%;
   }
 `;
 
 const ButtonDiv = styled.div`
   display: flex;
+  justify-content: flex-end;
   width: 160px;
   height: 56px;
   button {
@@ -82,7 +83,7 @@ const ButtonDiv = styled.div`
   }
 
   @media (max-width: 480px) {
-    width: 100%;
+    width: 140px;
     height: 50px;
     button {
       font-size: 16px;

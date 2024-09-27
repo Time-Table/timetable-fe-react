@@ -10,12 +10,12 @@ export default function Invite({ setLeftScreen }) {
   return (
     <Frame>
       <TitleFrame>
-        <div style={{ fontSize: "32px" }}>{title}</div>
-        <div style={{ fontSize: "32px", color: theme.color.primary }}>타임테이블</div>
+        <TitleDiv>{title}</TitleDiv>
+        <TitleDiv color={theme.color.primary}>타임테이블</TitleDiv>
       </TitleFrame>
 
       <ContentFrame>
-        <div style={{ fontSize: "32px" }}>링크를 복사하여 초대하세요.</div>
+        <TitleDiv>링크를 복사하여 초대하세요.</TitleDiv>
         <UrlDiv>
           <Share />
           {url}
@@ -62,12 +62,18 @@ const UrlDiv = styled.div`
   width: 100%;
   height: 50px;
   border-radius: 10px;
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    height: 35px;
+  }
 `;
 const ButtonLayout = styled.div`
   ${theme.styles.flexCenterRow}
   width: 100%;
+
   @media (max-width: 480px) {
-    width: 320px;
+    width: 140px;
   }
 `;
 
@@ -86,4 +92,9 @@ const ButtonDiv = styled.div`
       font-size: 16px;
     }
   }
+`;
+
+const TitleDiv = styled.div`
+  font-size: 24px;
+  color: ${(props) => props.color};
 `;

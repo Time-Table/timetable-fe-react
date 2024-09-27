@@ -11,14 +11,12 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
 
   return (
     <Frame>
-      <TitleFrame>
-        <div style={{ fontSize: "32px" }}>{"추가 및 수정"}</div>
-      </TitleFrame>
+      <TitleFrame>{"추가 및 수정"}</TitleFrame>
 
       <ContentFrame>
         <ContentDiv>
-          <div style={{ fontSize: "28px" }}>이름</div>
-          <div style={{ width: "423px" }}>
+          <SubTitleDiv>이름</SubTitleDiv>
+          <InputLayout>
             <Input
               placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
               onChange={(e) => {
@@ -30,11 +28,11 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
               value={name}
               maxLength={15}
             />
-          </div>
+          </InputLayout>
         </ContentDiv>
         <ContentDiv>
-          <div style={{ fontSize: "28px" }}>비밀번호(선택)</div>
-          <div style={{ width: "423px" }}>
+          <SubTitleDiv>비밀번호(선택)</SubTitleDiv>
+          <InputLayout>
             <Input
               placeholder={"*비밀번호는 일정 수정과 삭제에 사용됩니다."}
               onChange={(e) => {
@@ -47,7 +45,7 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
               maxLength={15}
               type={"password"}
             />
-          </div>
+          </InputLayout>
         </ContentDiv>
       </ContentFrame>
       <ButtonLayout>
@@ -85,6 +83,11 @@ const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
   width: 100%;
+  font-size: 32px;
+
+  @media (max-width: 480px) {
+    font-size: 24px;
+  }
 `;
 
 const ContentFrame = styled.div`
@@ -104,9 +107,6 @@ const Frame = styled.div`
 const ButtonLayout = styled.div`
   ${theme.styles.flexCenterRow}
   width: 100%;
-  @media (max-width: 480px) {
-    width: 320px;
-  }
 `;
 
 const ButtonDiv = styled.div`
@@ -118,7 +118,7 @@ const ButtonDiv = styled.div`
   }
 
   @media (max-width: 480px) {
-    width: 100%;
+    width: 140px;
     height: 50px;
     button {
       font-size: 16px;
@@ -129,4 +129,16 @@ const ButtonDiv = styled.div`
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn};
   gap: 20px;
+`;
+
+const SubTitleDiv = styled.div`
+  font-size: 20px;
+`;
+
+const InputLayout = styled.div`
+  width: 423px;
+
+  @media (max-width: 480px) {
+    width: 90%;
+  }
 `;

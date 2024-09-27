@@ -57,8 +57,12 @@ export default function Rank() {
 
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn};
-  width: 380px;
+  width: 100%;
   gap: 20px;
+
+  @media (max-width: 480px) {
+    width: 346px;
+  }
 `;
 
 const RankButton = styled.button`
@@ -70,6 +74,10 @@ const RankButton = styled.button`
   border: none;
   cursor: pointer;
   padding: 0;
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
 `;
 
 const RankDetailBox = styled.div`
@@ -88,4 +96,8 @@ const MemberDiv = styled.div`
   padding:  10px 16px;
   font-family: Pretendard-Light;
   font-size: 20px;
+
+  @media (max-width: 480px) {
+    font-size: 17px;
+  }
 `;
