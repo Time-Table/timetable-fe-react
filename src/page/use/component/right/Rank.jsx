@@ -36,11 +36,13 @@ export default function Rank() {
         return (
           <ContentDiv key={rank.id}>
             <RankButton key={index} onClick={() => toggleRankDetail(index)}>
-              <span style={{ width: "50px", textAlign: "end", color: theme.color.primary }}>
+              <RankInfo width={"50px"} color={theme.color.primary} font={"Pretendard-semiBold"}>
                 {ranking + " 위"}
-              </span>
-              <span style={{ width: "70px", textAlign: "end" }}>{sum + " 명"}</span>
-              <span style={{ width: "200px", textAlign: "end" }}>{formatDate(date)}</span>
+              </RankInfo>
+              <RankInfo width={"70px"} font={"Pretendard-Regular"}>
+                {sum + " 명"}
+              </RankInfo>
+              <RankMonthInfo>{formatDate(date)}</RankMonthInfo>
               <Arrow angle={rankDetails[index] ? 270 : 90} width={13} height={13} />
             </RankButton>
             <RankDetailBox rankDetail={rankDetails[index]}>
@@ -57,11 +59,12 @@ export default function Rank() {
 
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn};
-  width: 100%;
+  width: 380px;
   gap: 20px;
 
   @media (max-width: 480px) {
-    width: 346px;
+    width: 100%;
+    /* gap: 10px; */
   }
 `;
 
@@ -76,19 +79,28 @@ const RankButton = styled.button`
   padding: 0;
 
   @media (max-width: 480px) {
-    font-size: 18px;
+    width: 90%;
+    font-size: 19px;
+    gap: 10px;
   }
 `;
 
 const RankDetailBox = styled.div`
-  justify-content: flex-start;
   width: 100%;
   gap: 10px;
   background: ${theme.text.gamma[900]};
   flex-wrap: wrap;
   border-radius: 10px;
   display: ${(props) => (props.rankDetail ? "flex" : "none")};
+  justify-content: flex-start;
   padding: 10px;
+
+  @media (max-width: 480px) {
+    width: 75%;
+    gap: 5px;
+    padding: 6px;
+    margin-left: 40px;
+  }
 `;
 
 const MemberDiv = styled.div`
@@ -98,6 +110,29 @@ const MemberDiv = styled.div`
   font-size: 20px;
 
   @media (max-width: 480px) {
+    padding: 6px 10px;
     font-size: 17px;
+  }
+`;
+
+const RankInfo = styled.span`
+  text-align: end;
+  color: ${(props) => props.color};
+  width: ${(props) => props.width};
+  font-family: ${(props) => props.font};
+
+  @media (max-width: 480px) {
+    width: 3.5em;
+  }
+`;
+
+const RankMonthInfo = styled.span`
+  width: 200px;
+  text-align: end;
+  color: ${(props) => props.color};
+  font-family: Pretendard-Light;
+
+  @media (max-width: 480px) {
+    width: 170px;
   }
 `;

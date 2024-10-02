@@ -19,7 +19,7 @@ export default function UsePage() {
   const [leftScreen, setLeftScreen] = useState("Invite");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
   const [selectedToggle, setSelectedToggle] = useState(false);
-
+  const [name, setName] = useState("");
   const handleToggle = (button) => {
     setSelectedToggle(button);
   };
@@ -27,13 +27,20 @@ export default function UsePage() {
   const showScreen = (Screen) => {
     switch (Screen) {
       case "AddUser":
-        return <AddUser setLeftScreen={setLeftScreen} setRightScreen={setRightScreen} />;
+        return (
+          <AddUser
+            setLeftScreen={setLeftScreen}
+            setRightScreen={setRightScreen}
+            setName={setName}
+            name={name}
+          />
+        );
       case "Invite":
         return <Invite setLeftScreen={setLeftScreen} />;
       case "AllTimeGrid":
         return <AllTimeGrid dates={dates} startHour={startHour} endHour={endHour} />;
       case "AllSchedule":
-        return <AllSchedule />;
+        return <AllSchedule setRightScreen={setRightScreen} setName={setName} />;
       case "MySchedule":
         return (
           <MySchedule

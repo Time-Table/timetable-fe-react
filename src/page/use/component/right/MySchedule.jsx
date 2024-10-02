@@ -46,6 +46,7 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen }
 
   return (
     <>
+      <NoteText>나의 가능한 시간대</NoteText>
       <TimeGrid
         dates={dates}
         startHour={startHour}
@@ -89,4 +90,10 @@ const ButtonDiv = styled.div`
       font-size: 16px;
     }
   }
+`;
+
+const NoteText = styled.span`
+  font-family: Pretendard-ExtraLight;
+  font-size: 24px;
+  color: ${theme.text.gamma[500]};
 `;

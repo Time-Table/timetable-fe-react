@@ -27,7 +27,7 @@ export default function Header() {
             window.location.href = "/CreatePage";
           }}
         >
-          <Button title="일정 생성" />
+          <Button title="새 테이블" />
         </ButtonDiv>
       </div>
     </HeaderLayout>

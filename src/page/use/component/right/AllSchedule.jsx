@@ -5,11 +5,20 @@ import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
 import Send from "../../../../assets/svg/Send";
 import { useEffect, useRef, useState } from "react";
+import Edit from "../../../../assets/svg/Edit";
 
-export default function AllSchedule() {
+export default function AllSchedule({ setRightScreen, setName }) {
   const [message, setMessage] = useState();
   const memberName = MOCKDATA.memberNames;
   const chatEndRef = useRef(null);
+
+  const [memberDetails, setMemberDetails] = useState(Array(memberName.length).fill(false));
+
+  const toggleMemberDetail = (index) => {
+    setMemberDetails((prevDetails) =>
+      prevDetails.map((detail, i) => (i === index ? !detail : detail))
+    );
+  };
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -21,7 +30,22 @@ export default function AllSchedule() {
     <>
       <MembersLayout>
         {memberName.map((name, index) => {
-          return <MemberDiv key={index}>{name}</MemberDiv>;
+          return (
+            <MemberContainer>
+              <MemberDiv key={index} onClick={() => toggleMemberDetail(index)}>
+                {name}
+              </MemberDiv>
+              <EditBox
+                memberDetails={memberDetails[index]}
+                onClick={() => {
+                  setName(name);
+                  setRightScreen("AddUser");
+                }}
+              >
+                <Edit />
+              </EditBox>
+            </MemberContainer>
+          );
         })}
       </MembersLayout>
 
@@ -71,10 +95,18 @@ const MembersLayout = styled.div`
   border-bottom: 1px solid ${theme.text.gamma[800]};
 `;
 
+const MemberContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  align-items: center;
+`;
+
 const MemberDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-Light;
   font-size: 24px;
+  cursor: pointer;
 
   @media (max-width: 480px) {
     font-size: 20px;
@@ -171,4 +203,11 @@ const SendButtonBox = styled.button`
   ${theme.styles.flexCenterRow}
   background: none;
   border: none;
+`;
+
+const EditBox = styled.button`
+  display: ${(props) => (props.memberDetails ? "flex" : "none")};
+  background: none;
+  border: none;
+  cursor: pointer;
 `;

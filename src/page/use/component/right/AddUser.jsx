@@ -3,22 +3,37 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Input from "../../../../component/Input";
 import { useState } from "react";
+import { MOCKDATA } from "../../MOCKDATA";
 
-export default function AddUser({ setLeftScreen, setRightScreen }) {
-  const [name, setName] = useState("");
+export default function AddUser({ setLeftScreen, setRightScreen, setName, name }) {
   const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
+  const allofMember = MOCKDATA.memberNames;
+  const membersPrivacy = MOCKDATA.membersPrivacy;
+
+  const searchMember = (name) => allofMember.includes(name);
+
+  const deleteMember = (name, password) => {
+    const member = membersPrivacy.find((member) => member.name === name);
+    if (member && member.password === password) {
+      //TODO: 삭제 api
+      alert("삭제되었습니다.(삭제API자리)");
+
+      return console.log(true);
+    } else {
+      alert("입력하신 비밀번호가 올바르지 않습니다.");
+    }
+  };
 
   return (
     <Frame>
-      <TitleFrame>{"추가 및 수정"}</TitleFrame>
-
+      <TitleFrame>멤버 추가 및 수정</TitleFrame>
       <ContentFrame>
         <ContentDiv>
           <SubTitleDiv>이름</SubTitleDiv>
           <InputLayout>
             <Input
-              placeholder={"일정에 표시될 성함이나 닉네임을 작성해주세요."}
+              placeholder={"*타임 테이블은 이름 중복을 허용하지 않습니다."}
               onChange={(e) => {
                 setName(e.target.value);
                 if (e.target.value.length >= 15) {
@@ -31,10 +46,10 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
           </InputLayout>
         </ContentDiv>
         <ContentDiv>
-          <SubTitleDiv>비밀번호(선택)</SubTitleDiv>
+          <SubTitleDiv>비밀번호</SubTitleDiv>
           <InputLayout>
             <Input
-              placeholder={"*비밀번호는 일정 수정과 삭제에 사용됩니다."}
+              placeholder={"*비밀번호는 1~15자리까지 입력할 수 있습니다."}
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (e.target.value.length >= 15) {
@@ -52,8 +67,13 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
         <ButtonDiv>
           <Button
             title="생성"
+            background={theme.color.button.blue}
             onClick={() => {
               if (inputCondition.test(name)) {
+                if (searchMember(name)) {
+                  return alert("이미 존재하는 이름입니다.");
+                }
+
                 if (inputCondition.test(password) || password === "") {
                   console.log("name: ", name);
                   console.log("password: ", password);
@@ -72,6 +92,16 @@ export default function AddUser({ setLeftScreen, setRightScreen }) {
             }}
             //TODO: 닉넴 중복? 비번 자리 수 체크
             disabled={name.length === 0 ? true : false}
+          />
+        </ButtonDiv>
+
+        <ButtonDiv>
+          <Button
+            title="삭제"
+            onClick={() => {
+              deleteMember(name, password);
+            }}
+            disabled={searchMember(name) ? false : true}
           />
         </ButtonDiv>
       </ButtonLayout>
@@ -107,6 +137,7 @@ const Frame = styled.div`
 const ButtonLayout = styled.div`
   ${theme.styles.flexCenterRow}
   width: 100%;
+  gap: 50px;
 `;
 
 const ButtonDiv = styled.div`

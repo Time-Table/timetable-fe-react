@@ -14,6 +14,13 @@ export const MOCKDATA = {
     "2024-11-08-01:00",
   ],
   memberNames: ["홍길동", "차은우", "설윤아", "박보검", "이상혁"],
+  membersPrivacy: [
+    { name: "홍길동", password: "" },
+    { name: "차은우", password: "1" },
+    { name: "설윤아", password: "2" },
+    { name: "박보검", password: "3" },
+    { name: "이상혁", password: "aaa" },
+  ],
   chatLog: [
     {
       id: 0,

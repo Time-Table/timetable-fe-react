@@ -201,8 +201,9 @@ const WeekNavigation = styled.div`
   padding-right: 80px;
   gap: 20px;
   width: 100%;
+
   @media (max-width: 480px) {
-    padding-right: 40px;
+    padding-right: 0px;
   }
 `;
 
