@@ -1,5 +1,4 @@
 import styled from "@emotion/styled/macro";
-import Share from "../../../../assets/svg/Share";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
@@ -7,7 +6,13 @@ import Send from "../../../../assets/svg/Send";
 import { useEffect, useRef, useState } from "react";
 import Edit from "../../../../assets/svg/Edit";
 
-export default function AllSchedule({ setRightScreen, setName }) {
+export default function AllSchedule({
+  setLeftScreen,
+  setRightScreen,
+  setName,
+  selectedName,
+  setSelectedName,
+}) {
   const [message, setMessage] = useState();
   const memberName = MOCKDATA.memberNames;
   const chatEndRef = useRef(null);
@@ -18,6 +23,13 @@ export default function AllSchedule({ setRightScreen, setName }) {
     setMemberDetails((prevDetails) =>
       prevDetails.map((detail, i) => (i === index ? !detail : detail))
     );
+
+    if (memberName[index] === selectedName) {
+      setSelectedName(false); // 선택 해제
+    } else {
+      setSelectedName(memberName[index]); // 새로운 이름 선택
+    }
+    console.log("Selected name:", selectedName);
   };
 
   useEffect(() => {
@@ -31,8 +43,14 @@ export default function AllSchedule({ setRightScreen, setName }) {
       <MembersLayout>
         {memberName.map((name, index) => {
           return (
-            <MemberContainer>
-              <MemberDiv key={index} onClick={() => toggleMemberDetail(index)}>
+            <MemberContainer key={index}>
+              <MemberDiv
+                onClick={() => {
+                  toggleMemberDetail(index);
+                  setLeftScreen("AllTimeGrid");
+                }}
+                selected={selectedName === name}
+              >
                 {name}
               </MemberDiv>
               <EditBox
@@ -61,7 +79,6 @@ export default function AllSchedule({ setRightScreen, setName }) {
         </ChatingDiv>
         <InputLayout>
           <Input
-            // fontSize={"22px"}
             placeholder={"일정을 추가하고 채팅을 이용해 보세요."}
             maxLength={300}
             onChange={(e) => {
@@ -104,7 +121,7 @@ const MemberContainer = styled.div`
 
 const MemberDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  font-family: Pretendard-Light;
+  font-family: ${(props) => (props.selected ? "Pretendard-SemiBold" : "Pretendard-Light")};
   font-size: 24px;
   cursor: pointer;
 

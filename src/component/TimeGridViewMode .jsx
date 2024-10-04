@@ -2,26 +2,57 @@ import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
-import { MOCKDATA } from "../page/use/MOCKDATA";
 
-export default function TimeGridViewMode({ dates, startHour, endHour }) {
-  const data = MOCKDATA.membersSchedule.timeInfo;
+export default function TimeGridViewMode({
+  dates,
+  startHour,
+  endHour,
+  membersSchedule,
+  selectedName,
+  isViewMode,
+}) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [cellColorMap, setCellColorMap] = useState({});
+  const membersSchedule_timeInfo = membersSchedule.timeInfo
+    ? membersSchedule.timeInfo
+    : membersSchedule;
 
   useEffect(() => {
-    updateDateInfo(data);
-    const groupedWeeks = groupDatesByWeek(dates);
-    setWeeks(groupedWeeks);
-  }, [dates, data]);
+    if (selectedName) {
+      console.log("na");
+
+      updateSelectedNameDateInfo(membersSchedule_timeInfo);
+      const groupedWeeks = groupDatesByWeek(dates);
+      setWeeks(groupedWeeks);
+    } else {
+      updateDateInfo(membersSchedule_timeInfo);
+      const groupedWeeks = groupDatesByWeek(dates);
+      setWeeks(groupedWeeks);
+    }
+  }, [membersSchedule_timeInfo, selectedName]);
+
+  const updateSelectedNameDateInfo = (data) => {
+    console.log("all");
+    const newCellColorMap = {};
+    data.forEach((dateInfo) => {
+      const cellKey = dateInfo;
+      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 80;
+      newCellColorMap[cellKey] = colorNumber;
+      // console.log(newCellColorMap);
+      // console.log(cellKey);
+    });
+    setCellColorMap(newCellColorMap);
+  };
 
   const updateDateInfo = (data) => {
     const newCellColorMap = {};
     data.forEach((dateInfo) => {
       const cellKey = dateInfo.time;
-      const colorNumber = dateInfo.colorNumber;
+      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 20;
       newCellColorMap[cellKey] = colorNumber;
+      // console.log(newCellColorMap);
+      // console.log(cellKey);
     });
     setCellColorMap(newCellColorMap);
   };
@@ -128,6 +159,7 @@ export default function TimeGridViewMode({ dates, startHour, endHour }) {
                     cellIndex={dateIndex}
                     isSelected={isSelected}
                     isDisabled={isDisabled}
+                    isViewMode={isViewMode}
                     color={colorNumber}
                   />
                 );
@@ -247,8 +279,8 @@ const Cell = styled.div`
       : props.isDisabled
       ? `${theme.text.gamma[800]}`
       : "white"};
-  cursor: not-allowed;
-  pointer-events: none;
+  cursor: ${(props) => (props.isDisabled || props.isViewMode ? "not-allowed" : "pointer")};
+  pointer-events: ${(props) => (props.isDisabled || props.isViewMode ? "none" : "auto")};
 
   @media (max-width: 480px) {
     width: 46px;

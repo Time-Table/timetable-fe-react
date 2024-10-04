@@ -19,7 +19,19 @@ export default function UsePage() {
   const [leftScreen, setLeftScreen] = useState("Invite");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
   const [selectedToggle, setSelectedToggle] = useState(false);
+  const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
+  const membersSchedule = MOCKDATA.membersSchedule;
+
+  const datesInfo = () => {
+    if (selectedName) {
+      const scheduleOfSelectedName = membersSchedule.users.find(
+        (user) => user.name === selectedName
+      );
+      return scheduleOfSelectedName.availableTimes;
+    }
+  };
+
   const handleToggle = (button) => {
     setSelectedToggle(button);
   };
@@ -38,9 +50,25 @@ export default function UsePage() {
       case "Invite":
         return <Invite setLeftScreen={setLeftScreen} />;
       case "AllTimeGrid":
-        return <AllTimeGrid dates={dates} startHour={startHour} endHour={endHour} />;
+        return (
+          <AllTimeGrid
+            dates={dates}
+            startHour={startHour}
+            endHour={endHour}
+            membersSchedule={selectedName ? datesInfo() : membersSchedule}
+            selectedName={selectedName}
+          />
+        );
       case "AllSchedule":
-        return <AllSchedule setRightScreen={setRightScreen} setName={setName} />;
+        return (
+          <AllSchedule
+            setLeftScreen={setLeftScreen}
+            setRightScreen={setRightScreen}
+            setName={setName}
+            selectedName={selectedName}
+            setSelectedName={setSelectedName}
+          />
+        );
       case "MySchedule":
         return (
           <MySchedule
@@ -92,6 +120,7 @@ export default function UsePage() {
                 setRightScreen("AllSchedule");
                 setLeftScreen("AllTimeGrid");
                 handleToggle("전체 일정");
+                setSelectedName(false);
               }}
             />
           </ToggleButtonDiv>
@@ -118,6 +147,7 @@ export default function UsePage() {
                 setRightScreen("Rank");
                 setLeftScreen("AllTimeGrid");
                 handleToggle("순위");
+                setSelectedName(false);
               }}
             />
           </ToggleButtonDiv>

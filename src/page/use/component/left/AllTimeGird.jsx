@@ -1,12 +1,10 @@
 import { useState } from "react";
-import TimeGrid from "../../../../component/TimeGrid";
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
 import { MOCKDATA } from "../../MOCKDATA";
 import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
 
-export default function AllTimeGrid({ dates, startHour, endHour }) {
-  const [selectedCells, setSelectedCells] = useState([]);
+export default function AllTimeGrid({ dates, startHour, endHour, membersSchedule, selectedName }) {
   const title = MOCKDATA.title;
 
   return (
@@ -22,8 +20,9 @@ export default function AllTimeGrid({ dates, startHour, endHour }) {
           dates={dates}
           startHour={startHour}
           endHour={endHour}
-          selectedCells={selectedCells}
           isViewMode={true}
+          membersSchedule={membersSchedule}
+          selectedName={selectedName}
         />
       </ContentFrame>
     </>

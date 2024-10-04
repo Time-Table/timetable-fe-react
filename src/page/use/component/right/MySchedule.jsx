@@ -54,6 +54,7 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen }
         selectedCells={selectedCells}
         selectedCellColor={theme.color.primaryTint}
         setSelectedCells={setSelectedCells}
+        isViewMode={false}
       />
       <ButtonLayout>
         <ButtonDiv>
