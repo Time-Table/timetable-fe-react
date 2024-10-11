@@ -25,6 +25,41 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
     }
   };
 
+  const updateMember = (name, password) => {
+    const member = membersPrivacy.find((member) => member.name === name);
+
+    if (!member) {
+      if (inputCondition.test(name)) {
+      } else {
+        alert("이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
+      }
+
+      if (inputCondition.test(password) || password === "") {
+        console.log("name: ", name);
+        console.log("password: ", password);
+
+        localStorage.clear();
+        localStorage.setItem("name", name);
+
+        setLeftScreen("AllTimeGrid");
+        setRightScreen("MySchedule");
+      } else {
+        alert("비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
+      }
+    } else {
+      if (member && member.password === password) {
+        alert("해당 이름으로 입력된 이력이 존재합니다. 수정페이지로 이동합니다. ");
+        localStorage.clear();
+        localStorage.setItem("name", name);
+
+        setLeftScreen("AllTimeGrid");
+        setRightScreen("MySchedule");
+      } else {
+        alert("비밀번호가 올바르지 않습니다.");
+      }
+    }
+  };
+
   return (
     <Frame>
       <TitleFrame>멤버 추가 및 수정</TitleFrame>
@@ -66,29 +101,10 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
       <ButtonLayout>
         <ButtonDiv>
           <Button
-            title="생성"
+            title="완료"
             background={theme.color.button.blue}
             onClick={() => {
-              if (inputCondition.test(name)) {
-                if (searchMember(name)) {
-                  return alert("이미 존재하는 이름입니다.");
-                }
-
-                if (inputCondition.test(password) || password === "") {
-                  console.log("name: ", name);
-                  console.log("password: ", password);
-
-                  localStorage.clear();
-                  localStorage.setItem("name", name);
-
-                  setLeftScreen("AllTimeGrid");
-                  setRightScreen("MySchedule");
-                } else {
-                  alert("비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
-                }
-              } else {
-                alert("이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
-              }
+              updateMember(name, password);
             }}
             //TODO: 닉넴 중복? 비번 자리 수 체크
             disabled={name.length === 0 ? true : false}
