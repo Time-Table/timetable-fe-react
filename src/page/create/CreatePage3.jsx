@@ -4,6 +4,7 @@ import theme from "../../theme";
 import Button from "../../component/Button";
 import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
+import Swal from "sweetalert2";
 
 export default function CreatePage3({
   startHour,
@@ -19,10 +20,35 @@ export default function CreatePage3({
     const dateList = [];
     dates.map((date) => {
       let formatteddate = new Date(date);
+      formatteddate.setHours(formatteddate.getHours() + 9);
       formatteddate = formatteddate.toISOString().split("T")[0];
       dateList.push(formatteddate);
     });
+    console.log(dateList);
+    console.log(startHour, endHour);
     return dateList;
+  };
+
+  const onClickEvent = async () => {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 1200,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.onmouseenter = Swal.stopTimer;
+        toast.onmouseleave = Swal.resumeTimer;
+      },
+    });
+    await Toast.fire({
+      icon: "success",
+      iconColor: `${theme.color.primary}`,
+      title: "타임테이블을 생성하고 있습니다..",
+    });
+
+    localStorage.clear();
+    window.location.href = "/use";
   };
 
   return (
@@ -35,7 +61,7 @@ export default function CreatePage3({
                 onBack(startHour, endHour, tableTitle, endTimeClicked);
               }}
             >
-              <Arrow width={10} height={20} isLeft={true} />
+              <Arrow width={10} height={20} angle={180} />
             </ArrowLayout>
           </div>
           <Q>Q4.</Q>
@@ -50,6 +76,7 @@ export default function CreatePage3({
           endHour={endHour}
           selectedCells={selectedCells}
           setSelectedCells={setSelectedCells}
+          selectedCellColor={theme.color.primary}
         />
         <ButtonLayout>
           <ButtonDiv>
@@ -58,7 +85,7 @@ export default function CreatePage3({
               background={theme.color.button.blue}
               onClick={() => {
                 console.log(selectedCells);
-                window.location.href = "/use";
+                // onClickEvent();
               }}
             />
           </ButtonDiv>
