@@ -5,7 +5,7 @@ import Button from "../../component/Button";
 import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
-
+import { createTable } from "../../api/Create/createTable";
 export default function CreatePage3({
   startHour,
   endHour,
@@ -30,6 +30,8 @@ export default function CreatePage3({
   };
 
   const onClickEvent = async () => {
+    createTable(tableTitle, dates, startHour, endHour, selectedCells);
+
     const Toast = Swal.mixin({
       toast: true,
       position: "top-end",
@@ -48,7 +50,7 @@ export default function CreatePage3({
     });
 
     localStorage.clear();
-    window.location.href = "/use";
+    // window.location.href = "/use";
   };
 
   return (
@@ -85,7 +87,7 @@ export default function CreatePage3({
               background={theme.color.button.blue}
               onClick={() => {
                 console.log(selectedCells);
-                // onClickEvent();
+                onClickEvent();
               }}
             />
           </ButtonDiv>
