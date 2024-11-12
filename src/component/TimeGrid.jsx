@@ -79,10 +79,8 @@ export default function TimeGrid({ dates, startHour, endHour, selectedCells, set
   const toggleSelection = (cellKey) => {
     if (selectedCells.includes(cellKey)) {
       setSelectedCells((prev) => prev.filter((cell) => cell !== cellKey));
-      console.log(selectedCells);
     } else {
       setSelectedCells((prev) => [...prev, cellKey]);
-      console.log(selectedCells);
     }
   };
 
