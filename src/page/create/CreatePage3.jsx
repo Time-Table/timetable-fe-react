@@ -24,14 +24,12 @@ export default function CreatePage3({
       formatteddate = formatteddate.toISOString().split("T")[0];
       dateList.push(formatteddate);
     });
-    console.log(dateList);
-    console.log(startHour, endHour);
     return dateList;
   };
 
   const onClickEvent = async () => {
-    createTable(tableTitle, dates, startHour, endHour, selectedCells);
-
+    const res = await createTable(tableTitle, dates, startHour, endHour, selectedCells);
+    console.log(res);
     const Toast = Swal.mixin({
       toast: true,
       position: "top-end",
@@ -43,14 +41,21 @@ export default function CreatePage3({
         toast.onmouseleave = Swal.resumeTimer;
       },
     });
-    await Toast.fire({
-      icon: "success",
-      iconColor: `${theme.color.primary}`,
-      title: "타임테이블을 생성하고 있습니다..",
-    });
-
-    localStorage.clear();
-    window.location.href = "/use";
+    if (res.code === 200) {
+      await Toast.fire({
+        icon: "success",
+        iconColor: `${theme.color.primary}`,
+        title: "타임테이블을 생성하고 있습니다..",
+      });
+      localStorage.clear();
+      window.location.href = "/use";
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "알 수 없는 오류입니다.",
+        text: "잠시 후 다시 시도해 주세요.",
+      });
+    }
   };
 
   return (
@@ -86,7 +91,6 @@ export default function CreatePage3({
               title="완료"
               background={theme.color.button.blue}
               onClick={() => {
-                console.log(selectedCells);
                 onClickEvent();
               }}
             />
