@@ -1,3 +1,5 @@
+import theme from "../theme";
+
 export default function Input({
   height = 39,
   placeholder,
@@ -5,9 +7,10 @@ export default function Input({
   onChange = () => {},
   value,
   maxLength,
+  type,
 }) {
   return (
-    <div style={{ borderBottom: "1px solid black" }}>
+    <div style={{ width: "100%", borderBottom: `1px solid ${theme.text.gamma[500]}` }}>
       <input
         maxLength={maxLength}
         placeholder={placeholder}
@@ -21,6 +24,7 @@ export default function Input({
           fontFamily: "pretendard-light",
           fontSize: fontSize,
         }}
+        type={type}
       ></input>
     </div>
   );

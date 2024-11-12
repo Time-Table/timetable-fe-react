@@ -35,7 +35,7 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
             width={10}
             height={20}
             color={prevMonthDisabled ? theme.text.gamma[800] : "black"}
-            isLeft={true}
+            angle={180}
           />
         </ArrowLayout>
         <Month>{month}</Month>

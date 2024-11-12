@@ -50,7 +50,7 @@ export default function CreatePage3({
     });
 
     localStorage.clear();
-    // window.location.href = "/use";
+    window.location.href = "/use";
   };
 
   return (

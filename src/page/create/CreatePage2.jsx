@@ -154,7 +154,7 @@ export default function CreatePage2({
                 onBack(dates);
               }}
             >
-              <Arrow width={10} height={20} isLeft={true} />
+              <Arrow width={10} height={20} angle={180} />
             </ArrowLayout>
           </div>
           <Q>Q2.</Q>
