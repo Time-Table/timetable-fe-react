@@ -1,5 +1,6 @@
 const color = {
   primary: "#FE6F6F",
+  primaryTint: "#FFA29D",
   button: {
     blue: "#4E87E9",
     primary: "#FE6F6F",

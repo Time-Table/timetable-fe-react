@@ -3,23 +3,59 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
-export default function TimeGrid({
+export default function TimeGridViewMode({
   dates,
   startHour,
   endHour,
-  selectedCells,
-  setSelectedCells,
-  selectedCellColor,
+  membersSchedule,
+  selectedName,
   isViewMode,
 }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [cellColorMap, setCellColorMap] = useState({});
+  const membersSchedule_timeInfo = membersSchedule.timeInfo
+    ? membersSchedule.timeInfo
+    : membersSchedule;
 
   useEffect(() => {
-    const groupedWeeks = groupDatesByWeek(dates);
-    setWeeks(groupedWeeks);
-  }, [dates]);
+    if (selectedName) {
+      console.log("na");
+
+      updateSelectedNameDateInfo(membersSchedule_timeInfo);
+      const groupedWeeks = groupDatesByWeek(dates);
+      setWeeks(groupedWeeks);
+    } else {
+      updateDateInfo(membersSchedule_timeInfo);
+      const groupedWeeks = groupDatesByWeek(dates);
+      setWeeks(groupedWeeks);
+    }
+  }, [membersSchedule_timeInfo, selectedName]);
+
+  const updateSelectedNameDateInfo = (data) => {
+    console.log("all");
+    const newCellColorMap = {};
+    data.forEach((dateInfo) => {
+      const cellKey = dateInfo;
+      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 80;
+      newCellColorMap[cellKey] = colorNumber;
+      // console.log(newCellColorMap);
+      // console.log(cellKey);
+    });
+    setCellColorMap(newCellColorMap);
+  };
+
+  const updateDateInfo = (data) => {
+    const newCellColorMap = {};
+    data.forEach((dateInfo) => {
+      const cellKey = dateInfo.time;
+      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 20;
+      newCellColorMap[cellKey] = colorNumber;
+      // console.log(newCellColorMap);
+      // console.log(cellKey);
+    });
+    setCellColorMap(newCellColorMap);
+  };
 
   const groupDatesByWeek = (datesArray) => {
     const weeks = {};
@@ -48,49 +84,23 @@ export default function TimeGrid({
 
   const generateTimeRange = (start, end) => {
     const times = [];
+    let [startHourNum] = start.split(":").map(Number);
+    let [endHourNum] = end.split(":").map(Number);
 
-    let [startHour] = start.split(":").map(Number);
-    let [endHour] = end.split(":").map(Number);
-
-    if (startHour > endHour) {
-      [startHour, endHour] = [endHour, startHour];
+    if (startHourNum > endHourNum) {
+      [startHourNum, endHourNum] = [endHourNum, startHourNum];
     }
 
-    while (startHour < endHour || (startHour === endHour && times.length === 0)) {
-      times.push(`${startHour.toString().padStart(2, "0")}:00`);
-      times.push(`${startHour.toString().padStart(2, "0")}:30`);
-      startHour++;
+    while (startHourNum < endHourNum || (startHourNum === endHourNum && times.length === 0)) {
+      times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
+      times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
+      startHourNum++;
     }
 
     return times;
   };
 
   const timeRange = generateTimeRange(startHour, endHour);
-
-  const handleMouseDown = (date, time) => {
-    setIsDragging(true);
-    const cellKey = `${date}-${time}`;
-    toggleSelection(cellKey);
-  };
-
-  const handleMouseOver = (date, time) => {
-    if (isDragging) {
-      const cellKey = `${date}-${time}`;
-      toggleSelection(cellKey);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const toggleSelection = (cellKey) => {
-    if (selectedCells.includes(cellKey)) {
-      setSelectedCells((prev) => prev.filter((cell) => cell !== cellKey));
-    } else {
-      setSelectedCells((prev) => [...prev, cellKey]);
-    }
-  };
 
   const nextWeek = () => {
     if (currentWeekIndex < weeks.length - 1) {
@@ -115,8 +125,9 @@ export default function TimeGrid({
   };
 
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
+
   return (
-    <GridWrapper onMouseUp={handleMouseUp}>
+    <GridWrapper>
       <MonthDisplay>{monthYear}</MonthDisplay>
       <Grid columns={currentWeek.length + 1}>
         <HeaderRow>
@@ -137,18 +148,19 @@ export default function TimeGrid({
               <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
               {currentWeek.map((date, dateIndex) => {
                 const cellKey = `${date}-${time}`;
-                const isSelected = selectedCells.includes(cellKey);
                 const isDisabled = !dates.includes(date);
+                const colorNumber = cellColorMap[cellKey];
+                const isSelected = !!colorNumber;
+
                 return (
                   <Cell
                     timeIndex={timeIndex}
-                    key={dateIndex}
+                    key={cellKey}
+                    cellIndex={dateIndex}
                     isSelected={isSelected}
-                    selectedCellColor={selectedCellColor}
                     isDisabled={isDisabled}
                     isViewMode={isViewMode}
-                    onMouseDown={() => !isDisabled && handleMouseDown(date, time)}
-                    onMouseOver={() => !isDisabled && handleMouseOver(date, time)}
+                    color={colorNumber}
                   />
                 );
               })}
@@ -199,9 +211,8 @@ const WeekNavigation = styled.div`
   padding-right: 80px;
   gap: 20px;
   width: 100%;
-
   @media (max-width: 480px) {
-    padding-right: 0px;
+    padding-right: 40px;
   }
 `;
 
@@ -215,7 +226,6 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
-  background-color: red;
   font-size: 16px;
   display: contents;
 `;
@@ -251,7 +261,7 @@ const Cell = styled.div`
   height: 30px;
   grid-column: span 1;
   border-right: ${(props) => {
-    return props.key === 5 ? `none` : `1px solid ${theme.text.gamma[800]}`;
+    return props.cellIndex === 5 ? `none` : `1px solid ${theme.text.gamma[800]}`;
   }};
   border-top: ${(props) => {
     if (props.timeIndex === 0) return "none";
@@ -263,12 +273,13 @@ const Cell = styled.div`
 
   background-color: ${(props) =>
     props.isSelected
-      ? `${props.selectedCellColor}`
+      ? props.color
+        ? `${theme.color.timeGrid[props.color]}`
+        : `${theme.color.primary}`
       : props.isDisabled
       ? `${theme.text.gamma[800]}`
       : "white"};
   cursor: ${(props) => (props.isDisabled || props.isViewMode ? "not-allowed" : "pointer")};
-
   pointer-events: ${(props) => (props.isDisabled || props.isViewMode ? "none" : "auto")};
 
   @media (max-width: 480px) {
