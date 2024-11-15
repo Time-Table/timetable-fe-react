@@ -12,7 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />}></Route>
         <Route path="/createPage" element={<CreatePage />}></Route>
-        <Route path="/use" element={<UsePage />}></Route>
+        <Route path="/table/:tableId" element={<UsePage />}></Route>
       </Routes>
     </Router>
   );

@@ -1,6 +1,6 @@
 export const MOCKDATA = {
   title: "공학 설계 입문 12차 회의",
-  MeetingUrl: "https://www.naver.com",
+  MeetingId: "1elijdls-123d-das",
   dates: ["2024-11-04", "2024-11-06", "2024-11-07", "2024-11-08", "2024-11-09", "2024-11-10"],
   startHour: "11:00",
   endHour: "17:00",

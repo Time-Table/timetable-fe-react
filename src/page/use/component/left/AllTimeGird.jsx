@@ -15,7 +15,7 @@ export default function AllTimeGrid({ dates, startHour, endHour, membersSchedule
       </TitleFrame>
 
       <ContentFrame>
-        <NoteText>모든 참여자의 가능한 시간대</NoteText>
+        <NoteText>모든 참여자가 선택한 시간대</NoteText>
         <TimeGridViewMode
           dates={dates}
           startHour={startHour}

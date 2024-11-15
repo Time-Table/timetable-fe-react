@@ -46,7 +46,7 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen }
 
   return (
     <>
-      <NoteText>나의 가능한 시간대</NoteText>
+      <NoteText>내가 선택한 시간대</NoteText>
       <TimeGrid
         dates={dates}
         startHour={startHour}

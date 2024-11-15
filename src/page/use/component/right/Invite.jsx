@@ -3,10 +3,31 @@ import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import { MOCKDATA } from "../../MOCKDATA";
+import { useState } from "react";
+import Swal from "sweetalert2";
 
-export default function Invite({ setLeftScreen }) {
-  const url = MOCKDATA.MeetingUrl;
-  const title = MOCKDATA.title;
+export default function Invite({ setLeftScreen, tableInfo }) {
+  const tableId = tableInfo.tableId;
+
+  const tableUrl = tableInfo ? "http://localhost:3000/table/" + tableId : "";
+  const title = tableInfo ? tableInfo.title : "로딩 중...";
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(tableUrl).then(() => {
+      const Toast = Swal.mixin({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 5000,
+      });
+
+      Toast.fire({
+        icon: "success",
+        iconColor: `${theme.color.button.blue}`,
+        title: "링크를 복사했습니다.",
+      });
+    });
+  };
   return (
     <Frame>
       <TitleFrame>
@@ -18,14 +39,17 @@ export default function Invite({ setLeftScreen }) {
         <TitleDiv>링크를 복사하여 초대하세요.</TitleDiv>
         <UrlDiv>
           <Share />
-          {url}
+          {tableUrl}
         </UrlDiv>
         <ButtonLayout>
           <ButtonDiv>
             <Button
               title="링크 복사"
               background={theme.color.button.blue}
-              onClick={() => setLeftScreen("AllTimeGrid")}
+              onClick={() => {
+                copyToClipboard();
+                setLeftScreen("AllTimeGrid");
+              }}
             />
           </ButtonDiv>
         </ButtonLayout>

@@ -29,7 +29,7 @@ export default function CreatePage3({
 
   const onClickEvent = async () => {
     const res = await createTable(tableTitle, dates, startHour, endHour, selectedCells);
-    console.log(res);
+    const tableId = res.data.tableId;
     const Toast = Swal.mixin({
       toast: true,
       position: "top-end",
@@ -48,7 +48,7 @@ export default function CreatePage3({
         title: "타임테이블을 생성하고 있습니다..",
       });
       localStorage.clear();
-      window.location.href = "/use";
+      window.location.href = `/table/${tableId}`;
     } else {
       Swal.fire({
         icon: "error",

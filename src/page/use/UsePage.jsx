@@ -9,9 +9,25 @@ import AddUser from "./component/right/AddUser";
 import AllTimeGrid from "./component/left/AllTimeGird";
 import Rank from "./component/right/Rank";
 import { MOCKDATA } from "./MOCKDATA";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { getTableInfo } from "../../api/Use/getTableInfo";
 
 export default function UsePage() {
+  const { tableId } = useParams();
+
+  const [tableInfo, setTableInfo] = useState();
+  useEffect(() => {
+    const fetchData = async () => {
+      const tableInfo = await getTableInfo(tableId);
+      setTableInfo(tableInfo);
+    };
+    if (tableId) {
+      fetchData();
+    }
+    fetchData();
+  }, []);
+
   const dates = MOCKDATA.dates;
   const startHour = MOCKDATA.startHour;
   const endHour = MOCKDATA.endHour;
@@ -48,7 +64,11 @@ export default function UsePage() {
           />
         );
       case "Invite":
-        return <Invite setLeftScreen={setLeftScreen} />;
+        return tableInfo ? (
+          <Invite setLeftScreen={setLeftScreen} tableInfo={tableInfo} />
+        ) : (
+          <p>Loading...</p>
+        );
       case "AllTimeGrid":
         return (
           <AllTimeGrid
