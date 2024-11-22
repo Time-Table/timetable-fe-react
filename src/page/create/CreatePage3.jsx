@@ -28,7 +28,7 @@ export default function CreatePage3({
   };
 
   const onClickEvent = async () => {
-    const res = await createTable(tableTitle, dates, startHour, endHour, selectedCells);
+    const res = await createTable(tableTitle, formattedDates(), startHour, endHour, selectedCells);
     const tableId = res.data.tableId;
     const Toast = Swal.mixin({
       toast: true,

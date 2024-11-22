@@ -30,7 +30,7 @@ export default function LandingPage() {
       </button>
       <button
         onClick={() => {
-          window.location.href = `/table/${"3d481b44-d2d5-4248-8229-f79545609963"}`;
+          window.location.href = `/table/${"c3287c6d-6f5e-4024-a94d-6acbffd25e70"}`;
         }}
       >
         usePage 이동

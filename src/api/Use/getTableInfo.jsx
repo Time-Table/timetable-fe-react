@@ -8,7 +8,7 @@ export const getTableInfo = async (tableId) => {
     console.log(res);
     return res.data.data;
   } catch (error) {
-    console.error("getTableInfo: ", error);
+    console.error("getTableInfo: ", error.response);
     return error.response?.data;
   }
 };

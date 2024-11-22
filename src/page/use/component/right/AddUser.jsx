@@ -3,60 +3,209 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Input from "../../../../component/Input";
 import { useState } from "react";
-import { MOCKDATA } from "../../MOCKDATA";
+import { joinUser } from "../../../../api/Use/joinUser";
+import { getUserInfo } from "../../../../api/Use/getUserInfo";
+import { deleteUser } from "../../../../api/Use/deleteUser";
+import Swal from "sweetalert2";
 
-export default function AddUser({ setLeftScreen, setRightScreen, setName, name }) {
+export default function AddUser({ setLeftScreen, setRightScreen, setName, name, tableId }) {
   const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
-  const allofMember = MOCKDATA.memberNames;
-  const membersPrivacy = MOCKDATA.membersPrivacy;
 
-  const searchMember = (name) => allofMember.includes(name);
+  const Toast = Swal.mixin({
+    toast: true,
+    // position: "top-end",
+    showConfirmButton: false,
+    timer: 2000,
+    padding: "1.5em",
+  });
 
-  const deleteMember = (name, password) => {
-    const member = membersPrivacy.find((member) => member.name === name);
-    if (member && member.password === password) {
-      //TODO: 삭제 api
-      alert("삭제되었습니다.(삭제API자리)");
+  const deleteMember = async (name, password) => {
+    try {
+      if (!name || !password) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "이름과 비밀번호를 모두 입력해주세요.",
+        });
 
-      return console.log(true);
-    } else {
-      alert("입력하신 비밀번호가 올바르지 않습니다.");
+        return;
+      }
+
+      // 1. 유저 정보 확인
+      const user = await getUserInfo(tableId, name, password);
+      // 2. 유저 정보가 없는 경우
+      if (!user) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "서버와의 연결이 원활하지 않습니다. 다시 시도해주세요.",
+        });
+        return;
+      }
+      // 3. 존재하지 않는 유저
+      if (user.code === 201) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: user.message,
+        });
+        return;
+      }
+      // 4. 비밀번호 오류
+      if (user.code === 401) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: user.message || "입력하신 비밀번호가 올바르지 않습니다.",
+        });
+        return;
+      }
+      if (user.code === 400) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: user.message || "필수 정보를 모두 입력해주세요.",
+        });
+        return;
+      }
+      // 5. 기타 서버 오류
+      if (user.code !== 200) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "알 수 없는 오류가 발생했습니다. 다시 시도해주세요.",
+        });
+        return;
+      }
+
+      // 6. 유저 삭제 요청
+      const res = await deleteUser(tableId, name, password);
+
+      // 7. 삭제 요청 처리
+      if (res?.success) {
+        Toast.fire({
+          icon: "success",
+          iconColor: `${theme.color.button.blue}`,
+          title: "유저가 성공적으로 삭제되었습니다.",
+        });
+      } else {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: res?.message || "삭제 요청 중 문제가 발생했습니다.",
+        });
+      }
+    } catch (error) {
+      console.error("Error in deleteMember: ", error);
+
+      // 8. 예외 상황 처리
+      if (error.response) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: error.response.data?.message || "서버 요청 중 문제가 발생했습니다.",
+        });
+      } else {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "네트워크 문제로 요청을 처리할 수 없습니다. 다시 시도해주세요.",
+        });
+      }
     }
   };
 
-  const updateMember = (name, password) => {
-    const member = membersPrivacy.find((member) => member.name === name);
+  const updateMember = async (name, password) => {
+    try {
+      // 1. 유저 정보를 가져옴
+      const user = await getUserInfo(tableId, name, password);
 
-    if (!member) {
-      if (inputCondition.test(name)) {
-      } else {
-        alert("이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
+      if (user) {
+        switch (user.code) {
+          case 200: // 유저가 존재하는 경우
+            Toast.fire({
+              icon: "success",
+              iconColor: `${theme.color.button.blue}`,
+              title: "등록된 유저로 로그인합니다.", // 유저가 있으니까 수정 페이지 이동
+            });
+            localStorage.clear();
+            localStorage.setItem("name", user.data.name);
+            setLeftScreen("AllTimeGrid");
+            setRightScreen("MySchedule");
+            return;
+
+          case 201: // 유저가 없어서 새로 가입 가능
+            if (!inputCondition.test(name)) {
+              Toast.fire({
+                icon: "error",
+                iconColor: `${theme.color.primary}`,
+                title: "이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
+              });
+              return;
+            }
+
+            if (!inputCondition.test(password)) {
+              Toast.fire({
+                icon: "error",
+                iconColor: `${theme.color.primary}`,
+                title: "비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
+              });
+              return;
+            }
+
+            // 3. 유저 정보가 없으므로 새로 가입 처리
+            const res = await joinUser(tableId, name, password);
+
+            if (res && res.code === 200) {
+              Toast.fire({
+                icon: "success",
+                iconColor: `${theme.color.button.blue}`,
+                title: res.message, // 가입 성공 메시지
+              });
+              localStorage.clear();
+              localStorage.setItem("name", res.data.name);
+              setLeftScreen("AllTimeGrid");
+              setRightScreen("MySchedule");
+              return;
+            } else if (res && res.code === 201) {
+              console.log("로그인");
+              localStorage.clear();
+              localStorage.setItem("name", res.data.name);
+              setLeftScreen("AllTimeGrid");
+              setRightScreen("MySchedule");
+            } else {
+              Toast.fire({
+                icon: "error",
+                iconColor: `${theme.color.primary}`,
+                title: "유저 등록에 실패했습니다. 다시 시도해주세요.",
+              });
+            }
+
+          case 401: // 비밀번호가 틀린 경우
+            Toast.fire({
+              icon: "error",
+              iconColor: `${theme.color.primary}`,
+              title: user.message,
+            });
+            return;
+
+          default:
+            Toast.fire({
+              icon: "error",
+              iconColor: `${theme.color.primary}`,
+              title: "알 수 없는 오류가 발생했습니다.",
+            });
+            return;
+        }
       }
-
-      if (inputCondition.test(password) || password === "") {
-        console.log("name: ", name);
-        console.log("password: ", password);
-
-        localStorage.clear();
-        localStorage.setItem("name", name);
-
-        setLeftScreen("AllTimeGrid");
-        setRightScreen("MySchedule");
-      } else {
-        alert("비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.");
-      }
-    } else {
-      if (member && member.password === password) {
-        alert("해당 이름으로 입력된 이력이 존재합니다. 수정페이지로 이동합니다. ");
-        localStorage.clear();
-        localStorage.setItem("name", name);
-
-        setLeftScreen("AllTimeGrid");
-        setRightScreen("MySchedule");
-      } else {
-        alert("비밀번호가 올바르지 않습니다.");
-      }
+    } catch (error) {
+      console.error("Error in updateMember:", error);
+      Toast.fire({
+        icon: "error",
+        iconColor: `${theme.color.primary}`,
+        title: "오류가 발생했습니다. 다시 시도해주세요.",
+      });
     }
   };
 
@@ -72,7 +221,11 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
               onChange={(e) => {
                 setName(e.target.value);
                 if (e.target.value.length >= 15) {
-                  alert("최대 15글자까지만 입력 가능합니다.");
+                  Toast.fire({
+                    icon: "error",
+                    iconColor: `${theme.color.primary}`,
+                    title: "최대 15글자까지만 입력 가능합니다.",
+                  });
                 }
               }}
               value={name}
@@ -88,7 +241,11 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (e.target.value.length >= 15) {
-                  alert("최대 15글자까지만 입력 가능합니다.");
+                  Toast.fire({
+                    icon: "error",
+                    iconColor: `${theme.color.primary}`,
+                    title: "최대 15글자까지만 입력 가능합니다.",
+                  });
                 }
               }}
               value={password}
@@ -107,7 +264,7 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
               updateMember(name, password);
             }}
             //TODO: 닉넴 중복? 비번 자리 수 체크
-            disabled={name.length === 0 ? true : false}
+            disabled={!name || !password ? true : false}
           />
         </ButtonDiv>
 
@@ -117,7 +274,8 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name }
             onClick={() => {
               deleteMember(name, password);
             }}
-            disabled={searchMember(name) ? false : true}
+            // disabled={searchMember(name) ? false : true}
+            disabled={false}
           />
         </ButtonDiv>
       </ButtonLayout>

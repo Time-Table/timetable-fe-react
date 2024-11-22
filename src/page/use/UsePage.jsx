@@ -17,6 +17,8 @@ export default function UsePage() {
   const { tableId } = useParams();
 
   const [tableInfo, setTableInfo] = useState();
+  const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
+
   useEffect(() => {
     const fetchData = async () => {
       const tableInfo = await getTableInfo(tableId);
@@ -27,10 +29,6 @@ export default function UsePage() {
     }
     fetchData();
   }, []);
-
-  const dates = MOCKDATA.dates;
-  const startHour = MOCKDATA.startHour;
-  const endHour = MOCKDATA.endHour;
 
   const [leftScreen, setLeftScreen] = useState("Invite");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
@@ -61,6 +59,7 @@ export default function UsePage() {
             setRightScreen={setRightScreen}
             setName={setName}
             name={name}
+            tableId={tableId}
           />
         );
       case "Invite":

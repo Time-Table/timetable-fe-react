@@ -2,8 +2,6 @@ import styled from "@emotion/styled/macro";
 import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
-import { MOCKDATA } from "../../MOCKDATA";
-import { useState } from "react";
 import Swal from "sweetalert2";
 
 export default function Invite({ setLeftScreen, tableInfo }) {
