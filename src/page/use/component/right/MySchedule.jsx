@@ -4,8 +4,9 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Swal from "sweetalert2";
+import { addSchedule } from "../../../../api/Use/addSchedule";
 
-export default function MySchedule({ dates, startHour, endHour, setRightScreen }) {
+export default function MySchedule({ dates, startHour, endHour, setRightScreen, tableId }) {
   const [selectedCells, setSelectedCells] = useState([]);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
 
@@ -29,9 +30,18 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen }
     }
   }, [selectedCells]);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = async () => {
     if (selectedCells.length > 0) {
-      // 내정보 저장 api 연결
+      const name = localStorage.getItem("name");
+
+      if (!tableId || !name) {
+        alert("로그인 정보가 누락되었습니다.", tableId, name);
+        return;
+      }
+
+      const updatedSchedule = await addSchedule(tableId, name, selectedCells);
+      console.log("Updated Schedule:", updatedSchedule);
+
       Swal.fire({
         icon: "success",
         iconColor: `${theme.color.primary}`,

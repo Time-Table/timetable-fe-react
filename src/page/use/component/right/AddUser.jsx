@@ -117,6 +117,7 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name, 
   };
 
   const updateMember = async (name, password) => {
+    const availableTimes = [];
     try {
       // 1. 유저 정보를 가져옴
       const user = await getUserInfo(tableId, name, password);
@@ -155,7 +156,7 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name, 
             }
 
             // 3. 유저 정보가 없으므로 새로 가입 처리
-            const res = await joinUser(tableId, name, password);
+            const res = await joinUser(tableId, name, password, availableTimes);
 
             if (res && res.code === 200) {
               Toast.fire({

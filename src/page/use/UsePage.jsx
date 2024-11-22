@@ -20,6 +20,12 @@ export default function UsePage() {
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
 
   useEffect(() => {
+    // TODO:[Error] 다른 프로젝트 이동 시, 이전 데이터가 남는 버그
+    // if (tableId !== localStorage.getItem("tableId")) {
+    //   localStorage.clear();
+    //   localStorage.setItem("tableId", tableId);
+    // }
+
     const fetchData = async () => {
       const tableInfo = await getTableInfo(tableId);
       setTableInfo(tableInfo);
@@ -27,7 +33,6 @@ export default function UsePage() {
     if (tableId) {
       fetchData();
     }
-    fetchData();
   }, []);
 
   const [leftScreen, setLeftScreen] = useState("Invite");
@@ -95,6 +100,7 @@ export default function UsePage() {
             startHour={startHour}
             endHour={endHour}
             setRightScreen={setRightScreen}
+            tableId={tableId}
           />
         );
       case "Rank":
