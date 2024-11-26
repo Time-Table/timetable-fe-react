@@ -20,8 +20,6 @@ export default function TimeGridViewMode({
 
   useEffect(() => {
     if (selectedName) {
-      console.log("na");
-
       updateSelectedNameDateInfo(membersSchedule_timeInfo);
       const groupedWeeks = groupDatesByWeek(dates);
       setWeeks(groupedWeeks);
@@ -33,7 +31,6 @@ export default function TimeGridViewMode({
   }, [membersSchedule_timeInfo, selectedName]);
 
   const updateSelectedNameDateInfo = (data) => {
-    console.log("all");
     const newCellColorMap = {};
     data.forEach((dateInfo) => {
       const cellKey = dateInfo;

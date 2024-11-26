@@ -12,45 +12,47 @@ import { MOCKDATA } from "./MOCKDATA";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/Use/getTableInfo";
+import { getAllSchedule } from "../../api/Use/getAllSchedule";
 
 export default function UsePage() {
   const { tableId } = useParams();
-
   const [tableInfo, setTableInfo] = useState();
+  const [usersSchedule, setUsersSchedule] = useState([]);
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
+  const [saveButtonState, setSaveButtonState] = useState(true);
+  const [selectedCells, setSelectedCells] = useState([]);
 
   useEffect(() => {
-    // TODO:[Error] 다른 프로젝트 이동 시, 이전 데이터가 남는 버그
-    // if (tableId !== localStorage.getItem("tableId")) {
-    //   localStorage.clear();
-    //   localStorage.setItem("tableId", tableId);
-    // }
+    if (tableId !== localStorage.getItem("tableId")) {
+      localStorage.clear();
+      localStorage.setItem("tableId", tableId);
+    }
 
     const fetchData = async () => {
       const tableInfo = await getTableInfo(tableId);
       setTableInfo(tableInfo);
+      const membersSchedule = await getAllSchedule(tableId);
+      if (membersSchedule.code === 200) {
+        setUsersSchedule(membersSchedule.data);
+      }
     };
     if (tableId) {
       fetchData();
     }
-  }, []);
+  }, [saveButtonState]);
 
   const [leftScreen, setLeftScreen] = useState("Invite");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
-  const membersSchedule = MOCKDATA.membersSchedule;
 
   const datesInfo = () => {
     if (selectedName) {
-      const scheduleOfSelectedName = membersSchedule.users.find(
-        (user) => user.name === selectedName
-      );
+      const scheduleOfSelectedName = usersSchedule.find((user) => user.name === selectedName);
       return scheduleOfSelectedName.availableTimes;
     }
   };
-
   const handleToggle = (button) => {
     setSelectedToggle(button);
   };
@@ -65,6 +67,7 @@ export default function UsePage() {
             setName={setName}
             name={name}
             tableId={tableId}
+            setSelectedCells={setSelectedCells}
           />
         );
       case "Invite":
@@ -79,7 +82,7 @@ export default function UsePage() {
             dates={dates}
             startHour={startHour}
             endHour={endHour}
-            membersSchedule={selectedName ? datesInfo() : membersSchedule}
+            membersSchedule={selectedName ? datesInfo() : usersSchedule}
             selectedName={selectedName}
           />
         );
@@ -91,6 +94,7 @@ export default function UsePage() {
             setName={setName}
             selectedName={selectedName}
             setSelectedName={setSelectedName}
+            usersSchedule={usersSchedule}
           />
         );
       case "MySchedule":
@@ -101,6 +105,11 @@ export default function UsePage() {
             endHour={endHour}
             setRightScreen={setRightScreen}
             tableId={tableId}
+            saveButtonState={saveButtonState}
+            setSaveButtonState={setSaveButtonState}
+            selectedCells={selectedCells}
+            setSelectedCells={setSelectedCells}
+            usersSchedule={usersSchedule}
           />
         );
       case "Rank":

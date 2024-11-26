@@ -8,7 +8,14 @@ import { getUserInfo } from "../../../../api/Use/getUserInfo";
 import { deleteUser } from "../../../../api/Use/deleteUser";
 import Swal from "sweetalert2";
 
-export default function AddUser({ setLeftScreen, setRightScreen, setName, name, tableId }) {
+export default function AddUser({
+  setSelectedCells,
+  setLeftScreen,
+  setRightScreen,
+  setName,
+  name,
+  tableId,
+}) {
   const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
 
@@ -130,10 +137,13 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name, 
               iconColor: `${theme.color.button.blue}`,
               title: "등록된 유저로 로그인합니다.", // 유저가 있으니까 수정 페이지 이동
             });
-            localStorage.clear();
             localStorage.setItem("name", user.data.name);
             setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
+
+            if (user.data.availableTimes) {
+              setSelectedCells(user.data.availableTimes);
+            }
             return;
 
           case 201: // 유저가 없어서 새로 가입 가능
@@ -157,22 +167,20 @@ export default function AddUser({ setLeftScreen, setRightScreen, setName, name, 
 
             // 3. 유저 정보가 없으므로 새로 가입 처리
             const res = await joinUser(tableId, name, password, availableTimes);
-
             if (res && res.code === 200) {
               Toast.fire({
                 icon: "success",
                 iconColor: `${theme.color.button.blue}`,
                 title: res.message, // 가입 성공 메시지
               });
-              localStorage.clear();
               localStorage.setItem("name", res.data.name);
+              setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               return;
             } else if (res && res.code === 201) {
-              console.log("로그인");
-              localStorage.clear();
               localStorage.setItem("name", res.data.name);
+              setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
             } else {

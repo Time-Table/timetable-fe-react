@@ -5,13 +5,22 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../../api/Use/addSchedule";
+import { getUserInfo } from "../../../../api/Use/getUserInfo";
 
-export default function MySchedule({ dates, startHour, endHour, setRightScreen, tableId }) {
-  const [selectedCells, setSelectedCells] = useState([]);
-  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
-
+export default function MySchedule({
+  saveButtonState,
+  setSaveButtonState,
+  dates,
+  startHour,
+  endHour,
+  setRightScreen,
+  tableId,
+  selectedCells,
+  setSelectedCells,
+  usersSchedule,
+}) {
+  const name = localStorage.getItem("name");
   useEffect(() => {
-    const name = localStorage.getItem("name");
     if (!name) {
       Swal.fire({
         title: "정보를 먼저 입력해주세요!",
@@ -21,12 +30,28 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen, 
         confirmButtonColor: `${theme.color.primary}`,
       });
       setRightScreen("AddUser");
+      return;
     }
-  }, []);
+
+    const userSchedule = () => {
+      const userSchedule = usersSchedule.find((user) => user.name === name);
+
+      if (!userSchedule) {
+        console.warn("해당 이름의 유저를 찾을 수 없습니다:", name);
+        return;
+      }
+
+      if (userSchedule.availableTimes) {
+        setSelectedCells(userSchedule.availableTimes);
+      }
+    };
+
+    userSchedule();
+  }, [name, usersSchedule]);
 
   useEffect(() => {
     if (selectedCells.length > 0) {
-      setIsButtonDisabled(false);
+      setSaveButtonState(false);
     }
   }, [selectedCells]);
 
@@ -35,7 +60,13 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen, 
       const name = localStorage.getItem("name");
 
       if (!tableId || !name) {
-        alert("로그인 정보가 누락되었습니다.", tableId, name);
+        Swal.fire({
+          icon: "success",
+          iconColor: `${theme.color.primary}`,
+          title: "로그인 정보가 누락되었습니다.",
+          showConfirmButton: false,
+          timer: 1500,
+        });
         return;
       }
 
@@ -48,9 +79,9 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen, 
         title: "저장되었습니다!",
 
         showConfirmButton: false,
-        timer: 1000,
+        timer: 1500,
       });
-      setIsButtonDisabled(true);
+      setSaveButtonState(true);
     }
   };
 
@@ -68,7 +99,7 @@ export default function MySchedule({ dates, startHour, endHour, setRightScreen, 
       />
       <ButtonLayout>
         <ButtonDiv>
-          <Button onClick={handleButtonClick} disabled={isButtonDisabled} title="저장" />
+          <Button onClick={handleButtonClick} disabled={saveButtonState} title="저장" />
         </ButtonDiv>
       </ButtonLayout>
     </>

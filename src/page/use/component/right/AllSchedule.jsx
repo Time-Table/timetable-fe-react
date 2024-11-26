@@ -12,22 +12,22 @@ export default function AllSchedule({
   setName,
   selectedName,
   setSelectedName,
+  usersSchedule,
 }) {
   const [message, setMessage] = useState();
-  const memberName = MOCKDATA.memberNames;
+  const names = usersSchedule.map((user) => user.name);
   const chatEndRef = useRef(null);
-
-  const [memberDetails, setMemberDetails] = useState(Array(memberName.length).fill(false));
+  const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
 
   const toggleMemberDetail = (index) => {
     setMemberDetails((prevDetails) =>
       prevDetails.map((detail, i) => (i === index ? !detail : detail))
     );
 
-    if (memberName[index] === selectedName) {
+    if (names[index] === selectedName) {
       setSelectedName(false); // 선택 해제
     } else {
-      setSelectedName(memberName[index]); // 새로운 이름 선택
+      setSelectedName(names[index]); // 새로운 이름 선택
     }
     console.log("Selected name:", selectedName);
   };
@@ -41,7 +41,7 @@ export default function AllSchedule({
   return (
     <>
       <MembersLayout>
-        {memberName.map((name, index) => {
+        {names.map((name, index) => {
           return (
             <MemberContainer key={index}>
               <MemberDiv
