@@ -21,7 +21,7 @@ export default function UsePage() {
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [selectedCells, setSelectedCells] = useState([]);
-  const [timeinfo, setTimeInfo] = useState([]);
+  const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
   useEffect(() => {
     if (tableId !== localStorage.getItem("tableId")) {
@@ -86,7 +86,7 @@ export default function UsePage() {
             dates={dates}
             startHour={startHour}
             endHour={endHour}
-            timeInfo={selectedName ? datesInfo() : timeinfo}
+            timeInfo={selectedName ? datesInfo() : timeInfo}
             selectedName={selectedName}
             title={title}
           />
@@ -118,7 +118,7 @@ export default function UsePage() {
           />
         );
       case "Rank":
-        return <Rank />;
+        return <Rank timeInfo={timeInfo} />;
       default:
         return "예상치 못한 에러입니다. 다시 시도해주세요.";
     }

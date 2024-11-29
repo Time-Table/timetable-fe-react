@@ -1,16 +1,12 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
-import { MOCKDATA } from "../../MOCKDATA";
 import Arrow from "../../../../assets/svg/Arrow";
 import { useState } from "react";
 
-export default function Rank() {
-  const rankData = MOCKDATA.rank;
+export default function Rank({ timeInfo }) {
+  const sortedTimeInfo = [...timeInfo].sort((a, b) => b.count - a.count);
+  const [rankDetails, setRankDetails] = useState(Array(sortedTimeInfo.length).fill(false));
 
-  // rankDetail 상태를 배열로 관리 (기본적으로 모두 false)
-  const [rankDetails, setRankDetails] = useState(Array(rankData.length).fill(false));
-
-  // rankDetail을 토글하는 함수
   const toggleRankDetail = (index) => {
     setRankDetails((prevDetails) =>
       prevDetails.map((detail, i) => (i === index ? !detail : detail))
@@ -27,22 +23,22 @@ export default function Rank() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {rankData.map((rank, index) => {
+    <Frame>
+      {sortedTimeInfo.map((rank, index) => {
         const ranking = index + 1;
-        const sum = rank.sum;
-        const date = rank.date;
+        const sum = rank.count;
+        const time = rank.time;
 
         return (
-          <ContentDiv key={rank.id}>
+          <ContentDiv key={rank._id}>
             <RankButton key={index} onClick={() => toggleRankDetail(index)}>
               <RankInfo width={"50px"} color={theme.color.primary} font={"Pretendard-semiBold"}>
-                {ranking + " 위"}
+                {ranking + ""}
               </RankInfo>
               <RankInfo width={"70px"} font={"Pretendard-Regular"}>
                 {sum + " 명"}
               </RankInfo>
-              <RankMonthInfo>{formatDate(date)}</RankMonthInfo>
+              <RankMonthInfo>{formatDate(time)}</RankMonthInfo>
               <Arrow angle={rankDetails[index] ? 270 : 90} width={13} height={13} />
             </RankButton>
             <RankDetailBox rankDetail={rankDetails[index]}>
@@ -53,18 +49,36 @@ export default function Rank() {
           </ContentDiv>
         );
       })}
-    </div>
+    </Frame>
   );
 }
 
+const Frame = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 620px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none; //IE and Edge
+  scrollbar-width: none; //Firefox
+`;
+
 const ContentDiv = styled.div`
-  ${theme.styles.flexCenterColumn};
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
   width: 380px;
   gap: 20px;
 
   @media (max-width: 480px) {
     width: 100%;
-    /* gap: 10px; */
+    gap: 10px;
   }
 `;
 
@@ -86,13 +100,12 @@ const RankButton = styled.button`
 `;
 
 const RankDetailBox = styled.div`
-  width: 100%;
+  width: 80%;
   gap: 10px;
   background: ${theme.text.gamma[900]};
   flex-wrap: wrap;
   border-radius: 10px;
   display: ${(props) => (props.rankDetail ? "flex" : "none")};
-  justify-content: flex-start;
   padding: 10px;
 
   @media (max-width: 480px) {
