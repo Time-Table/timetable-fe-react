@@ -23,6 +23,12 @@ export default function UsePage() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
+  const [leftScreen, setLeftScreen] = useState("Invite");
+  const [rightScreen, setRightScreen] = useState("AllSchedule");
+  const [selectedToggle, setSelectedToggle] = useState(false);
+  const [selectedName, setSelectedName] = useState(false);
+  const [name, setName] = useState("");
+
   useEffect(() => {
     if (tableId !== localStorage.getItem("tableId")) {
       localStorage.clear();
@@ -43,12 +49,6 @@ export default function UsePage() {
       fetchData();
     }
   }, [saveButtonState]);
-
-  const [leftScreen, setLeftScreen] = useState("Invite");
-  const [rightScreen, setRightScreen] = useState("AllSchedule");
-  const [selectedToggle, setSelectedToggle] = useState(false);
-  const [selectedName, setSelectedName] = useState(false);
-  const [name, setName] = useState("");
 
   const datesInfo = async () => {
     if (selectedName) {
@@ -118,7 +118,9 @@ export default function UsePage() {
           />
         );
       case "Rank":
-        return <Rank timeInfo={timeInfo} />;
+        return (
+          <Rank timeInfo={timeInfo} selectedName={selectedName} setSelectedName={setSelectedName} />
+        );
       default:
         return "예상치 못한 에러입니다. 다시 시도해주세요.";
     }

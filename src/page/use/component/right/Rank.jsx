@@ -3,7 +3,7 @@ import theme from "../../../../theme";
 import Arrow from "../../../../assets/svg/Arrow";
 import { useState } from "react";
 
-export default function Rank({ timeInfo }) {
+export default function Rank({ timeInfo, selectedName, setSelectedName }) {
   const sortedTimeInfo = [...timeInfo].sort((a, b) => b.count - a.count);
   const [rankDetails, setRankDetails] = useState(Array(sortedTimeInfo.length).fill(false));
 
@@ -11,6 +11,10 @@ export default function Rank({ timeInfo }) {
     setRankDetails((prevDetails) =>
       prevDetails.map((detail, i) => (i === index ? !detail : detail))
     );
+  };
+
+  const toggleMemberBold = (member) => {
+    setSelectedName((prevSelectedName) => (prevSelectedName === member ? null : member));
   };
 
   function formatDate(input) {
@@ -42,9 +46,15 @@ export default function Rank({ timeInfo }) {
               <Arrow angle={rankDetails[index] ? 270 : 90} width={13} height={13} />
             </RankButton>
             <RankDetailBox rankDetail={rankDetails[index]}>
-              {rank.members.map((member, index) => {
-                return <MemberDiv key={index}>{member}</MemberDiv>;
-              })}
+              {rank.members.map((member, memberIndex) => (
+                <MemberDiv
+                  key={memberIndex}
+                  onClick={() => toggleMemberBold(member)}
+                  isSelected={selectedName === member}
+                >
+                  {member}
+                </MemberDiv>
+              ))}
             </RankDetailBox>
           </ContentDiv>
         );
@@ -121,6 +131,8 @@ const MemberDiv = styled.div`
   padding:  10px 16px;
   font-family: Pretendard-Light;
   font-size: 20px;
+  font-weight: ${(props) => (props.isSelected ? "bold" : "normal")};
+  cursor: pointer;
 
   @media (max-width: 480px) {
     padding: 6px 10px;
