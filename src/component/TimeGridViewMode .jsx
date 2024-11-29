@@ -4,57 +4,81 @@ import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
 export default function TimeGridViewMode({
-  dates,
+  dates = [],
   startHour,
   endHour,
-  membersSchedule,
+  timeInfo,
   selectedName,
   isViewMode,
 }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [cellColorMap, setCellColorMap] = useState({});
-  const membersSchedule_timeInfo = membersSchedule.timeInfo
-    ? membersSchedule.timeInfo
-    : membersSchedule;
+  const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]); // timeInfo 데이터를 상태로 관리
 
   useEffect(() => {
-    if (selectedName) {
-      updateSelectedNameDateInfo(membersSchedule_timeInfo);
-      const groupedWeeks = groupDatesByWeek(dates);
-      setWeeks(groupedWeeks);
-    } else {
-      updateDateInfo(membersSchedule_timeInfo);
-      const groupedWeeks = groupDatesByWeek(dates);
-      setWeeks(groupedWeeks);
+    const resolveTimeInfo = async () => {
+      if (timeInfo instanceof Promise) {
+        const resolved = await timeInfo;
+        setResolvedTimeInfo(Array.isArray(resolved) ? resolved : []);
+      } else {
+        setResolvedTimeInfo(Array.isArray(timeInfo) ? timeInfo : []);
+      }
+    };
+
+    resolveTimeInfo();
+  }, [timeInfo]);
+
+  useEffect(() => {
+    if (Array.isArray(dates) && dates.length > 0) {
+      setWeeks(groupDatesByWeek(dates));
     }
-  }, [membersSchedule_timeInfo, selectedName]);
+  }, [dates]);
+
+  useEffect(() => {
+    if (Array.isArray(resolvedTimeInfo)) {
+      if (selectedName) {
+        updateSelectedNameDateInfo(resolvedTimeInfo);
+      } else {
+        updateDateInfo(resolvedTimeInfo);
+      }
+    } else {
+      console.error("timeInfo is not an array:", resolvedTimeInfo);
+    }
+  }, [resolvedTimeInfo, selectedName]);
 
   const updateSelectedNameDateInfo = (data) => {
+    if (!Array.isArray(data)) {
+      console.error("Expected an array, but received:", data);
+      return;
+    }
+
     const newCellColorMap = {};
+
     data.forEach((dateInfo) => {
-      const cellKey = dateInfo;
-      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 80;
-      newCellColorMap[cellKey] = colorNumber;
-      // console.log(newCellColorMap);
-      // console.log(cellKey);
+      if (dateInfo) {
+        newCellColorMap[dateInfo] = "select";
+      }
     });
-    setCellColorMap(newCellColorMap);
+
+    setCellColorMap((prev) =>
+      JSON.stringify(prev) === JSON.stringify(newCellColorMap) ? prev : newCellColorMap
+    );
   };
 
   const updateDateInfo = (data) => {
     const newCellColorMap = {};
     data.forEach((dateInfo) => {
-      const cellKey = dateInfo.time;
-      const colorNumber = dateInfo.colorNumber ? dateInfo.colorNumber : 20;
-      newCellColorMap[cellKey] = colorNumber;
-      // console.log(newCellColorMap);
-      // console.log(cellKey);
+      if (dateInfo?.time) {
+        newCellColorMap[dateInfo.time] = dateInfo.colorNumber || 20;
+      }
     });
-    setCellColorMap(newCellColorMap);
+    setCellColorMap((prev) =>
+      JSON.stringify(prev) === JSON.stringify(newCellColorMap) ? prev : newCellColorMap
+    );
   };
 
-  const groupDatesByWeek = (datesArray) => {
+  function groupDatesByWeek(datesArray) {
     const weeks = {};
     datesArray.forEach((date) => {
       const current = new Date(date);
@@ -66,18 +90,15 @@ export default function TimeGridViewMode({
       weeks[weekKey].push(date);
     });
 
-    const fullWeeks = Object.keys(weeks).map((weekKey) => {
+    return Object.keys(weeks).map((weekKey) => {
       const weekStart = new Date(weekKey);
-      const fullWeek = [];
-      for (let i = 0; i < 7; i++) {
+      return Array.from({ length: 7 }, (_, i) => {
         const day = new Date(weekStart);
         day.setDate(weekStart.getDate() + i);
-        fullWeek.push(day.toISOString().split("T")[0]);
-      }
-      return fullWeek;
+        return day.toISOString().split("T")[0];
+      });
     });
-    return fullWeeks;
-  };
+  }
 
   const generateTimeRange = (start, end) => {
     const times = [];
@@ -98,20 +119,19 @@ export default function TimeGridViewMode({
   };
 
   const timeRange = generateTimeRange(startHour, endHour);
+  const currentWeek = weeks[currentWeekIndex] || [];
 
   const nextWeek = () => {
     if (currentWeekIndex < weeks.length - 1) {
-      setCurrentWeekIndex(currentWeekIndex + 1);
+      setCurrentWeekIndex((prev) => prev + 1);
     }
   };
 
   const prevWeek = () => {
     if (currentWeekIndex > 0) {
-      setCurrentWeekIndex(currentWeekIndex - 1);
+      setCurrentWeekIndex((prev) => prev - 1);
     }
   };
-
-  const currentWeek = weeks[currentWeekIndex] || [];
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -122,7 +142,6 @@ export default function TimeGridViewMode({
   };
 
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
-
   return (
     <GridWrapper>
       <MonthDisplay>{monthYear}</MonthDisplay>
@@ -139,31 +158,29 @@ export default function TimeGridViewMode({
             );
           })}
         </HeaderRow>
-        {timeRange.map((time, timeIndex) => {
-          return (
-            <Row key={timeIndex}>
-              <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
-              {currentWeek.map((date, dateIndex) => {
-                const cellKey = `${date}-${time}`;
-                const isDisabled = !dates.includes(date);
-                const colorNumber = cellColorMap[cellKey];
-                const isSelected = !!colorNumber;
+        {timeRange.map((time, timeIndex) => (
+          <Row key={timeIndex}>
+            <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
+            {currentWeek.map((date, dateIndex) => {
+              const cellKey = `${date}-${time}`;
+              const isDisabled = !dates.includes(date);
+              const colorNumber = cellColorMap[cellKey];
+              const isSelected = !!colorNumber;
 
-                return (
-                  <Cell
-                    timeIndex={timeIndex}
-                    key={cellKey}
-                    cellIndex={dateIndex}
-                    isSelected={isSelected}
-                    isDisabled={isDisabled}
-                    isViewMode={isViewMode}
-                    color={colorNumber}
-                  />
-                );
-              })}
-            </Row>
-          );
-        })}
+              return (
+                <Cell
+                  key={cellKey}
+                  timeIndex={timeIndex}
+                  cellIndex={dateIndex}
+                  isSelected={isSelected}
+                  isDisabled={isDisabled}
+                  isViewMode={isViewMode}
+                  color={colorNumber}
+                />
+              );
+            })}
+          </Row>
+        ))}
       </Grid>
       <WeekNavigation>
         <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
@@ -174,7 +191,7 @@ export default function TimeGridViewMode({
             angle={180}
           />
         </ArrowLayout>
-        <ArrowLayout onClick={nextWeek} disabled={currentWeekIndex === weeks.length - 1}>
+        <ArrowLayout disabled={currentWeekIndex === weeks.length - 1} onClick={nextWeek}>
           <Arrow
             width={10}
             height={20}

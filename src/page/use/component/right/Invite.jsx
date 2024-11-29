@@ -4,11 +4,8 @@ import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
 
-export default function Invite({ setLeftScreen, tableInfo }) {
-  const tableId = tableInfo.tableId;
-
-  const tableUrl = tableInfo ? "http://localhost:3000/table/" + tableId : "";
-  const title = tableInfo ? tableInfo.title : "로딩 중...";
+export default function Invite({ setLeftScreen, tableId, title }) {
+  const tableUrl = "http://localhost:3000/table/" + tableId;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tableUrl).then(() => {

@@ -5,7 +5,6 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../../api/Use/addSchedule";
-import { getUserInfo } from "../../../../api/Use/getUserInfo";
 
 export default function MySchedule({
   saveButtonState,
@@ -70,8 +69,7 @@ export default function MySchedule({
         return;
       }
 
-      const updatedSchedule = await addSchedule(tableId, name, selectedCells);
-      console.log("Updated Schedule:", updatedSchedule);
+      await addSchedule(tableId, name, selectedCells);
 
       Swal.fire({
         icon: "success",

@@ -1,12 +1,8 @@
-import { useState } from "react";
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
-import { MOCKDATA } from "../../MOCKDATA";
 import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
 
-export default function AllTimeGrid({ dates, startHour, endHour, membersSchedule, selectedName }) {
-  const title = MOCKDATA.title;
-
+export default function AllTimeGrid({ title, dates, startHour, endHour, timeInfo, selectedName }) {
   return (
     <>
       <TitleFrame>
@@ -21,7 +17,7 @@ export default function AllTimeGrid({ dates, startHour, endHour, membersSchedule
           startHour={startHour}
           endHour={endHour}
           isViewMode={true}
-          membersSchedule={membersSchedule}
+          timeInfo={timeInfo}
           selectedName={selectedName}
         />
       </ContentFrame>

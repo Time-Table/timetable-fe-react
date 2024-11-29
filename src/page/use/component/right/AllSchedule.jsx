@@ -25,11 +25,10 @@ export default function AllSchedule({
     );
 
     if (names[index] === selectedName) {
-      setSelectedName(false); // 선택 해제
+      setSelectedName(false);
     } else {
-      setSelectedName(names[index]); // 새로운 이름 선택
+      setSelectedName(names[index]);
     }
-    console.log("Selected name:", selectedName);
   };
 
   useEffect(() => {

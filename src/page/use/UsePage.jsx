@@ -8,11 +8,11 @@ import MySchedule from "./component/right/MySchedule";
 import AddUser from "./component/right/AddUser";
 import AllTimeGrid from "./component/left/AllTimeGird";
 import Rank from "./component/right/Rank";
-import { MOCKDATA } from "./MOCKDATA";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/Use/getTableInfo";
 import { getAllSchedule } from "../../api/Use/getAllSchedule";
+import { getSchedule } from "../../api/Use/getSchedule";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -21,7 +21,8 @@ export default function UsePage() {
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [selectedCells, setSelectedCells] = useState([]);
-
+  const [timeinfo, setTimeInfo] = useState([]);
+  const title = tableInfo ? tableInfo.title : "";
   useEffect(() => {
     if (tableId !== localStorage.getItem("tableId")) {
       localStorage.clear();
@@ -35,6 +36,8 @@ export default function UsePage() {
       if (membersSchedule.code === 200) {
         setUsersSchedule(membersSchedule.data);
       }
+      const timeData = await getSchedule(tableId);
+      setTimeInfo(timeData);
     };
     if (tableId) {
       fetchData();
@@ -47,12 +50,13 @@ export default function UsePage() {
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
 
-  const datesInfo = () => {
+  const datesInfo = async () => {
     if (selectedName) {
       const scheduleOfSelectedName = usersSchedule.find((user) => user.name === selectedName);
       return scheduleOfSelectedName.availableTimes;
     }
   };
+
   const handleToggle = (button) => {
     setSelectedToggle(button);
   };
@@ -72,7 +76,7 @@ export default function UsePage() {
         );
       case "Invite":
         return tableInfo ? (
-          <Invite setLeftScreen={setLeftScreen} tableInfo={tableInfo} />
+          <Invite setLeftScreen={setLeftScreen} tableId={tableId} title={title} />
         ) : (
           <p>Loading...</p>
         );
@@ -82,8 +86,9 @@ export default function UsePage() {
             dates={dates}
             startHour={startHour}
             endHour={endHour}
-            membersSchedule={selectedName ? datesInfo() : usersSchedule}
+            timeInfo={selectedName ? datesInfo() : timeinfo}
             selectedName={selectedName}
+            title={title}
           />
         );
       case "AllSchedule":
@@ -147,7 +152,7 @@ export default function UsePage() {
           <ToggleButtonDiv>
             <Button
               fontFamily={selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
-              title={`전체 일정(${MOCKDATA.memberNames.length})`}
+              title={`전체 일정(${usersSchedule.length})`}
               background="none"
               color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
               onClick={() => {
