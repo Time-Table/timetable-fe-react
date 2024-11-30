@@ -275,7 +275,7 @@ const Cell = styled.div`
   height: 30px;
   grid-column: span 1;
   border-right: ${(props) => {
-    return props.cellIndex === 5 ? `none` : `1px solid ${theme.text.gamma[800]}`;
+    return props.cellIndex === 6 ? `none` : `1px solid ${theme.text.gamma[800]}`;
   }};
   border-top: ${(props) => {
     if (props.timeIndex === 0) return "none";

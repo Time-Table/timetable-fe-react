@@ -20,9 +20,11 @@ export default function AllSchedule({
   const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
 
   const toggleMemberDetail = (index) => {
-    setMemberDetails((prevDetails) =>
-      prevDetails.map((detail, i) => (i === index ? !detail : detail))
-    );
+    setMemberDetails((prevDetails) => {
+      const newDetails = Array(prevDetails.length).fill(false);
+      newDetails[index] = !prevDetails[index];
+      return newDetails;
+    });
 
     if (names[index] === selectedName) {
       setSelectedName(false);
@@ -52,15 +54,19 @@ export default function AllSchedule({
               >
                 {name}
               </MemberDiv>
-              <EditBox
-                memberDetails={memberDetails[index]}
-                onClick={() => {
-                  setName(name);
-                  setRightScreen("AddUser");
-                }}
-              >
-                <Edit />
-              </EditBox>
+              {memberDetails[index] ? (
+                <EditBox
+                  memberDetails={memberDetails[index]}
+                  onClick={() => {
+                    setName(name);
+                    setRightScreen("AddUser");
+                  }}
+                >
+                  <Edit />
+                </EditBox>
+              ) : (
+                <></>
+              )}
             </MemberContainer>
           );
         })}
@@ -222,7 +228,7 @@ const SendButtonBox = styled.button`
 `;
 
 const EditBox = styled.button`
-  display: ${(props) => (props.memberDetails ? "flex" : "none")};
+  display: flex;
   background: none;
   border: none;
   cursor: pointer;

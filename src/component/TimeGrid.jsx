@@ -141,8 +141,9 @@ export default function TimeGrid({
                 const isDisabled = !dates.includes(date);
                 return (
                   <Cell
+                  key={cellKey}
                     timeIndex={timeIndex}
-                    key={dateIndex}
+                    cellIndex={dateIndex}
                     isSelected={isSelected}
                     selectedCellColor={selectedCellColor}
                     isDisabled={isDisabled}
@@ -251,7 +252,7 @@ const Cell = styled.div`
   height: 30px;
   grid-column: span 1;
   border-right: ${(props) => {
-    return props.key === 5 ? `none` : `1px solid ${theme.text.gamma[800]}`;
+    return props.cellIndex === 6 ? `none` : `1px solid ${theme.text.gamma[800]}`;
   }};
   border-top: ${(props) => {
     if (props.timeIndex === 0) return "none";
