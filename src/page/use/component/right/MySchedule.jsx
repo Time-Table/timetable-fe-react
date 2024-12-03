@@ -23,7 +23,7 @@ export default function MySchedule({
     if (!name) {
       Swal.fire({
         title: "정보를 먼저 입력해주세요!",
-        text: "정보를 등록하고 일정을 추가해보세요.",
+        text: "정보를 입력하고 일정을 추가해보세요.",
         icon: "question",
         confirmButtonText: "확인",
         confirmButtonColor: `${theme.color.primary}`,

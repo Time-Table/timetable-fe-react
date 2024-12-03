@@ -1,11 +1,29 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import Arrow from "../../../../assets/svg/Arrow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 
-export default function Rank({ timeInfo, selectedName, setSelectedName }) {
-  const sortedTimeInfo = [...timeInfo].sort((a, b) => b.count - a.count);
-  const [rankDetails, setRankDetails] = useState(Array(sortedTimeInfo.length).fill(false));
+export default function Rank({ setRightScreen, timeInfo = [], selectedName, setSelectedName }) {
+  const isValidArray = Array.isArray(timeInfo);
+  const sortedTimeInfo = isValidArray ? [...timeInfo].sort((a, b) => b.count - a.count) : [];
+
+  useEffect(() => {
+    if (!isValidArray || sortedTimeInfo.length == 0) {
+      Swal.fire({
+        title: "일정을 먼저 등록 해주세요!",
+        text: "첫 유저의 일정이 등록되면 순위를 사용하실 수 있습니다!",
+        icon: "error",
+        confirmButtonText: "확인",
+        confirmButtonColor: `${theme.color.primary}`,
+      });
+      setRightScreen("MySchedule");
+      return;
+    }
+    setRankDetails(Array(sortedTimeInfo.length).fill(false));
+  }, []);
+
+  const [rankDetails, setRankDetails] = useState([]);
 
   const toggleRankDetail = (index) => {
     setRankDetails((prevDetails) =>
@@ -26,6 +44,10 @@ export default function Rank({ timeInfo, selectedName, setSelectedName }) {
     return `${parseInt(month)} / ${parseInt(day)} (${dayOfWeek}) ${hour} : ${minute}`;
   }
 
+  if (!isValidArray) {
+    return <div>{"내 일정을 먼저 추가해주세요." || timeInfo?.message}</div>;
+  }
+
   return (
     <Frame>
       {sortedTimeInfo.map((rank, index) => {
@@ -34,7 +56,7 @@ export default function Rank({ timeInfo, selectedName, setSelectedName }) {
         const time = rank.time;
 
         return (
-          <ContentDiv key={rank._id}>
+          <ContentDiv key={rank._id || index}>
             <RankButton key={index} onClick={() => toggleRankDetail(index)}>
               <RankInfo width={"50px"} color={theme.color.primary} font={"Pretendard-semiBold"}>
                 {ranking + ""}
@@ -46,7 +68,7 @@ export default function Rank({ timeInfo, selectedName, setSelectedName }) {
               <Arrow angle={rankDetails[index] ? 270 : 90} width={13} height={13} />
             </RankButton>
             <RankDetailBox rankDetail={rankDetails[index]}>
-              {rank.members.map((member, memberIndex) => (
+              {(rank.members || []).map((member, memberIndex) => (
                 <MemberDiv
                   key={memberIndex}
                   onClick={() => toggleMemberBold(member)}

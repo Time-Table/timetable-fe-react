@@ -30,9 +30,13 @@ export default function UsePage() {
   const [name, setName] = useState("");
 
   useEffect(() => {
+    const name = localStorage.getItem("name");
     if (tableId !== localStorage.getItem("tableId")) {
       localStorage.clear();
       localStorage.setItem("tableId", tableId);
+    }
+    if (name) {
+      setName(name);
     }
 
     const fetchData = async () => {
@@ -100,6 +104,9 @@ export default function UsePage() {
             selectedName={selectedName}
             setSelectedName={setSelectedName}
             usersSchedule={usersSchedule}
+            name={name}
+            tableId={tableId}
+            setSelectedToggle={setSelectedToggle}
           />
         );
       case "MySchedule":
@@ -119,7 +126,12 @@ export default function UsePage() {
         );
       case "Rank":
         return (
-          <Rank timeInfo={timeInfo} selectedName={selectedName} setSelectedName={setSelectedName} />
+          <Rank
+            setRightScreen={setRightScreen}
+            timeInfo={timeInfo}
+            selectedName={selectedName}
+            setSelectedName={setSelectedName}
+          />
         );
       default:
         return "예상치 못한 에러입니다. 다시 시도해주세요.";

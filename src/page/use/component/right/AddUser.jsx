@@ -96,6 +96,11 @@ export default function AddUser({
           iconColor: `${theme.color.button.blue}`,
           title: "유저가 성공적으로 삭제되었습니다.",
         });
+        localStorage.removeItem("name", name);
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         Toast.fire({
           icon: "error",
@@ -283,7 +288,6 @@ export default function AddUser({
             onClick={() => {
               deleteMember(name, password);
             }}
-            // disabled={searchMember(name) ? false : true}
             disabled={false}
           />
         </ButtonDiv>

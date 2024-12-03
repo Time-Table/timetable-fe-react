@@ -1,22 +1,30 @@
 import styled from "@emotion/styled/macro";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
-import { MOCKDATA } from "../../MOCKDATA";
 import Send from "../../../../assets/svg/Send";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Edit from "../../../../assets/svg/Edit";
+import { postChat } from "../../../../api/Use/postChat";
+import { getChating } from "../../../../api/Use/getChating";
+import Refresh from "../../../../assets/svg/Refresh";
 
 export default function AllSchedule({
+  tableId,
+  name,
   setLeftScreen,
   setRightScreen,
   setName,
   selectedName,
   setSelectedName,
   usersSchedule,
+  setSelectedToggle,
 }) {
   const [message, setMessage] = useState();
-  const names = usersSchedule.map((user) => user.name);
+  const [chatLog, setChatLog] = useState([]);
+  const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
+
+  const names = usersSchedule.map((user) => user.name);
   const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
 
   const toggleMemberDetail = (index) => {
@@ -33,50 +41,106 @@ export default function AllSchedule({
     }
   };
 
+  const updateChatLog = async () => {
+    if (!name) {
+      setRightScreen("MySchedule");
+      setSelectedToggle("");
+      return;
+    }
+    if (message) {
+      const res = await postChat(tableId, name, message);
+      if (res.success) {
+        setMessage("");
+        setShouldFetch((prev) => !prev);
+        if (chatEndRef.current) {
+          chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
+        }
+      } else {
+        console.error("채팅 메시지 저장 실패:", res.message);
+      }
+    } else {
+      console.log("메시지를 입력해주세요.");
+    }
+  };
+
   useEffect(() => {
+    const fetchData = async () => {
+      const res = await getChating(tableId);
+      if (res.status === 200) {
+        setChatLog(res.data);
+      } else if (res.status === 201) {
+        const info = [
+          {
+            name: "팁: ",
+            message: "첫 댓글을 남셔보세요. 공지사항이나 의견을 자유롭게 공유해주세요. ",
+          },
+        ];
+        setChatLog(info);
+      } else {
+        setChatLog([]);
+        console.error("채팅 데이터를 가져오는 중 오류 발생:", res.message);
+      }
+    };
+    fetchData();
+  }, [tableId, shouldFetch]);
+
+  useLayoutEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
     }
-  }, []);
+  }, [chatLog]);
 
   return (
     <>
       <MembersLayout>
-        {names.map((name, index) => {
-          return (
-            <MemberContainer key={index}>
-              <MemberDiv
+        {names.map((name, index) => (
+          <MemberContainer key={index}>
+            <MemberDiv
+              onClick={() => {
+                toggleMemberDetail(index);
+                setLeftScreen("AllTimeGrid");
+              }}
+              selected={selectedName === name}
+            >
+              {name}
+            </MemberDiv>
+            {memberDetails[index] ? (
+              <EditBox
+                memberDetails={memberDetails[index]}
                 onClick={() => {
-                  toggleMemberDetail(index);
-                  setLeftScreen("AllTimeGrid");
+                  setName(name);
+                  setRightScreen("AddUser");
                 }}
-                selected={selectedName === name}
               >
-                {name}
-              </MemberDiv>
-              {memberDetails[index] ? (
-                <EditBox
-                  memberDetails={memberDetails[index]}
-                  onClick={() => {
-                    setName(name);
-                    setRightScreen("AddUser");
-                  }}
-                >
-                  <Edit />
-                </EditBox>
-              ) : (
-                <></>
-              )}
-            </MemberContainer>
-          );
-        })}
+                <Edit />
+              </EditBox>
+            ) : null}
+          </MemberContainer>
+        ))}
       </MembersLayout>
 
       <ChatLayout>
-        채팅
+        <div style={{ display: "flex", width: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "center", width: "90%" }}>채팅</div>
+          <ButtonBox
+            onClick={async () => {
+              const res = await getChating(tableId);
+              if (res.status === 200) {
+                setChatLog(res.data);
+              } else if (res.status === 201) {
+                setChatLog([{ name: "", message: "첫 댓글을 남겨보세요." }]);
+              } else {
+                setChatLog([]);
+                console.error("채팅 데이터를 가져오는 중 오류 발생:", res.message);
+              }
+            }}
+          >
+            <Refresh />
+          </ButtonBox>
+        </div>
         <ChatingDiv ref={chatEndRef}>
-          {MOCKDATA.chatLog.map((chat) => (
-            <ChatDiv key={chat.id}>
+          {chatLog.map((chat, idx) => (
+            <ChatDiv key={idx}>
               <NameDiv>{chat.name}</NameDiv>
               <MessageDiv>{chat.message}</MessageDiv>
             </ChatDiv>
@@ -86,22 +150,12 @@ export default function AllSchedule({
           <Input
             placeholder={"일정을 추가하고 채팅을 이용해 보세요."}
             maxLength={300}
-            onChange={(e) => {
-              setMessage(e.target.value);
-            }}
+            onChange={(e) => setMessage(e.target.value)}
             value={message}
           />
-          <SendButtonBox
-            onClick={() => {
-              if (message) {
-                console.log(message); // message가 있는 경우에만 출력
-              } else {
-                console.log("메시지를 입력해주세요."); // message가 없을 때 안내 메시지 출력
-              }
-            }}
-          >
+          <ButtonBox onClick={updateChatLog}>
             <Send />
-          </SendButtonBox>
+          </ButtonBox>
         </InputLayout>
       </ChatLayout>
     </>
@@ -221,7 +275,7 @@ const InputLayout = styled.div`
   }
 `;
 
-const SendButtonBox = styled.button`
+const ButtonBox = styled.button`
   ${theme.styles.flexCenterRow}
   background: none;
   border: none;
