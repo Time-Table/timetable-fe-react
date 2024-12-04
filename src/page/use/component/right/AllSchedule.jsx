@@ -72,7 +72,7 @@ export default function AllSchedule({
         const info = [
           {
             name: "팁: ",
-            message: "첫 댓글을 남셔보세요. 공지사항이나 의견을 자유롭게 공유해주세요. ",
+            message: "공지사항이나 의견 등을 자유롭게 공유해 보세요. ",
           },
         ];
         setChatLog(info);

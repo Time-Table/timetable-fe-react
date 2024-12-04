@@ -10,6 +10,7 @@ export default function TimeGridViewMode({
   timeInfo,
   selectedName,
   isViewMode,
+  banedCells = [],
 }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
@@ -176,6 +177,8 @@ export default function TimeGridViewMode({
                   isDisabled={isDisabled}
                   isViewMode={isViewMode}
                   color={colorNumber}
+                  banedCells={banedCells}
+                  cellKey={cellKey}
                 />
               );
             })}
@@ -290,11 +293,17 @@ const Cell = styled.div`
       ? props.color
         ? `${theme.color.timeGrid[props.color]}`
         : `${theme.color.primary}`
-      : props.isDisabled
+      : props.isDisabled || props.banedCells.includes(props.cellKey)
       ? `${theme.text.gamma[800]}`
       : "white"};
-  cursor: ${(props) => (props.isDisabled || props.isViewMode ? "not-allowed" : "pointer")};
-  pointer-events: ${(props) => (props.isDisabled || props.isViewMode ? "none" : "auto")};
+  cursor: ${(props) =>
+    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
+      ? "not-allowed"
+      : "pointer"};
+  pointer-events: ${(props) =>
+    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
+      ? "none"
+      : "auto"};
 
   @media (max-width: 480px) {
     width: 46px;

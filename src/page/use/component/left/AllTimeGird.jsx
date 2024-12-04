@@ -2,7 +2,15 @@ import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
 import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
 
-export default function AllTimeGrid({ title, dates, startHour, endHour, timeInfo, selectedName }) {
+export default function AllTimeGrid({
+  banedCells,
+  title,
+  dates,
+  startHour,
+  endHour,
+  timeInfo,
+  selectedName,
+}) {
   return (
     <>
       <TitleFrame>
@@ -19,6 +27,7 @@ export default function AllTimeGrid({ title, dates, startHour, endHour, timeInfo
           isViewMode={true}
           timeInfo={timeInfo}
           selectedName={selectedName}
+          banedCells={banedCells}
         />
       </ContentFrame>
     </>

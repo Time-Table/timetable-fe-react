@@ -28,7 +28,7 @@ export default function UsePage() {
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
-
+  const banedCells = tableInfo ? tableInfo.banedCells : [];
   useEffect(() => {
     const name = localStorage.getItem("name");
     if (tableId !== localStorage.getItem("tableId")) {
@@ -93,6 +93,7 @@ export default function UsePage() {
             timeInfo={selectedName ? datesInfo() : timeInfo}
             selectedName={selectedName}
             title={title}
+            banedCells={banedCells}
           />
         );
       case "AllSchedule":
@@ -122,6 +123,7 @@ export default function UsePage() {
             selectedCells={selectedCells}
             setSelectedCells={setSelectedCells}
             usersSchedule={usersSchedule}
+            banedCells={banedCells}
           />
         );
       case "Rank":
@@ -211,7 +213,10 @@ export default function UsePage() {
   );
 }
 const UsePageLayout = styled.div`
-  ${theme.styles.flexCenterRow}
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
   width: 100%;
   gap: 100px;
   flex-wrap: wrap-reverse;
@@ -227,9 +232,8 @@ const LeftArea = styled.div`
   align-items: center;
   gap: 30px;
   width: 583px;
-  height: 900px;
   padding-top: 60px;
-  padding-bottom: 10px;
+  margin-bottom: 3rem;
   @media (max-width: 480px) {
     width: 90%;
   }
@@ -242,8 +246,7 @@ const RightArea = styled.div`
   gap: 30px;
   padding-top: 60px;
   width: 583px;
-  height: 900px;
-
+  margin-bottom: 3rem;
   @media (max-width: 480px) {
     width: 90%;
   }

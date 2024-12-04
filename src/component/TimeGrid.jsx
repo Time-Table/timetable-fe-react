@@ -11,6 +11,7 @@ export default function TimeGrid({
   setSelectedCells,
   selectedCellColor,
   isViewMode,
+  banedCells = [],
 }) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
@@ -141,7 +142,9 @@ export default function TimeGrid({
                 const isDisabled = !dates.includes(date);
                 return (
                   <Cell
-                  key={cellKey}
+                    key={cellKey}
+                    cellKey={cellKey}
+                    banedCells={banedCells}
                     timeIndex={timeIndex}
                     cellIndex={dateIndex}
                     isSelected={isSelected}
@@ -265,12 +268,18 @@ const Cell = styled.div`
   background-color: ${(props) =>
     props.isSelected
       ? `${props.selectedCellColor}`
-      : props.isDisabled
+      : props.isDisabled || props.banedCells.includes(props.cellKey)
       ? `${theme.text.gamma[800]}`
       : "white"};
-  cursor: ${(props) => (props.isDisabled || props.isViewMode ? "not-allowed" : "pointer")};
+  cursor: ${(props) =>
+    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
+      ? "not-allowed"
+      : "pointer"};
 
-  pointer-events: ${(props) => (props.isDisabled || props.isViewMode ? "none" : "auto")};
+  pointer-events: ${(props) =>
+    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
+      ? "none"
+      : "auto"};
 
   @media (max-width: 480px) {
     width: 46px;

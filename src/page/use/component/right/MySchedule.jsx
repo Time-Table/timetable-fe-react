@@ -17,6 +17,7 @@ export default function MySchedule({
   selectedCells,
   setSelectedCells,
   usersSchedule,
+  banedCells,
 }) {
   const name = localStorage.getItem("name");
   useEffect(() => {
@@ -94,6 +95,7 @@ export default function MySchedule({
         selectedCellColor={theme.color.primaryTint}
         setSelectedCells={setSelectedCells}
         isViewMode={false}
+        banedCells={banedCells}
       />
       <ButtonLayout>
         <ButtonDiv>
