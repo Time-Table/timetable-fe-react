@@ -18,8 +18,9 @@ export default function MySchedule({
   setSelectedCells,
   usersSchedule,
   banedCells,
+  setSelectedToggle,
+  name,
 }) {
-  const name = localStorage.getItem("name");
   useEffect(() => {
     if (!name) {
       Swal.fire({
@@ -30,6 +31,7 @@ export default function MySchedule({
         confirmButtonColor: `${theme.color.primary}`,
       });
       setRightScreen("AddUser");
+      setSelectedToggle("참여하기");
       return;
     }
 
@@ -37,7 +39,6 @@ export default function MySchedule({
       const userSchedule = usersSchedule.find((user) => user.name === name);
 
       if (!userSchedule) {
-        console.warn("해당 이름의 유저를 찾을 수 없습니다:", name);
         return;
       }
 

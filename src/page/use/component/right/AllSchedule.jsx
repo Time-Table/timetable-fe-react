@@ -7,6 +7,7 @@ import Edit from "../../../../assets/svg/Edit";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
 import Refresh from "../../../../assets/svg/Refresh";
+import Swal from "sweetalert2";
 
 export default function AllSchedule({
   tableId,
@@ -19,10 +20,23 @@ export default function AllSchedule({
   usersSchedule,
   setSelectedToggle,
 }) {
-  const [message, setMessage] = useState();
+  const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
+  const isNameMatching = usersSchedule.some((item) => item.name == name);
+
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1200,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
 
   const names = usersSchedule.map((user) => user.name);
   const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
@@ -42,9 +56,9 @@ export default function AllSchedule({
   };
 
   const updateChatLog = async () => {
-    if (!name) {
+    if (!name || !isNameMatching) {
       setRightScreen("MySchedule");
-      setSelectedToggle("");
+      setSelectedToggle("내 일정");
       return;
     }
     if (message) {
@@ -56,10 +70,18 @@ export default function AllSchedule({
           chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
         }
       } else {
-        console.error("채팅 메시지 저장 실패:", res.message);
+        await Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "채팅 메시지 저장 실패",
+        });
       }
     } else {
-      console.log("메시지를 입력해주세요.");
+      await Toast.fire({
+        icon: "error",
+        iconColor: `${theme.color.primary}`,
+        title: "메시지를 입력해주세요.",
+      });
     }
   };
 
@@ -78,7 +100,11 @@ export default function AllSchedule({
         setChatLog(info);
       } else {
         setChatLog([]);
-        console.error("채팅 데이터를 가져오는 중 오류 발생:", res.message);
+        await Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "채팅 데이터를 가져오는 중 오류 발생",
+        });
       }
     };
     fetchData();
@@ -110,6 +136,7 @@ export default function AllSchedule({
                 onClick={() => {
                   setName(name);
                   setRightScreen("AddUser");
+                  setSelectedToggle("참여하기");
                 }}
               >
                 <Edit />
@@ -131,7 +158,11 @@ export default function AllSchedule({
                 setChatLog([{ name: "", message: "첫 댓글을 남겨보세요." }]);
               } else {
                 setChatLog([]);
-                console.error("채팅 데이터를 가져오는 중 오류 발생:", res.message);
+                await Toast.fire({
+                  icon: "error",
+                  iconColor: `${theme.color.primary}`,
+                  title: "채팅 데이터를 가져오는 중 오류 발생",
+                });
               }
             }}
           >

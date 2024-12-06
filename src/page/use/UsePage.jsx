@@ -23,14 +23,16 @@ export default function UsePage() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
-  const [leftScreen, setLeftScreen] = useState("Invite");
-  const [rightScreen, setRightScreen] = useState("AllSchedule");
+  const isFirstUser = usersSchedule.length === 0;
+  const [leftScreen, setLeftScreen] = useState(isFirstUser ? "Invite" : "AllTimeGrid");
+  const [rightScreen, setRightScreen] = useState("AddUser");
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
   useEffect(() => {
     const name = localStorage.getItem("name");
+
     if (tableId !== localStorage.getItem("tableId")) {
       localStorage.clear();
       localStorage.setItem("tableId", tableId);
@@ -76,6 +78,7 @@ export default function UsePage() {
             name={name}
             tableId={tableId}
             setSelectedCells={setSelectedCells}
+            setSelectedToggle={setSelectedToggle}
           />
         );
       case "Invite":
@@ -124,6 +127,8 @@ export default function UsePage() {
             setSelectedCells={setSelectedCells}
             usersSchedule={usersSchedule}
             banedCells={banedCells}
+            setSelectedToggle={setSelectedToggle}
+            name={name}
           />
         );
       case "Rank":
@@ -133,6 +138,7 @@ export default function UsePage() {
             timeInfo={timeInfo}
             selectedName={selectedName}
             setSelectedName={setSelectedName}
+            setSelectedToggle={setSelectedToggle}
           />
         );
       default:

@@ -5,8 +5,8 @@ import Arrow from "../assets/svg/Arrow";
 
 export default function TimeGridViewMode({
   dates = [],
-  startHour,
-  endHour,
+  startHour = "00:00",
+  endHour = "00:30",
   timeInfo,
   selectedName,
   isViewMode,

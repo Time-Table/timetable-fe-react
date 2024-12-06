@@ -2,7 +2,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Input from "../../../../component/Input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { joinUser } from "../../../../api/Use/joinUser";
 import { getUserInfo } from "../../../../api/Use/getUserInfo";
 import { deleteUser } from "../../../../api/Use/deleteUser";
@@ -15,9 +15,14 @@ export default function AddUser({
   setName,
   name,
   tableId,
+  setSelectedToggle,
 }) {
   const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
+
+  useEffect(() => {
+    setSelectedToggle("참여하기");
+  }, [setSelectedToggle]);
 
   const Toast = Swal.mixin({
     toast: true,
@@ -145,6 +150,7 @@ export default function AddUser({
             localStorage.setItem("name", user.data.name);
             setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
+            setSelectedToggle("내 일정");
 
             if (user.data.availableTimes) {
               setSelectedCells(user.data.availableTimes);
@@ -176,18 +182,20 @@ export default function AddUser({
               Toast.fire({
                 icon: "success",
                 iconColor: `${theme.color.button.blue}`,
-                title: res.message, // 가입 성공 메시지
+                title: res.message,
               });
               localStorage.setItem("name", res.data.name);
               setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
+              setSelectedToggle("내 일정");
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
               setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
+              setSelectedToggle("내 일정");
             } else {
               Toast.fire({
                 icon: "error",
@@ -225,7 +233,7 @@ export default function AddUser({
 
   return (
     <Frame>
-      <TitleFrame>멤버 추가 및 수정</TitleFrame>
+      <TitleFrame>회원 등록 / 수정</TitleFrame>
       <ContentFrame>
         <ContentDiv>
           <SubTitleDiv>이름</SubTitleDiv>

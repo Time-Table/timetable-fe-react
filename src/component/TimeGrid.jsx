@@ -219,7 +219,6 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
-  background-color: red;
   font-size: 16px;
   display: contents;
 `;
@@ -258,7 +257,7 @@ const Cell = styled.div`
     return props.cellIndex === 6 ? `none` : `1px solid ${theme.text.gamma[800]}`;
   }};
   border-top: ${(props) => {
-    if (props.timeIndex === 0) return "none";
+    if (props.timeIndex === 0) return `2px solid ${theme.text.gamma[800]}`;
     else if (props.timeIndex % 2 === 0 && !props.isDisabled)
       return `2px solid ${theme.text.gamma[800]}`;
     else if (!props.isDisabled) return `1px solid ${theme.text.gamma[800]}`;

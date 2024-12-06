@@ -27,7 +27,6 @@ export default function CreatePage1({ onNext, dates }) {
             <Button
               disabled={selectedDates.length === 0 ? true : false}
               onClick={() => {
-                console.log(selectedDates);
                 onNext(selectedDates);
               }}
             />

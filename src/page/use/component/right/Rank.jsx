@@ -4,7 +4,13 @@ import Arrow from "../../../../assets/svg/Arrow";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
-export default function Rank({ setRightScreen, timeInfo = [], selectedName, setSelectedName }) {
+export default function Rank({
+  setSelectedToggle,
+  setRightScreen,
+  timeInfo = [],
+  selectedName,
+  setSelectedName,
+}) {
   const isValidArray = Array.isArray(timeInfo);
   const sortedTimeInfo = isValidArray ? [...timeInfo].sort((a, b) => b.count - a.count) : [];
 
@@ -18,6 +24,7 @@ export default function Rank({ setRightScreen, timeInfo = [], selectedName, setS
         confirmButtonColor: `${theme.color.primary}`,
       });
       setRightScreen("MySchedule");
+      setSelectedToggle("내 일정");
       return;
     }
     setRankDetails(Array(sortedTimeInfo.length).fill(false));

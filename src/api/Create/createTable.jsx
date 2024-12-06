@@ -9,7 +9,6 @@ export const createTable = async (title, dates, startHour, endHour, banedCells) 
       endHour: endHour,
       banedCells: banedCells,
     });
-    console.log(res);
     return res.data;
   } catch (error) {
     console.error("createTable: ", error.response.data);

@@ -11,7 +11,9 @@ export const getUserInfo = async (tableId, name, password) => {
     });
     return res.data;
   } catch (error) {
-    console.error("getUserInfo: ", error.response);
+    if (error.response.status === 401) {
+      return error.response?.data;
+    }
     return error.response?.data;
   }
 };
