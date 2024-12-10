@@ -17,22 +17,30 @@ import { getSchedule } from "../../api/Use/getSchedule";
 export default function UsePage() {
   const { tableId } = useParams();
   const [tableInfo, setTableInfo] = useState();
-  const [usersSchedule, setUsersSchedule] = useState([]);
+  const [usersScheduleList, setUsersScheduleList] = useState([]);
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [selectedCells, setSelectedCells] = useState([]);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
-  const isFirstUser = usersSchedule.length === 0;
+  const isFirstUser = usersScheduleList.length === 0;
   const [leftScreen, setLeftScreen] = useState(isFirstUser ? "Invite" : "AllTimeGrid");
-  const [rightScreen, setRightScreen] = useState("AddUser");
+  const [rightScreen, setRightScreen] = useState("MySchedule");
   const [selectedToggle, setSelectedToggle] = useState(false);
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
+
+  useEffect(() => {
+    const fetchTableInfo = async () => {
+      const tableInfo = await getTableInfo(tableId);
+      setTableInfo(tableInfo);
+    };
+    fetchTableInfo();
+  }, []);
+
   useEffect(() => {
     const name = localStorage.getItem("name");
-
     if (tableId !== localStorage.getItem("tableId")) {
       localStorage.clear();
       localStorage.setItem("tableId", tableId);
@@ -42,11 +50,9 @@ export default function UsePage() {
     }
 
     const fetchData = async () => {
-      const tableInfo = await getTableInfo(tableId);
-      setTableInfo(tableInfo);
       const membersSchedule = await getAllSchedule(tableId);
       if (membersSchedule.code === 200) {
-        setUsersSchedule(membersSchedule.data);
+        setUsersScheduleList(membersSchedule.data);
       }
       const timeData = await getSchedule(tableId);
       setTimeInfo(timeData);
@@ -58,7 +64,7 @@ export default function UsePage() {
 
   const datesInfo = async () => {
     if (selectedName) {
-      const scheduleOfSelectedName = usersSchedule.find((user) => user.name === selectedName);
+      const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
       return scheduleOfSelectedName.availableTimes;
     }
   };
@@ -107,7 +113,7 @@ export default function UsePage() {
             setName={setName}
             selectedName={selectedName}
             setSelectedName={setSelectedName}
-            usersSchedule={usersSchedule}
+            usersSchedule={usersScheduleList}
             name={name}
             tableId={tableId}
             setSelectedToggle={setSelectedToggle}
@@ -125,7 +131,7 @@ export default function UsePage() {
             setSaveButtonState={setSaveButtonState}
             selectedCells={selectedCells}
             setSelectedCells={setSelectedCells}
-            usersSchedule={usersSchedule}
+            usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}
             name={name}
@@ -174,7 +180,7 @@ export default function UsePage() {
           <ToggleButtonDiv>
             <Button
               fontFamily={selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
-              title={`전체 일정(${usersSchedule.length})`}
+              title={`전체 일정(${usersScheduleList.length})`}
               background="none"
               color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
               onClick={() => {

@@ -29,8 +29,8 @@ export default function Button({
           fontFamily: fontFamily,
           border: 0,
           borderRadius: 10,
-          cursor: "pointer",
-          // padding: "16px",
+          cursor: disabled ? "not-allowed" : "pointer",
+          pointerEvents: disabled ? "none" : "auto",
           ...StyleButton,
         }}
       >

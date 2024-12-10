@@ -4,10 +4,10 @@ import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
 export default function TimeGrid({
-  dates,
-  startHour,
-  endHour,
-  selectedCells,
+  dates = [],
+  startHour = "00:00",
+  endHour = "01:00",
+  selectedCells = [],
   setSelectedCells,
   selectedCellColor,
   isViewMode,

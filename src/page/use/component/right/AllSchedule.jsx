@@ -183,6 +183,11 @@ export default function AllSchedule({
             maxLength={300}
             onChange={(e) => setMessage(e.target.value)}
             value={message}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                updateChatLog();
+              }
+            }}
           />
           <ButtonBox onClick={updateChatLog}>
             <Send />

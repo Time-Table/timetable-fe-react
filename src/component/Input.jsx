@@ -5,6 +5,7 @@ export default function Input({
   placeholder,
   fontSize = 22,
   onChange = () => {},
+  onKeyDown = () => {},
   value,
   maxLength,
   type,
@@ -16,6 +17,7 @@ export default function Input({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         style={{
           width: "100%",
           height: height,

@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 import { addSchedule } from "../../../../api/Use/addSchedule";
 
 export default function MySchedule({
-  saveButtonState,
   setSaveButtonState,
   dates,
   startHour,
@@ -16,11 +15,14 @@ export default function MySchedule({
   tableId,
   selectedCells,
   setSelectedCells,
-  usersSchedule,
+  usersScheduleList,
   banedCells,
   setSelectedToggle,
-  name,
 }) {
+  const name = localStorage.getItem("name");
+  const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
+  const userScheduleCount = userScheduleInfo?.availableTimes?.length || 0;
+
   useEffect(() => {
     if (!name) {
       Swal.fire({
@@ -35,54 +37,43 @@ export default function MySchedule({
       return;
     }
 
-    const userSchedule = () => {
-      const userSchedule = usersSchedule.find((user) => user.name === name);
-
-      if (!userSchedule) {
-        return;
-      }
-
-      if (userSchedule.availableTimes) {
-        setSelectedCells(userSchedule.availableTimes);
-      }
-    };
-
-    userSchedule();
-  }, [name, usersSchedule]);
+    if (userScheduleInfo?.availableTimes && selectedCells.length === 0) {
+      setSelectedCells([...userScheduleInfo.availableTimes]);
+    }
+  }, [name, userScheduleInfo, setRightScreen, setSelectedCells, setSelectedToggle]);
 
   useEffect(() => {
-    if (selectedCells.length > 0) {
-      setSaveButtonState(false);
-    }
-  }, [selectedCells]);
+    const isSaveDisabled = userScheduleCount === selectedCells.length;
+    setSaveButtonState(isSaveDisabled);
+  }, [selectedCells, userScheduleCount, setSaveButtonState]);
 
   const handleButtonClick = async () => {
-    if (selectedCells.length > 0) {
-      const name = localStorage.getItem("name");
+    if (userScheduleCount === selectedCells.length) {
+      return;
+    }
 
-      if (!tableId || !name) {
-        Swal.fire({
-          icon: "success",
-          iconColor: `${theme.color.primary}`,
-          title: "로그인 정보가 누락되었습니다.",
-          showConfirmButton: false,
-          timer: 1500,
-        });
-        return;
-      }
-
-      await addSchedule(tableId, name, selectedCells);
-
+    if (!tableId || !name) {
       Swal.fire({
-        icon: "success",
+        icon: "error",
         iconColor: `${theme.color.primary}`,
-        title: "저장되었습니다!",
-
+        title: "로그인 정보가 누락되었습니다.",
         showConfirmButton: false,
         timer: 1500,
       });
-      setSaveButtonState(true);
+      return;
     }
+
+    await addSchedule(tableId, name, selectedCells);
+
+    Swal.fire({
+      icon: "success",
+      iconColor: `${theme.color.primary}`,
+      title: "저장되었습니다!",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+
+    setSaveButtonState(true);
   };
 
   return (
@@ -100,7 +91,11 @@ export default function MySchedule({
       />
       <ButtonLayout>
         <ButtonDiv>
-          <Button onClick={handleButtonClick} disabled={saveButtonState} title="저장" />
+          <Button
+            onClick={handleButtonClick}
+            disabled={userScheduleCount === selectedCells.length}
+            title="저장"
+          />
         </ButtonDiv>
       </ButtonLayout>
     </>
