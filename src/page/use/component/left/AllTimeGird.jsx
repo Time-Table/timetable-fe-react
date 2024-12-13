@@ -19,7 +19,7 @@ export default function AllTimeGrid({
       </TitleFrame>
 
       <ContentFrame>
-        <NoteText>모든 참여자가 선택한 시간대</NoteText>
+        <NoteText>전체 테이블</NoteText>
         <TimeGridViewMode
           dates={dates}
           startHour={startHour}

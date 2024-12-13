@@ -19,6 +19,7 @@ export default function AllSchedule({
   setSelectedName,
   usersSchedule,
   setSelectedToggle,
+  setCurrentSlide,
 }) {
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
@@ -125,6 +126,7 @@ export default function AllSchedule({
               onClick={() => {
                 toggleMemberDetail(index);
                 setLeftScreen("AllTimeGrid");
+                setCurrentSlide(0);
               }}
               selected={selectedName === name}
             >
@@ -200,9 +202,11 @@ export default function AllSchedule({
 
 const MembersLayout = styled.div`
   ${theme.styles.flexCenterColumn}
+  justify-content: flex-start;
   font-family: Pretendard-SemiBold;
   width: 100%;
   gap: 20px;
+  min-height: 300px;
   padding-bottom: 30px;
   border-bottom: 1px solid ${theme.text.gamma[800]};
 `;

@@ -22,11 +22,15 @@ export default function CreatePage2({
   const [title, setTitle] = useState("");
 
   useEffect(() => {
+    const preTitle = localStorage.getItem("title");
     if (startHour && endHour && tableTitle && dates && endTimeClicked) {
       setSHour(startHour);
       setEHour(endHour);
       setTitle(tableTitle);
       setIsEndTimeClicked(endTimeClicked);
+    }
+    if (localStorage.getItem("title")) {
+      setTitle(preTitle);
     }
   }, [sHour && eHour && title && dates && endTimeClicked]);
 

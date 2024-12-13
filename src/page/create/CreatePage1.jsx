@@ -3,6 +3,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Calendar from "../../component/Calendar";
 import Button from "../../component/Button";
+import Swal from "sweetalert2";
 
 export default function CreatePage1({ onNext, dates }) {
   useEffect(() => {
@@ -15,6 +16,25 @@ export default function CreatePage1({ onNext, dates }) {
   return (
     <CreatePageDiv>
       <ContentDiv>
+        <AboutDiv
+          onClick={() => {
+            Swal.fire({
+              icon: "question",
+              iconColor: `${theme.text.gamma[800]}`,
+              title: "사이트 정보",
+              text: "우리 사이트는 단체나 모임(스터디, 팀플, 회식 등) 행사의 수요 인원과 최적의 시간을 파악할 수 있도록 도와줍니다.",
+              confirmButtonText: "자세히 보기",
+              confirmButtonColor: `${theme.color.primary}`,
+              showCancelButton: true,
+              cancelButtonText: "취소",
+              cancelButtonColor: `${theme.text.gamma[800]}`,
+              preConfirm: () => (window.location.href = "/about"),
+            });
+          }}
+        >
+          *어떤 사이트인지 궁금하신가요 ?
+        </AboutDiv>
+
         <QuestionDiv>
           <Q>Q1.</Q>
           <Title>언제 만나시나요?</Title>
@@ -118,4 +138,11 @@ const Title = styled.span`
   @media (max-width: 480px) {
     font-size: 28px;
   }
+`;
+
+const AboutDiv = styled.div`
+  color: ${theme.color.primary};
+  font-size: 15px;
+  text-decoration: underline;
+  cursor: pointer;
 `;

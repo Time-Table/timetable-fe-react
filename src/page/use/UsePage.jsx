@@ -13,6 +13,9 @@ import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/Use/getTableInfo";
 import { getAllSchedule } from "../../api/Use/getAllSchedule";
 import { getSchedule } from "../../api/Use/getSchedule";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -26,10 +29,11 @@ export default function UsePage() {
   const isFirstUser = usersScheduleList.length === 0;
   const [leftScreen, setLeftScreen] = useState(isFirstUser ? "Invite" : "AllTimeGrid");
   const [rightScreen, setRightScreen] = useState("MySchedule");
-  const [selectedToggle, setSelectedToggle] = useState(false);
+  const [selectedToggle, setSelectedToggle] = useState("내 일정");
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
+  const [currentSlide, setCurrentSlide] = useState(0); // 슬라이더 현재 슬라이드 상태 추가
 
   useEffect(() => {
     const fetchTableInfo = async () => {
@@ -93,6 +97,7 @@ export default function UsePage() {
         ) : (
           <p>Loading...</p>
         );
+
       case "AllTimeGrid":
         return (
           <AllTimeGrid
@@ -117,6 +122,7 @@ export default function UsePage() {
             name={name}
             tableId={tableId}
             setSelectedToggle={setSelectedToggle}
+            setCurrentSlide={setCurrentSlide}
           />
         );
       case "MySchedule":
@@ -145,6 +151,7 @@ export default function UsePage() {
             selectedName={selectedName}
             setSelectedName={setSelectedName}
             setSelectedToggle={setSelectedToggle}
+            setCurrentSlide={setCurrentSlide}
           />
         );
       default:
@@ -152,104 +159,265 @@ export default function UsePage() {
     }
   };
 
-  return (
-    <UsePageLayout>
-      <LeftArea>{showScreen(leftScreen)}</LeftArea>
-      <RightArea>
-        <ButtonLayout>
-          <ButtonDiv>
-            <Button
-              background={theme.color.button.blue}
-              title="초대하기"
-              onClick={() => setLeftScreen("Invite")}
-            />
-          </ButtonDiv>
-          <ButtonDiv>
-            <Button
-              background={theme.color.primary}
-              title="참여하기"
-              onClick={() => {
-                setLeftScreen("AllTimeGrid");
-                setRightScreen("AddUser");
-              }}
-            />
-          </ButtonDiv>
-        </ButtonLayout>
+  const sliderSettings = {
+    dots: true,
+    infinite: false,
+    speed: 800,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: false,
+    adaptiveHeight: true,
+    dotsClass: "slick-dots custom-dots",
+    initialSlide: currentSlide,
+    beforeChange: (_, next) => setCurrentSlide(next),
+  };
 
-        <ToggleLayout>
-          <ToggleButtonDiv>
-            <Button
-              fontFamily={selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
-              title={`전체 일정(${usersScheduleList.length})`}
-              background="none"
-              color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
-              onClick={() => {
-                setRightScreen("AllSchedule");
-                setLeftScreen("AllTimeGrid");
-                handleToggle("전체 일정");
-                setSelectedName(false);
-              }}
-            />
-          </ToggleButtonDiv>
-          <ToggleButtonDiv>
-            <Button
-              fontFamily={selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
-              title="내 일정"
-              background="none"
-              color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
-              onClick={() => {
-                setRightScreen("MySchedule");
-                setLeftScreen("AllTimeGrid");
-                handleToggle("내 일정");
-              }}
-            />
-          </ToggleButtonDiv>
-          <ToggleButtonDiv>
-            <Button
-              fontFamily={selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"}
-              title="순위"
-              background="none"
-              color={selectedToggle === "순위" ? theme.color.primary : "black"}
-              onClick={() => {
-                setRightScreen("Rank");
-                setLeftScreen("AllTimeGrid");
-                handleToggle("순위");
-                setSelectedName(false);
-              }}
-            />
-          </ToggleButtonDiv>
-        </ToggleLayout>
-        {showScreen(rightScreen)}
-      </RightArea>
-    </UsePageLayout>
+  const SliderWrapper = styled.div`
+    position: relative;
+
+    .custom-dots {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+
+      li {
+        width: 8.5px;
+        height: 8.5px;
+        margin: 0 5px;
+        border-radius: 50%;
+        background: ${theme.text.gamma[300]};
+        transition: background 0.3s ease;
+
+        &.slick-active {
+          background: ${theme.color.primary}; /* 현재 슬라이드 닷 색상 */
+        }
+
+        &:not(.slick-active) {
+          background: ${theme.color.timeGrid[40]}; /* 비활성 닷 색상 */
+        }
+      }
+      button {
+        display: none;
+      }
+    }
+  `;
+  console.log(currentSlide);
+  return (
+    <Frame>
+      <DesktopView>
+        <LeftArea>{showScreen(leftScreen)}</LeftArea>
+        <RightArea>
+          <ButtonLayout>
+            <ButtonDiv>
+              <Button
+                background={theme.color.button.blue}
+                title="초대하기"
+                onClick={() => {
+                  setLeftScreen("Invite");
+                  setCurrentSlide(0); // 현재 슬라이드가 0이 아닌 경우에만 상태 변경
+                }}
+              />
+            </ButtonDiv>
+            <ButtonDiv>
+              <Button
+                background={theme.color.primary}
+                title="참여하기"
+                onClick={() => {
+                  setLeftScreen("AllTimeGrid");
+                  setRightScreen("AddUser");
+                }}
+              />
+            </ButtonDiv>
+          </ButtonLayout>
+          <ToggleLayout>
+            <ToggleButtonDiv>
+              <Button
+                fontFamily={
+                  selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                }
+                title={`전체 일정(${usersScheduleList.length})`}
+                background="none"
+                color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                onClick={() => {
+                  setRightScreen("AllSchedule");
+                  setLeftScreen("AllTimeGrid");
+                  handleToggle("전체 일정");
+                  setSelectedName(false);
+                }}
+              />
+            </ToggleButtonDiv>
+            <ToggleButtonDiv>
+              <Button
+                fontFamily={selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
+                title="내 일정"
+                background="none"
+                color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
+                onClick={() => {
+                  setRightScreen("MySchedule");
+                  setLeftScreen("AllTimeGrid");
+                  handleToggle("내 일정");
+                }}
+              />
+            </ToggleButtonDiv>
+            <ToggleButtonDiv>
+              <Button
+                fontFamily={selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"}
+                title="순위"
+                background="none"
+                color={selectedToggle === "순위" ? theme.color.primary : "black"}
+                onClick={() => {
+                  setRightScreen("Rank");
+                  setLeftScreen("AllTimeGrid");
+                  handleToggle("순위");
+                  setSelectedName(false);
+                }}
+              />
+            </ToggleButtonDiv>
+          </ToggleLayout>
+          {showScreen(rightScreen)}
+        </RightArea>
+      </DesktopView>
+
+      <MobileView>
+        <SliderWrapper>
+          <Slider {...sliderSettings}>
+            <LeftArea>{showScreen(leftScreen)}</LeftArea>
+            <RightArea>
+              <ButtonLayout>
+                <ButtonDiv>
+                  <Button
+                    background={theme.color.button.blue}
+                    title="초대하기"
+                    onClick={() => setLeftScreen("Invite")}
+                  />
+                </ButtonDiv>
+                <ButtonDiv>
+                  <Button
+                    background={theme.color.primary}
+                    title="참여하기"
+                    onClick={() => {
+                      setLeftScreen("AllTimeGrid");
+                      setRightScreen("AddUser");
+                    }}
+                  />
+                </ButtonDiv>
+              </ButtonLayout>
+              <ToggleLayout>
+                <ToggleButtonDiv>
+                  <Button
+                    fontFamily={
+                      selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                    }
+                    title={`전체 일정(${usersScheduleList.length})`}
+                    background="none"
+                    color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                    onClick={() => {
+                      setRightScreen("AllSchedule");
+                      setLeftScreen("AllTimeGrid");
+                      handleToggle("전체 일정");
+                      setSelectedName(false);
+                    }}
+                  />
+                </ToggleButtonDiv>
+                <ToggleButtonDiv>
+                  <Button
+                    fontFamily={
+                      selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                    }
+                    title="내 일정"
+                    background="none"
+                    color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
+                    onClick={() => {
+                      setRightScreen("MySchedule");
+                      setLeftScreen("AllTimeGrid");
+                      handleToggle("내 일정");
+                    }}
+                  />
+                </ToggleButtonDiv>
+                <ToggleButtonDiv>
+                  <Button
+                    fontFamily={
+                      selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"
+                    }
+                    title="순위"
+                    background="none"
+                    color={selectedToggle === "순위" ? theme.color.primary : "black"}
+                    onClick={() => {
+                      setRightScreen("Rank");
+                      setLeftScreen("AllTimeGrid");
+                      handleToggle("순위");
+                      setSelectedName(false);
+                    }}
+                  />
+                </ToggleButtonDiv>
+              </ToggleLayout>
+              {showScreen(rightScreen)}
+            </RightArea>
+          </Slider>
+        </SliderWrapper>
+      </MobileView>
+    </Frame>
   );
 }
-const UsePageLayout = styled.div`
+
+const Frame = styled.div`
+  @media (max-width: 880px) {
+    width: 100%;
+  }
+`;
+
+const DesktopView = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: center;
-  align-items: flex-end;
+  align-items: flex-start;
   width: 100%;
-  gap: 100px;
-  flex-wrap: wrap-reverse;
   @media (max-width: 480px) {
-    ${theme.styles.flexCenterColumn}
+    display: none;
+  }
+`;
+
+const MobileView = styled.div`
+  display: none;
+
+  @media (max-width: 480px) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .slick-slider {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .slick-slide {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    height: auto;
   }
 `;
 
 const LeftArea = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 30px;
-  width: 583px;
+  width: 50%;
   padding-top: 60px;
   margin-bottom: 3rem;
   @media (max-width: 480px) {
-    width: 90%;
+    width: 100%;
   }
 `;
+
 const RightArea = styled.div`
   display: flex;
   flex-direction: column;
@@ -257,10 +425,19 @@ const RightArea = styled.div`
   align-items: center;
   gap: 30px;
   padding-top: 60px;
-  width: 583px;
+  width: 50%;
   margin-bottom: 3rem;
+
   @media (max-width: 480px) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
     width: 90%;
+  }
+
+  .slick-slide & {
+    display: flex !important;
   }
 `;
 

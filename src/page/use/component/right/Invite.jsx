@@ -53,11 +53,14 @@ export default function Invite({ setLeftScreen, tableId, title }) {
   );
 }
 const Frame = styled.div`
-  display: flex;
-  flex-direction: column;
+  ${theme.styles.flexCenterColumn}
   margin-top: 140px;
   gap: 50px;
-  width: 100%;
+  width: 70%;
+
+  @media (max-width: 480px) {
+    width: 100%;
+  }
 `;
 
 const TitleFrame = styled.div`
@@ -77,13 +80,14 @@ const UrlDiv = styled.div`
   ${theme.styles.flexCenterRow}
   background-color:${theme.text.gamma[900]};
   font-family: Pretendard-Regular;
-  font-size: 24px;
+  font-size: 20px;
   width: 100%;
   height: 50px;
   border-radius: 10px;
 
   @media (max-width: 480px) {
     font-size: 13px;
+    width: 90%;
     height: 35px;
   }
 `;

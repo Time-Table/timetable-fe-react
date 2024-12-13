@@ -10,6 +10,7 @@ export default function Rank({
   timeInfo = [],
   selectedName,
   setSelectedName,
+  setCurrentSlide,
 }) {
   const isValidArray = Array.isArray(timeInfo);
   const sortedTimeInfo = isValidArray ? [...timeInfo].sort((a, b) => b.count - a.count) : [];
@@ -78,7 +79,10 @@ export default function Rank({
               {(rank.members || []).map((member, memberIndex) => (
                 <MemberDiv
                   key={memberIndex}
-                  onClick={() => toggleMemberBold(member)}
+                  onClick={() => {
+                    toggleMemberBold(member);
+                    setCurrentSlide(0);
+                  }}
                   isSelected={selectedName === member}
                 >
                   {member}
@@ -96,7 +100,7 @@ const Frame = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: 620px;
+  height: 620px;
   overflow-y: auto;
   scroll-behavior: smooth;
 
@@ -110,13 +114,14 @@ const Frame = styled.div`
 const ContentDiv = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   width: 380px;
   gap: 20px;
 
   @media (max-width: 480px) {
     width: 100%;
+    align-items: flex-start;
     gap: 10px;
   }
 `;
@@ -130,7 +135,7 @@ const RankButton = styled.button`
   border: none;
   cursor: pointer;
   padding: 0;
-
+  justify-content: center;
   @media (max-width: 480px) {
     width: 90%;
     font-size: 19px;

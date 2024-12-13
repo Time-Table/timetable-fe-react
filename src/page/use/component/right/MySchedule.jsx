@@ -78,7 +78,7 @@ export default function MySchedule({
 
   return (
     <>
-      <NoteText>내가 선택한 시간대</NoteText>
+      <NoteText>{name} 님의 테이블</NoteText>
       <TimeGrid
         dates={dates}
         startHour={startHour}

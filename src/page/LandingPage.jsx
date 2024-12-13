@@ -26,16 +26,22 @@ export default function LandingPage() {
           window.location.href = "/CreatePage";
         }}
       >
-        createPage 이동
+        create 이동
       </button>
       <button
         onClick={() => {
           window.location.href = `/table/${"999906cc-815f-47d3-bc66-7806445b7ad4"}`;
         }}
       >
-        usePage 이동
+        use 이동
       </button>
-
+      <button
+        onClick={() => {
+          window.location.href = `/about`;
+        }}
+      >
+        About 이동
+      </button>
       <button
         onClick={() => {
           fetchData();
