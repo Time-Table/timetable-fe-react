@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
-import KakaoTalk from "../assets/svg/KakaoTalk";
 import Preview1 from "../assets/svg/Preview1";
 import Preview2 from "../assets/svg/Preview2";
 import Preview3 from "../assets/svg/Preview3";
+import Talk from "../assets/svg/Talk";
 
 export default function AboutPage() {
   const sectionsRef = useRef([]);
@@ -72,25 +72,28 @@ export default function AboutPage() {
           각자 다른 스케줄.
         </AnimatedSubtitle>
         <AnimatedSVG ref={addToRefs} data-animation="fade-up">
-          <KakaoTalk />
+          <Talk />
         </AnimatedSVG>
         <AnimatedText ref={addToRefs}>
-          <span style={{ color: theme.color.primary }}>시간 맞추기</span> 힘드시죠?
+          . . <span style={{ color: theme.color.primary }}>시간 맞추기</span> 힘드시죠?
         </AnimatedText>
 
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
-          <AnimatedSubtitle>1대1 약속부터 대규모 회식까지 인원 / 시간 체크</AnimatedSubtitle>
+          <AnimatedSubtitle>
+            1대1 약속부터 대규모 회식까지 시간 / 인원{" "}
+            <span style={{ color: theme.color.primary }}> " 체크 "</span>
+          </AnimatedSubtitle>
+          <RedBackgroundDiv ref={addToRefs} data-animation="slide">
+            <AnimatedText>내가 가능한 시간 or 불가능한 시간</AnimatedText>
+          </RedBackgroundDiv>{" "}
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
             <Preview1 />
           </AnimatedSVG>
-        </RedBackgroundDiv>
-
-        <RedBackgroundDiv ref={addToRefs} data-animation="slide">
-          <AnimatedText>내가 가능한 시간 or 불가능한 시간</AnimatedText>
           <AnimatedText>
-            <span style={{ color: theme.color.primary }}> 클릭!</span>
+            <span style={{ color: theme.color.primary }}> 클릭 !</span>
           </AnimatedText>
         </RedBackgroundDiv>
+
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
           <AnimatedText>간단하게 만들고</AnimatedText>
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
@@ -160,13 +163,13 @@ const CreatePageDiv = styled.div`
 
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  background-color: ${theme.color.timeGrid[20]};
   gap: 40px;
-  padding: 150px 0;
+  padding: 200px 0 350px 0;
   width: 700px;
 
   @media (max-width: 480px) {
     width: 100%;
+    padding: 200px;
     svg {
       width: 95%;
     }
