@@ -13,8 +13,6 @@ export default function MySchedule({
   endHour,
   setRightScreen,
   tableId,
-  selectedCells,
-  setSelectedCells,
   usersScheduleList,
   banedCells,
   setSelectedToggle,
@@ -22,6 +20,7 @@ export default function MySchedule({
   const name = localStorage.getItem("name");
   const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
   const userScheduleCount = userScheduleInfo?.availableTimes?.length || 0;
+  const [selectedCells, setSelectedCells] = useState([]);
 
   useEffect(() => {
     if (!name) {
@@ -40,12 +39,12 @@ export default function MySchedule({
     if (userScheduleInfo?.availableTimes && selectedCells.length === 0) {
       setSelectedCells([...userScheduleInfo.availableTimes]);
     }
-  }, [name, userScheduleInfo, setRightScreen, setSelectedCells, setSelectedToggle]);
+  }, [name, userScheduleInfo, setRightScreen, setSelectedToggle]);
 
   useEffect(() => {
     const isSaveDisabled = userScheduleCount === selectedCells.length;
     setSaveButtonState(isSaveDisabled);
-  }, [selectedCells, userScheduleCount, setSaveButtonState]);
+  }, [userScheduleCount, setSaveButtonState]);
 
   const handleButtonClick = async () => {
     if (userScheduleCount === selectedCells.length) {

@@ -23,7 +23,6 @@ export default function UsePage() {
   const [usersScheduleList, setUsersScheduleList] = useState([]);
   const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
   const [saveButtonState, setSaveButtonState] = useState(true);
-  const [selectedCells, setSelectedCells] = useState([]);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
   const isFirstUser = usersScheduleList.length === 0;
@@ -87,7 +86,6 @@ export default function UsePage() {
             setName={setName}
             name={name}
             tableId={tableId}
-            setSelectedCells={setSelectedCells}
             setSelectedToggle={setSelectedToggle}
           />
         );
@@ -135,8 +133,6 @@ export default function UsePage() {
             tableId={tableId}
             saveButtonState={saveButtonState}
             setSaveButtonState={setSaveButtonState}
-            selectedCells={selectedCells}
-            setSelectedCells={setSelectedCells}
             usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}

@@ -68,32 +68,33 @@ export default function AboutPage() {
           <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
           <AnimatedText ref={addToRefs}>언제 시간되세요 ?</AnimatedText>
         </div>
-        <AnimatedSubtitle ref={addToRefs} data-animation="slide">
-          각자 다른 스케줄.
-        </AnimatedSubtitle>
-        <AnimatedSVG ref={addToRefs} data-animation="fade-up">
-          <Talk />
-        </AnimatedSVG>
+        <div>
+          <AnimatedSubtitle ref={addToRefs} data-animation="slide">
+            각자 다른 스케줄
+          </AnimatedSubtitle>
+          <div>
+            <Talk />
+          </div>
+        </div>
         <AnimatedText ref={addToRefs}>
           . . <span style={{ color: theme.color.primary }}>시간 맞추기</span> 힘드시죠?
         </AnimatedText>
-
+        <RedBackgroundDiv ref={addToRefs} data-animation="slide">
+          <AnimatedText>
+            1대1 약속부터 대규모 회식까지 시간 / 인원{" "}
+            <span style={{ color: theme.color.primary }}>체크 </span>
+          </AnimatedText>
+        </RedBackgroundDiv>{" "}
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
           <AnimatedSubtitle>
-            1대1 약속부터 대규모 회식까지 시간 / 인원{" "}
-            <span style={{ color: theme.color.primary }}> " 체크 "</span>
+            내가 가능한 시간 or 불가능한 시간{" "}
+            <span style={{ color: theme.color.primary }}>선택 </span>
           </AnimatedSubtitle>
-          <RedBackgroundDiv ref={addToRefs} data-animation="slide">
-            <AnimatedText>내가 가능한 시간 or 불가능한 시간</AnimatedText>
-          </RedBackgroundDiv>{" "}
+
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
             <Preview1 />
           </AnimatedSVG>
-          <AnimatedText>
-            <span style={{ color: theme.color.primary }}> 클릭 !</span>
-          </AnimatedText>
         </RedBackgroundDiv>
-
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
           <AnimatedText>간단하게 만들고</AnimatedText>
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
@@ -126,7 +127,6 @@ export default function AboutPage() {
             maxLength={25}
           />
         </InputWrapper>
-
         <StyledWrapper onClick={handleButtonClick}>
           <a className="btn" href="#">
             1분 생성

@@ -151,10 +151,6 @@ export default function AddUser({
             setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
             setSelectedToggle("내 일정");
-
-            if (user.data.availableTimes) {
-              setSelectedCells(user.data.availableTimes);
-            }
             return;
 
           case 201: // 유저가 없어서 새로 가입 가능
@@ -185,14 +181,12 @@ export default function AddUser({
                 title: res.message,
               });
               localStorage.setItem("name", res.data.name);
-              setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
-              setSelectedCells(res.data.availableTimes);
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
