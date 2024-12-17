@@ -39,7 +39,7 @@ export default function MySchedule({
     if (userScheduleInfo?.availableTimes && selectedCells.length === 0) {
       setSelectedCells([...userScheduleInfo.availableTimes]);
     }
-  }, [name, userScheduleInfo, setRightScreen, setSelectedToggle]);
+  }, [name, usersScheduleList, setRightScreen, setSelectedToggle, setSaveButtonState]);
 
   useEffect(() => {
     const isSaveDisabled = userScheduleCount === selectedCells.length;
@@ -62,7 +62,7 @@ export default function MySchedule({
       return;
     }
 
-    await addSchedule(tableId, name, selectedCells);
+    const res = await addSchedule(tableId, name, selectedCells);
 
     Swal.fire({
       icon: "success",

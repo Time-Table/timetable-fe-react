@@ -201,7 +201,7 @@ export default function UsePage() {
       }
     }
   `;
-  console.log(currentSlide);
+
   return (
     <Frame>
       <DesktopView>

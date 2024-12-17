@@ -9,16 +9,15 @@ import { deleteUser } from "../../../../api/Use/deleteUser";
 import Swal from "sweetalert2";
 
 export default function AddUser({
-  setSelectedCells,
+  name: beforeName,
   setLeftScreen,
   setRightScreen,
-  setName,
-  name,
   tableId,
   setSelectedToggle,
 }) {
   const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
+  const [name, setName] = useState(beforeName ? beforeName : "");
 
   useEffect(() => {
     setSelectedToggle("참여하기");
@@ -262,6 +261,11 @@ export default function AddUser({
                     iconColor: `${theme.color.primary}`,
                     title: "최대 15글자까지만 입력 가능합니다.",
                   });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  updateMember(name, password);
                 }
               }}
               value={password}
