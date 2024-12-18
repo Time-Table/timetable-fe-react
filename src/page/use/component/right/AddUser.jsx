@@ -15,9 +15,9 @@ export default function AddUser({
   tableId,
   setSelectedToggle,
 }) {
-  const [password, setPassword] = useState("");
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
   const [name, setName] = useState(beforeName ? beforeName : "");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     setSelectedToggle("참여하기");
@@ -25,10 +25,9 @@ export default function AddUser({
 
   const Toast = Swal.mixin({
     toast: true,
-    // position: "top-end",
     showConfirmButton: false,
     timer: 2000,
-    padding: "1.5em",
+    padding: "1em",
   });
 
   const deleteMember = async (name, password) => {
@@ -134,6 +133,14 @@ export default function AddUser({
 
   const updateMember = async (name, password) => {
     const availableTimes = [];
+    if (name.length === 0 || password.length === 0) {
+      Toast.fire({
+        icon: "error",
+        iconColor: `${theme.color.primary}`,
+        title: "이름과 비밀번호를 모두 입력해주세요.", // 유저가 있으니까 수정 페이지 이동
+      });
+      return;
+    }
     try {
       // 1. 유저 정보를 가져옴
       const user = await getUserInfo(tableId, name, password);
@@ -232,14 +239,22 @@ export default function AddUser({
           <SubTitleDiv>이름</SubTitleDiv>
           <InputLayout>
             <Input
-              placeholder={"*타임 테이블은 이름 중복을 허용하지 않습니다."}
               onChange={(e) => {
+                const inputValue = e.target.value;
+                if (inputValue.startsWith(" ")) {
+                  Toast.fire({
+                    icon: "error",
+                    iconColor: `${theme.color.primary}`,
+                    title: "이름의 첫 글자는 공백일 수 없습니다.",
+                  });
+                  return;
+                }
                 setName(e.target.value);
                 if (e.target.value.length >= 15) {
                   Toast.fire({
                     icon: "error",
                     iconColor: `${theme.color.primary}`,
-                    title: "최대 15글자까지만 입력 가능합니다.",
+                    title: "최대 15 자까지만 입력 가능합니다.",
                   });
                 }
               }}
@@ -252,14 +267,13 @@ export default function AddUser({
           <SubTitleDiv>비밀번호</SubTitleDiv>
           <InputLayout>
             <Input
-              placeholder={"*비밀번호는 1~15자리까지 입력할 수 있습니다."}
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (e.target.value.length >= 15) {
                   Toast.fire({
                     icon: "error",
                     iconColor: `${theme.color.primary}`,
-                    title: "최대 15글자까지만 입력 가능합니다.",
+                    title: "최대 15 자까지만 입력 가능합니다.",
                   });
                 }
               }}
@@ -283,7 +297,6 @@ export default function AddUser({
             onClick={() => {
               updateMember(name, password);
             }}
-            //TODO: 닉넴 중복? 비번 자리 수 체크
             disabled={!name || !password ? true : false}
           />
         </ButtonDiv>

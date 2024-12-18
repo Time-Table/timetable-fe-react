@@ -11,7 +11,8 @@ function App() {
     <Router>
       <Header />
       <Routes>
-        <Route path="/" element={<LandingPage />}></Route>
+        <Route path="/" element={<CreatePage />}></Route>
+        <Route path="/LandingPage" element={<LandingPage />}></Route>
         <Route path="/createPage" element={<CreatePage />}></Route>
         <Route path="/table/:tableId" element={<UsePage />}></Route>
         <Route path="/about" element={<AboutPage />}></Route>

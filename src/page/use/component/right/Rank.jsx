@@ -186,7 +186,7 @@ const RankInfo = styled.span`
 `;
 
 const RankMonthInfo = styled.span`
-  width: 200px;
+  width: 220px;
   text-align: end;
   color: ${(props) => props.color};
   font-family: Pretendard-Light;

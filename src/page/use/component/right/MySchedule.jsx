@@ -5,9 +5,11 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../../api/Use/addSchedule";
+import Loader from "../Loading";
 
 export default function MySchedule({
   setSaveButtonState,
+  saveButtonState,
   dates,
   startHour,
   endHour,
@@ -16,41 +18,39 @@ export default function MySchedule({
   usersScheduleList,
   banedCells,
   setSelectedToggle,
+  setCurrentSlide,
 }) {
+  const [isLoading, setIsLoading] = useState(true);
   const name = localStorage.getItem("name");
   const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
-  const userScheduleCount = userScheduleInfo?.availableTimes?.length || 0;
   const [selectedCells, setSelectedCells] = useState([]);
+  const areArraysEqual = (arr1, arr2) =>
+    arr1.length === arr2.length && arr1.every((value, index) => value === arr2[index]);
 
   useEffect(() => {
     if (!name) {
       Swal.fire({
-        title: "정보를 먼저 입력해주세요!",
-        text: "정보를 입력하고 일정을 추가해보세요.",
+        title: "로그인",
+        text: "오른쪽으로 이동해 정보를 입력해 주세요.",
         icon: "question",
         confirmButtonText: "확인",
         confirmButtonColor: `${theme.color.primary}`,
       });
       setRightScreen("AddUser");
       setSelectedToggle("참여하기");
+      setCurrentSlide(1);
+      setIsLoading(false);
       return;
     }
 
     if (userScheduleInfo?.availableTimes && selectedCells.length === 0) {
       setSelectedCells([...userScheduleInfo.availableTimes]);
     }
+
+    setIsLoading(false);
   }, [name, usersScheduleList, setRightScreen, setSelectedToggle, setSaveButtonState]);
 
-  useEffect(() => {
-    const isSaveDisabled = userScheduleCount === selectedCells.length;
-    setSaveButtonState(isSaveDisabled);
-  }, [userScheduleCount, setSaveButtonState]);
-
   const handleButtonClick = async () => {
-    if (userScheduleCount === selectedCells.length) {
-      return;
-    }
-
     if (!tableId || !name) {
       Swal.fire({
         icon: "error",
@@ -62,8 +62,10 @@ export default function MySchedule({
       return;
     }
 
-    const res = await addSchedule(tableId, name, selectedCells);
-
+    if (areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)) {
+      return;
+    }
+    await addSchedule(tableId, name, selectedCells);
     Swal.fire({
       icon: "success",
       iconColor: `${theme.color.primary}`,
@@ -72,8 +74,16 @@ export default function MySchedule({
       timer: 1500,
     });
 
-    setSaveButtonState(true);
+    setSaveButtonState(!saveButtonState);
   };
+
+  if (isLoading) {
+    return (
+      <div>
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -92,8 +102,8 @@ export default function MySchedule({
         <ButtonDiv>
           <Button
             onClick={handleButtonClick}
-            disabled={userScheduleCount === selectedCells.length}
             title="저장"
+            disabled={areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
           />
         </ButtonDiv>
       </ButtonLayout>

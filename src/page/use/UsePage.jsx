@@ -32,7 +32,25 @@ export default function UsePage() {
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
-  const [currentSlide, setCurrentSlide] = useState(0); // 슬라이더 현재 슬라이드 상태 추가
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    switch (rightScreen) {
+      case "AddUser":
+      case "AllSchedule":
+      case "MySchedule":
+      case "Rank":
+        setCurrentSlide(1);
+        break;
+    }
+    switch (leftScreen) {
+      case "Invite":
+        setCurrentSlide(0);
+        break;
+      default:
+        break;
+    }
+  }, [leftScreen, rightScreen]);
 
   useEffect(() => {
     const fetchTableInfo = async () => {
@@ -51,7 +69,6 @@ export default function UsePage() {
     if (name) {
       setName(name);
     }
-
     const fetchData = async () => {
       const membersSchedule = await getAllSchedule(tableId);
       if (membersSchedule.code === 200) {
@@ -91,7 +108,13 @@ export default function UsePage() {
         );
       case "Invite":
         return tableInfo ? (
-          <Invite setLeftScreen={setLeftScreen} tableId={tableId} title={title} />
+          <Invite
+            setLeftScreen={setLeftScreen}
+            tableId={tableId}
+            title={title}
+            setCurrentSlide={setCurrentSlide}
+            currentSlide={currentSlide}
+          />
         ) : (
           <p>Loading...</p>
         );
@@ -137,6 +160,7 @@ export default function UsePage() {
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}
             name={name}
+            setCurrentSlide={setCurrentSlide}
           />
         );
       case "Rank":
@@ -214,7 +238,8 @@ export default function UsePage() {
                 title="초대하기"
                 onClick={() => {
                   setLeftScreen("Invite");
-                  setCurrentSlide(0); // 현재 슬라이드가 0이 아닌 경우에만 상태 변경
+                  setCurrentSlide(0);
+                  console.log(currentSlide);
                 }}
               />
             </ButtonDiv>
@@ -277,7 +302,6 @@ export default function UsePage() {
           {showScreen(rightScreen)}
         </RightArea>
       </DesktopView>
-
       <MobileView>
         <SliderWrapper>
           <Slider {...sliderSettings}>

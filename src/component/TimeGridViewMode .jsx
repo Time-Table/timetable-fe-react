@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
+import Loader from "../page/use/component/Loading";
 
 export default function TimeGridViewMode({
   dates = [],
@@ -15,15 +16,23 @@ export default function TimeGridViewMode({
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [cellColorMap, setCellColorMap] = useState({});
-  const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]); // timeInfo 데이터를 상태로 관리
+  const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const resolveTimeInfo = async () => {
-      if (timeInfo instanceof Promise) {
-        const resolved = await timeInfo;
-        setResolvedTimeInfo(Array.isArray(resolved) ? resolved : []);
-      } else {
-        setResolvedTimeInfo(Array.isArray(timeInfo) ? timeInfo : []);
+      setIsLoading(true);
+      try {
+        if (timeInfo instanceof Promise) {
+          const resolved = await timeInfo;
+          setResolvedTimeInfo(Array.isArray(resolved) ? resolved : []);
+        } else {
+          setResolvedTimeInfo(Array.isArray(timeInfo) ? timeInfo : []);
+        }
+      } catch (error) {
+        console.error("Error resolving timeInfo:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -143,6 +152,11 @@ export default function TimeGridViewMode({
   };
 
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
+
+  if (isLoading) {
+    return <Loader />;
+  }
+
   return (
     <GridWrapper>
       <MonthDisplay>{monthYear}</MonthDisplay>

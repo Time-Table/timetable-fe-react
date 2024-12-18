@@ -4,6 +4,7 @@ import theme from "../../theme";
 import Button from "../../component/Button";
 import Input from "../../component/Input";
 import Arrow from "../../assets/svg/Arrow";
+import Swal from "sweetalert2";
 
 export default function CreatePage2({
   onNext,
@@ -20,6 +21,12 @@ export default function CreatePage2({
   const [eHour, setEHour] = useState("-- : --");
   const [isEndTimeClicked, setIsEndTimeClicked] = useState(0);
   const [title, setTitle] = useState("");
+  const Toast = Swal.mixin({
+    toast: true,
+    showConfirmButton: false,
+    timer: 2000,
+    padding: "1.5em",
+  });
 
   useEffect(() => {
     const preTitle = localStorage.getItem("title");
@@ -170,9 +177,16 @@ export default function CreatePage2({
           <Title>모임의 주제는 무엇인가요?</Title>
           <InputLayout>
             <Input
-              maxLength={25}
+              maxLength={50}
               onChange={(e) => {
                 setTitle(e.target.value);
+                if (e.target.value.length >= 50) {
+                  Toast.fire({
+                    icon: "error",
+                    iconColor: `${theme.color.primary}`,
+                    title: "최대 50 자까지 입력 가능합니다.",
+                  });
+                }
               }}
               placeholder={"ex: 공학설계입문 2조 회의 시간"}
               value={title}

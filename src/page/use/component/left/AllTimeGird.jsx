@@ -19,7 +19,7 @@ export default function AllTimeGrid({
       </TitleFrame>
 
       <ContentFrame>
-        <NoteText>전체 테이블</NoteText>
+        <NoteText>{selectedName ? selectedName + " 님의" : "전체"} 테이블</NoteText>
         <TimeGridViewMode
           dates={dates}
           startHour={startHour}
@@ -47,16 +47,18 @@ const ContentFrame = styled.div`
 `;
 
 const TitleDiv = styled.div`
+  ${theme.styles.flexCenterColumn}
+  width: 90%;
   font-size: 32px;
   color: ${(props) => props.color};
-
   @media (max-width: 480px) {
     font-size: 24px;
+    width: 80%;
   }
 `;
 
 const NoteText = styled.span`
   font-family: Pretendard-ExtraLight;
-  font-size: 24px;
+  font-size: 25px;
   color: ${theme.text.gamma[500]};
 `;

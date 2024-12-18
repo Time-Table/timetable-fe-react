@@ -4,7 +4,7 @@ import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
 
-export default function Invite({ setLeftScreen, tableId, title }) {
+export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide }) {
   const tableUrl = "http://localhost:3000/table/" + tableId;
 
   const copyToClipboard = () => {
@@ -44,6 +44,7 @@ export default function Invite({ setLeftScreen, tableId, title }) {
               onClick={() => {
                 copyToClipboard();
                 setLeftScreen("AllTimeGrid");
+                setCurrentSlide(0);
               }}
             />
           </ButtonDiv>
@@ -60,13 +61,14 @@ const Frame = styled.div`
 
   @media (max-width: 480px) {
     width: 100%;
+    margin-bottom: 270px;
   }
 `;
 
 const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
-  width: 100%;
+  width: 90%;
 `;
 
 const ContentFrame = styled.div`
@@ -84,11 +86,13 @@ const UrlDiv = styled.div`
   width: 100%;
   height: 50px;
   border-radius: 10px;
+  gap: 5px;
 
   @media (max-width: 480px) {
     font-size: 13px;
     width: 90%;
     height: 35px;
+    justify-content: space-evenly;
   }
 `;
 const ButtonLayout = styled.div`

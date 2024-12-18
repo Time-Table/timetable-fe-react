@@ -53,6 +53,7 @@ export default function AllSchedule({
       setSelectedName(false);
     } else {
       setSelectedName(names[index]);
+      setSelectedToggle("");
     }
   };
 
@@ -206,9 +207,21 @@ const MembersLayout = styled.div`
   font-family: Pretendard-SemiBold;
   width: 100%;
   gap: 20px;
-  min-height: 300px;
   padding-bottom: 30px;
   border-bottom: 1px solid ${theme.text.gamma[800]};
+  height: 250px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none; //IE and Edge
+  scrollbar-width: none; //Firefox
+
+  @media (max-width: 480px) {
+    height: 300px;
+  }
 `;
 
 const MemberContainer = styled.div`
@@ -248,7 +261,8 @@ const ChatingDiv = styled.div`
   align-items: flex-start;
   width: 423px;
   gap: 10px;
-  max-height: 166px;
+  min-height: 105px;
+  max-height: 200px;
   overflow-y: auto;
   scroll-behavior: smooth;
 
