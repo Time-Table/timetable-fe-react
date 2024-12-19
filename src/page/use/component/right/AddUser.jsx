@@ -196,12 +196,14 @@ export default function AddUser({
               setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
+              return;
             } else {
               Toast.fire({
                 icon: "error",
                 iconColor: `${theme.color.primary}`,
                 title: "유저 등록에 실패했습니다. 다시 시도해주세요.",
               });
+              return;
             }
 
           case 401: // 비밀번호가 틀린 경우

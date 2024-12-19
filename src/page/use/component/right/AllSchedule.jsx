@@ -25,7 +25,7 @@ export default function AllSchedule({
   const [chatLog, setChatLog] = useState([]);
   const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
-  const isNameMatching = usersSchedule.some((item) => item.name == name);
+  const isNameMatching = usersSchedule.some((item) => item.name === name);
 
   const Toast = Swal.mixin({
     toast: true,

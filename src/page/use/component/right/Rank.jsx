@@ -16,7 +16,7 @@ export default function Rank({
   const sortedTimeInfo = isValidArray ? [...timeInfo].sort((a, b) => b.count - a.count) : [];
 
   useEffect(() => {
-    if (!isValidArray || sortedTimeInfo.length == 0) {
+    if (!isValidArray || sortedTimeInfo.length === 0) {
       Swal.fire({
         title: "일정을 먼저 등록 해주세요!",
         text: "첫 유저의 일정이 등록되면 순위를 사용하실 수 있습니다!",

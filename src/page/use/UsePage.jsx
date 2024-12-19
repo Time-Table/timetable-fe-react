@@ -1,7 +1,6 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Button from "../../component/Button";
-import Share from "../../assets/svg/Share";
 import Invite from "./component/right/Invite";
 import AllSchedule from "./component/right/AllSchedule";
 import MySchedule from "./component/right/MySchedule";
@@ -42,6 +41,7 @@ export default function UsePage() {
       case "Rank":
         setCurrentSlide(1);
         break;
+      default:
     }
     switch (leftScreen) {
       case "Invite":
@@ -58,7 +58,7 @@ export default function UsePage() {
       setTableInfo(tableInfo);
     };
     fetchTableInfo();
-  }, []);
+  }, [tableId]);
 
   useEffect(() => {
     const name = localStorage.getItem("name");
@@ -80,7 +80,7 @@ export default function UsePage() {
     if (tableId) {
       fetchData();
     }
-  }, [saveButtonState]);
+  }, [saveButtonState, tableId]);
 
   const datesInfo = async () => {
     if (selectedName) {
