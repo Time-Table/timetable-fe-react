@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const getSchedule = async (tableId) => {
   try {
-    const res = await axios.get(`http://localhost:3001/api/getSchedule`, {
+    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/getSchedule`, {
       params: { tableId },
     });
     if (res.status === 201) {

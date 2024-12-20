@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const addSchedule = async (tableId, name, availableTimes) => {
   try {
-    const res = await axios.post("http://localhost:3001/api/addSchedule", {
+    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/addSchedule`, {
       tableId,
       name,
       availableTimes,

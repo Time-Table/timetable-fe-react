@@ -3,7 +3,7 @@ import axios from "axios";
 export default function LandingPage() {
   const fetchData = async () => {
     try {
-      const test = await axios.get("http://localhost:3001/hi");
+      const test = await axios.get(`${process.env.REACT_APP_SERVER_URL}/hi`);
 
       console.log(test.data);
     } catch (error) {
@@ -30,7 +30,7 @@ export default function LandingPage() {
       </button>
       <button
         onClick={() => {
-          window.location.href = `/table/${"999906cc-815f-47d3-bc66-7806445b7ad4"}`;
+          window.location.href = "/table/999906cc-815f-47d3-bc66-7806445b7ad4";
         }}
       >
         use 이동

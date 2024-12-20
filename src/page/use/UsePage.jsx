@@ -15,6 +15,7 @@ import { getSchedule } from "../../api/Use/getSchedule";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import Loader from "./component/Loading";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -116,7 +117,9 @@ export default function UsePage() {
             currentSlide={currentSlide}
           />
         ) : (
-          <p>Loading...</p>
+          <div>
+            <Loader />
+          </div>
         );
 
       case "AllTimeGrid":
