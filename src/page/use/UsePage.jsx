@@ -242,7 +242,6 @@ export default function UsePage() {
                 onClick={() => {
                   setLeftScreen("Invite");
                   setCurrentSlide(0);
-                  console.log(currentSlide);
                 }}
               />
             </ButtonDiv>

@@ -5,7 +5,7 @@ import theme from "../../../../theme";
 import Swal from "sweetalert2";
 
 export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide }) {
-  const tableUrl = "http://localhost:3000/table/" + tableId;
+  const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`; //인식 x
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tableUrl).then(() => {
