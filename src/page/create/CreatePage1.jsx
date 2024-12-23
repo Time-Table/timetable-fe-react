@@ -118,9 +118,6 @@ const ButtonDiv = styled.div`
   @media (max-width: 480px) {
     width: 90%;
     height: 50px;
-    button {
-      font-size: 18px;
-    }
   }
 `;
 

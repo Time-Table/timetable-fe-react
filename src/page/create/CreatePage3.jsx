@@ -140,7 +140,7 @@ const QuestionDiv = styled.div`
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   gap: 30px;
-  padding-top: 20px;
+  padding-top: 30px;
   padding-bottom: 10px;
   width: 486px;
   opacity: 0;
@@ -190,7 +190,7 @@ const ButtonDiv = styled.div`
 const Q = styled.span`
   font-family: "Pretendard-SemiBold";
   font-size: 24px;
-  color: ${theme.color.primary};
+  color: ${theme.color.button.blue};
   @media (max-width: 480px) {
     font-size: 22px;
   }
@@ -199,14 +199,13 @@ const Q = styled.span`
 const Title = styled.span`
   font-family: "Pretendard-SemiBold";
   font-size: 25px;
-  color: ${theme.text.gamma[500]};
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
   margin-left: 20px;
   @media (max-width: 480px) {
-    font-size: 22px;
+    font-size: 23px;
   }
 `;
 
@@ -215,7 +214,7 @@ const SubTitle = styled.span`
   font-size: 18px;
   color: ${theme.text.gamma[500]};
   @media (max-width: 480px) {
-    font-size: 18px;
+    font-size: 17px;
   }
 `;
 

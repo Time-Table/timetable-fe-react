@@ -246,12 +246,13 @@ const ContentDiv = styled.div`
   @media (max-width: 480px) {
     width: 90%;
 
-    padding: 50px 0px;
+    padding: 30px 0px;
   }
 `;
 
 const ButtonLayout = styled.div`
   width: 90%;
+  margin-top: 40px;
   display: flex;
   justify-content: end;
   align-items: center;
@@ -263,17 +264,17 @@ const ButtonLayout = styled.div`
 
 const ButtonDiv = styled.div`
   display: flex;
-  width: 160px;
-  height: 56px;
+  width: 140px;
+  height: 52px;
   button {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   @media (max-width: 480px) {
     width: 100%;
     height: 50px;
     button {
-      font-size: 16px;
+      font-size: 18px;
     }
   }
 `;
@@ -296,7 +297,7 @@ const Title = styled.span`
 const InputLayout = styled.div`
   width: 300px;
   @media (max-width: 480px) {
-    width: 90%;
+    width: 80%;
   }
 `;
 
