@@ -129,11 +129,11 @@ const MonthLayout = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-  gap: 27px;
+  gap: 20px;
 `;
 
 const Month = styled.div`
-  font-size: 22px;
+  font-size: 19px;
   font-family: Pretendard-Medium;
 
   @media (max-width: 480px) {
@@ -146,9 +146,10 @@ const DaysRow = styled.div`
   justify-content: center;
   align-items: center;
   margin-bottom: 16px;
-  gap: 20px;
+  gap: 13px;
   @media (max-width: 480px) {
-    gap: 11px;
+    gap: 6px;
+    margin-bottom: 10px;
   }
 `;
 
@@ -156,18 +157,18 @@ const Row = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 13px;
   @media (max-width: 480px) {
-    gap: 11px;
+    gap: 6px;
   }
 `;
 
 const Day = styled.div`
   ${theme.styles.flexCenterRow}
-  width: 49px;
-  height: 52px;
+  width: 45px;
+  height: 45px;
   font-family: Pretendard-Medium;
-  font-size: 22px;
+  font-size: 18px;
 
   @media (max-width: 480px) {
     width: 36px;
@@ -178,9 +179,9 @@ const Day = styled.div`
 
 const Cell = styled.div`
   ${theme.styles.flexCenterRow}
-  width: 48px;
-  height: 53px;
-  font-size: 20px;
+  width: 45px;
+  height: 45px;
+  font-size: 18px;
   font-family: Pretendard-Medium;
   border-radius: 3px;
   cursor: pointer;
@@ -196,16 +197,17 @@ const Cell = styled.div`
     width: 36px;
     height: 36px;
     font-size: 15px;
+    border-radius: 20px;
   }
 `;
 
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 
   @media (max-width: 480px) {
-    gap: 11px;
+    gap: 10px;
   }
 `;
 

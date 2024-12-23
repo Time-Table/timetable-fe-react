@@ -68,15 +68,18 @@ const QuestionDiv = styled.div`
 `;
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  gap: 40px;
-  margin: 50px 0;
+  gap: 30px;
+  margin: 30px 0;
+  /* padding-bottom: 25px; */
   width: 510px;
   opacity: 0;
   transform: translateY(-30px);
   animation: fadeIn 1.2s ease-in-out forwards;
 
   @media (max-width: 480px) {
-    width: 380px;
+    margin: 30px 0px 10px 0px;
+    width: 90%;
+    gap: 35px;
   }
 
   @keyframes fadeIn {
@@ -94,49 +97,45 @@ const CalendarLayout = styled.div`
 `;
 
 const ButtonLayout = styled.div`
-  /* height: 3rem; */
-  width: 100%;
+  width: 75%;
   display: flex;
   justify-content: end;
   align-items: center;
   @media (max-width: 480px) {
-    width: 320px;
+    justify-content: center;
+    width: 90%;
   }
 `;
 
 const ButtonDiv = styled.div`
   display: flex;
-  width: 160px;
-  height: 56px;
+  width: 140px;
+  height: 52px;
   button {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   @media (max-width: 480px) {
-    width: 100%;
+    width: 90%;
     height: 50px;
     button {
-      font-size: 16px;
+      font-size: 18px;
     }
   }
 `;
 
 const Q = styled.span`
   font-family: "Pretendard-SemiBold";
-  font-size: 28px;
+  font-size: 24px;
   color: ${theme.color.primary};
-
-  @media (max-width: 480px) {
-    font-size: 24px;
-  }
 `;
 
 const Title = styled.span`
   font-family: "Pretendard-SemiBold";
-  font-size: 32px;
+  font-size: 26px;
 
   @media (max-width: 480px) {
-    font-size: 28px;
+    font-size: 22px;
   }
 `;
 

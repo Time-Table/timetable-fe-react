@@ -1,6 +1,12 @@
 export default function ({ width = 30, height = 30 }) {
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 30 30"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <rect width="30" height="30" fill="url(#pattern0_1417_106)" />
       <defs>
         <pattern

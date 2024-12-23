@@ -158,16 +158,16 @@ export default function CreatePage2({
   return (
     <CreatePageDiv>
       <ContentDiv>
+        <div style={{ width: "100%" }}>
+          <ArrowLayout
+            onClick={() => {
+              onBack(dates);
+            }}
+          >
+            <Arrow width={10} height={20} angle={180} />
+          </ArrowLayout>
+        </div>{" "}
         <Question2Div>
-          <div style={{ width: "100%" }}>
-            <ArrowLayout
-              onClick={() => {
-                onBack(dates);
-              }}
-            >
-              <Arrow width={10} height={20} angle={180} />
-            </ArrowLayout>
-          </div>
           <Q>Q2.</Q>
           <Title>시간은 언제가 좋을까요?</Title>
           {Time()}
@@ -188,7 +188,7 @@ export default function CreatePage2({
                   });
                 }
               }}
-              placeholder={"ex: 공학설계입문 2조 회의 시간"}
+              placeholder={"ex: 공학설계 2조 회의 시간"}
               value={title}
             />
           </InputLayout>
@@ -215,7 +215,7 @@ const CreatePageDiv = styled.div`
 
 const Question2Div = styled.div`
   ${theme.styles.flexCenterColumn}
-  gap: 30px;
+  gap: 20px;
   opacity: 0;
   transform: translateY(-30px);
   animation: fadeIn 1.2s ease-in-out forwards;
@@ -230,7 +230,7 @@ const Question2Div = styled.div`
 `;
 const Question3Div = styled.div`
   ${theme.styles.flexCenterColumn}
-  gap: 30px;
+  gap: 20px;
   opacity: ${(props) => (props.fadeIn > 0 ? 1 : 0)};
   transform: ${(props) => (props.fadeIn > 0 ? "translateY(0)" : "translateY(-30px)")};
   transition: opacity 1s ease-in-out, transform 1.2s ease-in-out;
@@ -239,24 +239,25 @@ const Question3Div = styled.div`
 
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  gap: 90px;
-  margin: 50px 0;
-  width: 510px;
-
+  gap: 40px;
+  padding-top: 30px;
+  padding-bottom: 65px;
+  width: 360px;
   @media (max-width: 480px) {
-    width: 380px;
+    width: 90%;
+
+    padding: 50px 0px;
   }
 `;
 
 const ButtonLayout = styled.div`
-  width: 100%;
+  width: 90%;
   display: flex;
   justify-content: end;
   align-items: center;
-  margin-top: 105px;
-
   @media (max-width: 480px) {
-    width: 346px;
+    justify-content: center;
+    width: 80%;
   }
 `;
 
@@ -279,27 +280,23 @@ const ButtonDiv = styled.div`
 
 const Q = styled.span`
   font-family: "Pretendard-SemiBold";
-  font-size: 28px;
+  font-size: 24px;
   color: ${theme.color.primary};
-
-  @media (max-width: 480px) {
-    font-size: 24px;
-  }
 `;
 
 const Title = styled.span`
   font-family: "Pretendard-SemiBold";
-  font-size: 32px;
+  font-size: 26px;
 
   @media (max-width: 480px) {
-    font-size: 28px;
+    font-size: 22px;
   }
 `;
 
 const InputLayout = styled.div`
-  width: 352px;
+  width: 300px;
   @media (max-width: 480px) {
-    width: 300px;
+    width: 90%;
   }
 `;
 
@@ -340,16 +337,11 @@ const TimeSlotDiv = styled.div`
   width: 100%;
   padding: 0.2rem;
   font-family: Pretendard-Regular;
-  font-size: 20px;
   letter-spacing: 0.05em;
 
   &:hover {
     background-color: ${theme.color.primary};
     color: white;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 18px;
   }
 `;
 
@@ -357,9 +349,9 @@ const TimeLayout = styled.div`
   position: relative;
   ${theme.styles.flexCenterRow}
   font-family: Pretendard-Light;
-  font-size: 22px;
+  font-size: 20px;
   width: 100%;
-  gap: 20px;
+  gap: 15px;
 
   button {
     font-size: 20px;

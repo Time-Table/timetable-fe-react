@@ -118,7 +118,9 @@ export default function TimeGrid({
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
   return (
     <GridWrapper onMouseUp={handleMouseUp}>
-      <MonthDisplay>{monthYear}</MonthDisplay>
+      <MonthDisplay>
+        <span>{monthYear}</span>
+      </MonthDisplay>
       <Grid columns={currentWeek.length + 1}>
         <HeaderRow>
           <EmptyCell />
@@ -188,6 +190,11 @@ const GridWrapper = styled.div`
 `;
 
 const MonthDisplay = styled.div`
+  width: 70%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   font-family: "Pretendard-Medium";
   font-size: 23px;
@@ -235,17 +242,17 @@ const HeaderCell = styled.div`
   pointer-events: ${(props) => (props.isDisabled ? "none" : "auto")};
 
   @media (max-width: 480px) {
-    width: 41px;
-    font-size: 18px;
+    width: 40px;
+    font-size: 17px;
   }
 `;
 
 const TimeCell = styled.div`
   grid-column: span 1;
   text-align: right;
-  padding-right: 10px;
+  margin-right: 10px;
   @media (max-width: 480px) {
-    padding-right: 5px;
+    margin-right: 1px;
   }
 `;
 
@@ -281,7 +288,7 @@ const Cell = styled.div`
       : "auto"};
 
   @media (max-width: 480px) {
-    width: 46px;
+    width: 40px;
     height: 20px;
   }
 `;

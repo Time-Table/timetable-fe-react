@@ -94,19 +94,21 @@ const HeaderLayout = styled.div`
   ${theme.styles.flexCenterRow}
   justify-content: space-between;
   font-family: Pretendard-ExtraLight;
-  padding: 11px 60px;
+  padding: 0px 60px;
   height: 70px;
   border-bottom: 1px ${theme.text.gamma[900]} solid;
 
   @media (max-width: 480px) {
     align-items: end;
+    height: auto;
+
     padding: 11px 20px;
   }
 `;
 
 const TitleLayout = styled.button`
   ${theme.styles.flexCenterRow}
-  font-size: 28px;
+  font-size: 25px;
   background: none;
   border: none;
   padding: 0;
@@ -123,9 +125,9 @@ const ButtonDiv = styled.div`
   display: flex;
   justify-content: end;
   width: 106px;
-  height: 52px;
+  height: 46px;
   button {
-    font-size: 20px;
+    font-size: 18px;
   }
   @media (max-width: 480px) {
     width: 70px;

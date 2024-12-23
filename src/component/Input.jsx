@@ -3,7 +3,7 @@ import theme from "../theme";
 export default function Input({
   height = 39,
   placeholder,
-  fontSize = 22,
+  fontSize = 21,
   onChange = () => {},
   onKeyDown = () => {},
   value,
