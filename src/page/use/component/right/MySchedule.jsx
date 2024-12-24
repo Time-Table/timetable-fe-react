@@ -30,9 +30,10 @@ export default function MySchedule({
   useEffect(() => {
     if (!name) {
       Swal.fire({
-        title: "로그인",
-        text: "오른쪽으로 이동해 정보를 입력해 주세요.",
-        icon: "question",
+        title: "입장하기",
+        text: "정보를 먼저 입력해 주세요.",
+        icon: "warning",
+        iconColor: theme.color.primary,
         confirmButtonText: "확인",
         confirmButtonColor: `${theme.color.primary}`,
       });

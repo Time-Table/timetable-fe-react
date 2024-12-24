@@ -25,33 +25,34 @@ export default function UsePage() {
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
-  const isFirstUser = usersScheduleList.length === 0;
-  const [leftScreen, setLeftScreen] = useState(isFirstUser ? "Invite" : "AllTimeGrid");
-  const [rightScreen, setRightScreen] = useState("MySchedule");
-  const [selectedToggle, setSelectedToggle] = useState("내 일정");
+  // const isFirstUser = usersScheduleList.length === 0;
+  const [leftScreen, setLeftScreen] = useState("AllTimeGrid");
+  // const [rightScreen, setRightScreen] = useState(isFirstUser ? "Invite" : "MySchedule");
+  const [rightScreen, setRightScreen] = useState("AllSchedule");
+  const [selectedToggle, setSelectedToggle] = useState("전체 일정");
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showIntro, setShowIntro] = useState(true); // State to control the floating introduction visibility
+  const closeIntro = () => setShowIntro(false); // Close introduction
 
-  useEffect(() => {
-    switch (rightScreen) {
-      case "AddUser":
-      case "AllSchedule":
-      case "MySchedule":
-      case "Rank":
-        setCurrentSlide(1);
-        break;
-      default:
-    }
-    switch (leftScreen) {
-      case "Invite":
-        setCurrentSlide(0);
-        break;
-      default:
-        break;
-    }
-  }, [leftScreen, rightScreen]);
+  // useEffect(() => {
+  //   switch (rightScreen) {
+  //     case "AddUser":
+  //     case "AllSchedule":
+  //     case "MySchedule":
+  //     case "Rank":
+  //     case "Invite":
+  //       // setCurrentSlide(1);
+  //       break;
+  //     default:
+  //   }
+  //   switch (leftScreen) {
+  //     default:
+  //       break;
+  //   }
+  // }, [leftScreen, rightScreen]);
 
   useEffect(() => {
     const fetchTableInfo = async () => {
@@ -110,7 +111,7 @@ export default function UsePage() {
       case "Invite":
         return tableInfo ? (
           <Invite
-            setLeftScreen={setLeftScreen}
+            setRightScreen={setRightScreen}
             tableId={tableId}
             title={title}
             setCurrentSlide={setCurrentSlide}
@@ -132,6 +133,8 @@ export default function UsePage() {
             selectedName={selectedName}
             title={title}
             banedCells={banedCells}
+            setTableInfo={setTableInfo}
+            tableId={tableId}
           />
         );
       case "AllSchedule":
@@ -240,8 +243,8 @@ export default function UsePage() {
                 background={theme.color.button.blue}
                 title="초대하기"
                 onClick={() => {
-                  setLeftScreen("Invite");
-                  setCurrentSlide(0);
+                  setRightScreen("Invite");
+                  setCurrentSlide(1);
                 }}
               />
             </ButtonDiv>
@@ -307,14 +310,29 @@ export default function UsePage() {
       <MobileView>
         <SliderWrapper>
           <Slider {...sliderSettings}>
-            <LeftArea>{showScreen(leftScreen)}</LeftArea>
+            <LeftArea>
+              {" "}
+              {showIntro && (
+                <IntroOverlay>
+                  <IntroContent>
+                    <span>환영합니다~!</span>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span>오른쪽으로 슬라이드 하여 일정에 참여해 보세요.</span>
+                      <span>➡️</span>
+                    </div>{" "}
+                    <CloseButton onClick={closeIntro}>이해했습니다.</CloseButton>
+                  </IntroContent>
+                </IntroOverlay>
+              )}
+              {showScreen(leftScreen)}
+            </LeftArea>
             <RightArea>
               <ButtonLayout>
                 <ButtonDiv>
                   <Button
                     background={theme.color.button.blue}
                     title="초대하기"
-                    onClick={() => setLeftScreen("Invite")}
+                    onClick={() => setRightScreen("Invite")}
                   />
                 </ButtonDiv>
                 <ButtonDiv>
@@ -385,6 +403,47 @@ export default function UsePage() {
     </Frame>
   );
 }
+
+const IntroOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 300px;
+  z-index: 1000;
+`;
+
+const IntroContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  font-size: 23px;
+  color: white;
+  padding: 5px;
+  text-align: center;
+  max-width: 250px;
+  gap: 25px;
+  font-family: Pretendard-semi-bold;
+  /* margin-bottom: 100px; */
+`;
+
+const CloseButton = styled.button`
+  padding: 10px 15px;
+  background-color: ${theme.color.primary};
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${theme.color.primaryTint};
+  }
+`;
 
 const Frame = styled.div`
   @media (max-width: 880px) {
@@ -495,19 +554,29 @@ const ToggleLayout = styled.div`
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  width: 60%;
   height: 30px;
-  gap: 20px;
+
+  & > div:first-of-type {
+    flex: 1.8;
+  }
+  @media (max-width: 1100px) {
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    width: 85%;
+  }
 `;
 
 const ToggleButtonDiv = styled.div`
   display: flex;
+  flex: 1;
   button {
     font-size: 25px;
   }
 
   @media (max-width: 480px) {
-    height: 50px;
     button {
       font-size: 19px;
     }

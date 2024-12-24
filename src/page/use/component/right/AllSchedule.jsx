@@ -3,11 +3,11 @@ import Input from "../../../../component/Input";
 import theme from "../../../../theme";
 import Send from "../../../../assets/svg/Send";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import Edit from "../../../../assets/svg/Edit";
+import Edit from "../../../../assets/svg/Edit.jpg";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
-import Refresh from "../../../../assets/svg/Refresh";
 import Swal from "sweetalert2";
+import Refresh from "../../../../assets/svg/Refresh.jpg";
 
 export default function AllSchedule({
   tableId,
@@ -121,6 +121,7 @@ export default function AllSchedule({
   return (
     <>
       <MembersLayout>
+        {names.length === 0 ? <span>참여하기를 클릭해 첫 일정을 등록해주세요.</span> : <></>}
         {names.map((name, index) => (
           <MemberContainer key={index}>
             <MemberDiv
@@ -142,7 +143,7 @@ export default function AllSchedule({
                   setSelectedToggle("참여하기");
                 }}
               >
-                <Edit />
+                <img src={Edit} />
               </EditBox>
             ) : null}
           </MemberContainer>
@@ -151,7 +152,16 @@ export default function AllSchedule({
 
       <ChatLayout>
         <div style={{ display: "flex", width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "center", width: "90%" }}>채팅</div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "90%",
+            }}
+          >
+            채팅
+          </div>
           <ButtonBox
             onClick={async () => {
               const res = await getChating(tableId);
@@ -169,7 +179,8 @@ export default function AllSchedule({
               }
             }}
           >
-            <Refresh />
+            {/* <Refresh /> */}
+            <img src={Refresh} />
           </ButtonBox>
         </div>
         <ChatingDiv ref={chatEndRef}>
@@ -182,7 +193,7 @@ export default function AllSchedule({
         </ChatingDiv>
         <InputLayout>
           <Input
-            placeholder={"일정을 추가하고 채팅을 이용해 보세요."}
+            placeholder={"채팅을 입력하세요."}
             maxLength={300}
             onChange={(e) => setMessage(e.target.value)}
             value={message}

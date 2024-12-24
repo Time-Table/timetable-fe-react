@@ -250,10 +250,9 @@ const HeaderCell = styled.div`
 const TimeCell = styled.div`
   grid-column: span 1;
   text-align: right;
-  margin-right: 10px;
+  padding-right: 10px;
   @media (max-width: 480px) {
-    margin-right: 0px;
-    width: 0px;
+    padding-right: 5px;
   }
 `;
 
@@ -289,7 +288,7 @@ const Cell = styled.div`
       : "auto"};
 
   @media (max-width: 480px) {
-    width: 40px;
+    width: 43px;
     height: 20px;
   }
 `;

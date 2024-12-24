@@ -9,9 +9,15 @@ export default function Input({
   value,
   maxLength,
   type,
+  underLine = theme.text.gamma[500],
 }) {
   return (
-    <div style={{ width: "100%", borderBottom: `1px solid ${theme.text.gamma[500]}` }}>
+    <div
+      style={{
+        width: "100%",
+        borderBottom: `1px solid ${underLine}`,
+      }}
+    >
       <input
         maxLength={maxLength}
         placeholder={placeholder}
@@ -25,6 +31,7 @@ export default function Input({
           outline: "none",
           fontFamily: "pretendard-light",
           fontSize: fontSize,
+          background: "none",
         }}
         type={type}
       ></input>

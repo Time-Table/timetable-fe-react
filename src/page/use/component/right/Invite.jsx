@@ -3,9 +3,10 @@ import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
+import Copy from "../../../../assets/svg/Copy.png";
 
-export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide }) {
-  const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`; //인식 x
+export default function Invite({ setRightScreen, tableId, title, setCurrentSlide }) {
+  const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tableUrl).then(() => {
@@ -25,13 +26,14 @@ export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide 
   };
   return (
     <Frame>
+      <Title>
+        <img src={Copy} />
+        <span>초대하기</span>
+      </Title>{" "}
       <TitleFrame>
         <TitleDiv>{title}</TitleDiv>
-        <TitleDiv color={theme.color.primary}>타임테이블</TitleDiv>
       </TitleFrame>
-
       <ContentFrame>
-        <TitleDiv>링크를 복사하여 초대하세요.</TitleDiv>
         <UrlDiv>
           <Share />
           {tableUrl}
@@ -43,7 +45,7 @@ export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide 
               background={theme.color.button.blue}
               onClick={() => {
                 copyToClipboard();
-                setLeftScreen("AllTimeGrid");
+                setRightScreen("MySchedule");
                 setCurrentSlide(0);
               }}
             />
@@ -54,14 +56,20 @@ export default function Invite({ setLeftScreen, tableId, title, setCurrentSlide 
   );
 }
 const Frame = styled.div`
-  ${theme.styles.flexCenterColumn}
-  margin-top: 140px;
-  gap: 50px;
-  width: 70%;
-
+  width: 65%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 30px;
+  background-color: #fbfbfb;
+  border-radius: 50px;
+  padding: 40px 30px 200px 30px;
   @media (max-width: 480px) {
-    width: 100%;
-    margin-bottom: 270px;
+    font-size: 24px;
+    border-radius: 50px 50px 0px 0px;
+    padding: 40px 50px 300px 50px;
   }
 `;
 
@@ -80,7 +88,7 @@ const ContentFrame = styled.div`
 
 const UrlDiv = styled.div`
   ${theme.styles.flexCenterRow}
-  background-color:${theme.text.gamma[900]};
+  background-color:white;
   font-family: Pretendard-Regular;
   font-size: 20px;
   width: 100%;
@@ -122,6 +130,17 @@ const ButtonDiv = styled.div`
 `;
 
 const TitleDiv = styled.div`
-  font-size: 24px;
+  font-size: 20px;
   color: ${(props) => props.color};
+`;
+
+const Title = styled.div`
+  ${theme.styles.flexCenterColumn}
+  font-family: Pretendard-SemiBold;
+  width: 100%;
+  font-size: 28px;
+  color: ${theme.color.button.blue};
+  @media (max-width: 480px) {
+    font-size: 24px;
+  }
 `;

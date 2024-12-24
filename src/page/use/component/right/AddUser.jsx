@@ -7,6 +7,7 @@ import { joinUser } from "../../../../api/Use/joinUser";
 import { getUserInfo } from "../../../../api/Use/getUserInfo";
 import { deleteUser } from "../../../../api/Use/deleteUser";
 import Swal from "sweetalert2";
+import Enter from "../../../../assets/svg/Enter.png";
 
 export default function AddUser({
   name: beforeName,
@@ -235,12 +236,23 @@ export default function AddUser({
 
   return (
     <Frame>
-      <TitleFrame>회원 등록 / 수정</TitleFrame>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <img src={Enter} />
+        <TitleFrame>입장하기</TitleFrame>
+      </div>
       <ContentFrame>
         <ContentDiv>
           <SubTitleDiv>이름</SubTitleDiv>
           <InputLayout>
             <Input
+              placeholder={"보여질 이름을 입력해주세요."}
+              underLine={theme.text.gamma[800]}
               onChange={(e) => {
                 const inputValue = e.target.value;
                 if (inputValue.startsWith(" ")) {
@@ -269,6 +281,8 @@ export default function AddUser({
           <SubTitleDiv>비밀번호</SubTitleDiv>
           <InputLayout>
             <Input
+              placeholder={"비밀번호를 입력해주세요."}
+              underLine={theme.text.gamma[800]}
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (e.target.value.length >= 15) {
@@ -321,8 +335,8 @@ const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
   width: 100%;
-  font-size: 32px;
-
+  font-size: 28px;
+  color: ${theme.color.button.blue};
   @media (max-width: 480px) {
     font-size: 24px;
   }
@@ -336,10 +350,21 @@ const ContentFrame = styled.div`
 `;
 
 const Frame = styled.div`
+  width: 65%;
+  height: 100%;
   display: flex;
+  justify-content: center;
+  align-items: center;
   flex-direction: column;
-  margin-top: 50px;
-  gap: 50px;
+  gap: 30px;
+  background-color: #fbfbfb;
+  border-radius: 50px;
+  padding: 40px 30px 200px 30px;
+  @media (max-width: 480px) {
+    font-size: 24px;
+    border-radius: 50px 50px 0px 0px;
+    padding: 40px 50px 200px 50px;
+  }
 `;
 
 const ButtonLayout = styled.div`
@@ -368,6 +393,9 @@ const ButtonDiv = styled.div`
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn};
   gap: 20px;
+  @media (max-width: 480px) {
+    gap: 10px;
+  }
 `;
 
 const SubTitleDiv = styled.div`
@@ -375,8 +403,6 @@ const SubTitleDiv = styled.div`
 `;
 
 const InputLayout = styled.div`
-  width: 423px;
-
   @media (max-width: 480px) {
     width: 90%;
   }

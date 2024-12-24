@@ -27,6 +27,7 @@ export default function Button({
           background: disabled ? theme.color.button.neutral[100] : background,
           fontSize: fontSize,
           fontFamily: fontFamily,
+          letterSpacing: "-0.05em",
           border: 0,
           borderRadius: 10,
           cursor: disabled ? "not-allowed" : "pointer",

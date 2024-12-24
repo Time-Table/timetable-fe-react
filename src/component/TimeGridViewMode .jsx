@@ -227,6 +227,11 @@ const GridWrapper = styled.div`
 `;
 
 const MonthDisplay = styled.div`
+  width: 70%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   font-family: "Pretendard-Medium";
   font-size: 23px;
@@ -242,8 +247,9 @@ const WeekNavigation = styled.div`
   padding-right: 80px;
   gap: 20px;
   width: 100%;
+
   @media (max-width: 480px) {
-    padding-right: 40px;
+    padding-right: 0px;
   }
 `;
 
@@ -273,8 +279,8 @@ const HeaderCell = styled.div`
   pointer-events: ${(props) => (props.isDisabled ? "none" : "auto")};
 
   @media (max-width: 480px) {
-    width: 41px;
-    font-size: 18px;
+    width: 40px;
+    font-size: 17px;
   }
 `;
 
@@ -320,7 +326,7 @@ const Cell = styled.div`
       : "auto"};
 
   @media (max-width: 480px) {
-    width: 46px;
+    width: 43px;
     height: 20px;
   }
 `;
