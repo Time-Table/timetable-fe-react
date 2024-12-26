@@ -5,6 +5,7 @@ import Header from "./component/Header";
 import CreatePage from "./page/create/CreatePage";
 import LandingPage from "./page/LandingPage";
 import AboutPage from "./page/AboutPage";
+import NotFound from "./page/NotFound";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/createPage" element={<CreatePage />}></Route>
         <Route path="/table/:tableId" element={<UsePage />}></Route>
         <Route path="/about" element={<AboutPage />}></Route>
+        <Route path="*" element={<NotFound />}></Route>
       </Routes>
     </Router>
   );

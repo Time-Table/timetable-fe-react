@@ -76,7 +76,7 @@ export default function Header() {
             });
           }}
         >
-          <Button title="FAQ" background="white" color="black" onClick={() => {}} />
+          <Button title="FAQ" background="white" color="black" fontFamily="Pretendard-SemiBold" />
         </ButtonDiv>
 
         <ButtonDiv
@@ -84,7 +84,7 @@ export default function Header() {
             window.location.href = "/CreatePage";
           }}
         >
-          <Button title="새 테이블" />
+          <Button title="새 테이블" fontFamily="Pretendard-SemiBold" />
         </ButtonDiv>
       </div>
     </HeaderLayout>
@@ -127,13 +127,13 @@ const ButtonDiv = styled.div`
   justify-content: end;
   width: 106px;
   height: 46px;
+  text-align: center;
   button {
     font-size: 18px;
   }
   @media (max-width: 480px) {
-    width: 80px;
+    width: 83px;
     height: 38px;
-
     button {
       font-size: 15px;
     }

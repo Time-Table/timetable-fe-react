@@ -26,7 +26,8 @@ export default function UsePage() {
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
   // const isFirstUser = usersScheduleList.length === 0;
-  const [leftScreen, setLeftScreen] = useState("AllTimeGrid");
+  // const [leftScreen, setLeftScreen] = useState("AllTimeGrid");
+  const leftScreen = "AllTimeGrid";
   // const [rightScreen, setRightScreen] = useState(isFirstUser ? "Invite" : "MySchedule");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
   const [selectedToggle, setSelectedToggle] = useState("전체 일정");
@@ -100,7 +101,7 @@ export default function UsePage() {
       case "AddUser":
         return (
           <AddUser
-            setLeftScreen={setLeftScreen}
+            // setLeftScreen={setLeftScreen}
             setRightScreen={setRightScreen}
             setName={setName}
             name={name}
@@ -141,7 +142,7 @@ export default function UsePage() {
       case "AllSchedule":
         return (
           <AllSchedule
-            setLeftScreen={setLeftScreen}
+            // setLeftScreen={setLeftScreen}
             setRightScreen={setRightScreen}
             setName={setName}
             selectedName={selectedName}
@@ -254,7 +255,7 @@ export default function UsePage() {
                 background={theme.color.primary}
                 title="참여하기"
                 onClick={() => {
-                  setLeftScreen("AllTimeGrid");
+                  // setLeftScreen("AllTimeGrid");
                   setRightScreen("AddUser");
                 }}
               />
@@ -271,7 +272,7 @@ export default function UsePage() {
                 color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("AllSchedule");
-                  setLeftScreen("AllTimeGrid");
+                  // setLeftScreen("AllTimeGrid");
                   handleToggle("전체 일정");
                   setSelectedName(false);
                 }}
@@ -285,7 +286,7 @@ export default function UsePage() {
                 color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("MySchedule");
-                  setLeftScreen("AllTimeGrid");
+                  // setLeftScreen("AllTimeGrid");
                   handleToggle("내 일정");
                 }}
               />
@@ -298,7 +299,7 @@ export default function UsePage() {
                 color={selectedToggle === "순위" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("Rank");
-                  setLeftScreen("AllTimeGrid");
+                  // setLeftScreen("AllTimeGrid");
                   handleToggle("순위");
                   setSelectedName(false);
                 }}
@@ -341,7 +342,7 @@ export default function UsePage() {
                     background={theme.color.primary}
                     title="참여하기"
                     onClick={() => {
-                      setLeftScreen("AllTimeGrid");
+                      // setLeftScreen("AllTimeGrid");
                       setRightScreen("AddUser");
                     }}
                   />
@@ -358,7 +359,7 @@ export default function UsePage() {
                     color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("AllSchedule");
-                      setLeftScreen("AllTimeGrid");
+                      // setLeftScreen("AllTimeGrid");
                       handleToggle("전체 일정");
                       setSelectedName(false);
                     }}
@@ -374,7 +375,7 @@ export default function UsePage() {
                     color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("MySchedule");
-                      setLeftScreen("AllTimeGrid");
+                      // setLeftScreen("AllTimeGrid");
                       handleToggle("내 일정");
                     }}
                   />
@@ -389,7 +390,7 @@ export default function UsePage() {
                     color={selectedToggle === "순위" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("Rank");
-                      setLeftScreen("AllTimeGrid");
+                      // setLeftScreen("AllTimeGrid");
                       handleToggle("순위");
                       setSelectedName(false);
                     }}

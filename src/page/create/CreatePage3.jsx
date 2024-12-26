@@ -96,7 +96,7 @@ export default function CreatePage3({
                     icon: "info",
                     iconColor: `${theme.color.primary}`,
                     title: "미팅 불가 시간이란?",
-                    html: `유저ㅣ들이 선택할 수 없는 시간을 만듭니다. <br/>사용 예시: 공통적으로 참여 못하는 시간, 개인 용무 시간 등`,
+                    html: `유저들이 선택할 수 없는 시간을 만듭니다. <br/>사용 예시: 공통적으로 참여 못하는 시간, 개인 용무 시간 등`,
                     showConfirmButton: false,
                     showCancelButton: true,
                     cancelButtonText: "확인",

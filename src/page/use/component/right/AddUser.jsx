@@ -11,7 +11,7 @@ import Enter from "../../../../assets/svg/Enter.png";
 
 export default function AddUser({
   name: beforeName,
-  setLeftScreen,
+  // setLeftScreen,
   setRightScreen,
   tableId,
   setSelectedToggle,
@@ -155,7 +155,7 @@ export default function AddUser({
               title: "등록된 유저로 로그인합니다.", // 유저가 있으니까 수정 페이지 이동
             });
             localStorage.setItem("name", user.data.name);
-            setLeftScreen("AllTimeGrid");
+            // setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
             setSelectedToggle("내 일정");
             return;
@@ -188,13 +188,13 @@ export default function AddUser({
                 title: res.message,
               });
               localStorage.setItem("name", res.data.name);
-              setLeftScreen("AllTimeGrid");
+              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
-              setLeftScreen("AllTimeGrid");
+              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               return;

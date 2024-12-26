@@ -12,7 +12,7 @@ import Refresh from "../../../../assets/svg/Refresh.jpg";
 export default function AllSchedule({
   tableId,
   name,
-  setLeftScreen,
+  // setLeftScreen,
   setRightScreen,
   setName,
   selectedName,
@@ -127,7 +127,7 @@ export default function AllSchedule({
             <MemberDiv
               onClick={() => {
                 toggleMemberDetail(index);
-                setLeftScreen("AllTimeGrid");
+                // setLeftScreen("AllTimeGrid");
                 setCurrentSlide(0);
               }}
               selected={selectedName === name}
