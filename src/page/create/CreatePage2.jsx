@@ -198,7 +198,9 @@ export default function CreatePage2({
             <Button
               disabled={!title ? true : false}
               onClick={() => {
-                onNext(sHour, eHour, title, isEndTimeClicked);
+                if (title) {
+                  onNext(sHour, eHour, title, isEndTimeClicked);
+                }
               }}
             />
           </ButtonDiv>

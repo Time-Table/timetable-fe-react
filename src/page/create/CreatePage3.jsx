@@ -6,7 +6,7 @@ import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
 import { createTable } from "../../api/Create/createTable";
-import Help from "../../assets/svg/Help";
+import Help_gamma500 from "../../assets/svg/Help_gamma500";
 export default function CreatePage3({
   startHour,
   endHour,
@@ -50,6 +50,14 @@ export default function CreatePage3({
       });
       localStorage.clear();
       window.location.href = `/table/${tableId}`;
+    } else if (res.code === 400) {
+      await Toast.fire({
+        icon: "error",
+        iconColor: `${theme.color.primary}`,
+        title: "네트워크 에러가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      });
+      localStorage.clear();
+      window.location.href = `/table/${tableId}`;
     } else {
       Swal.fire({
         icon: "error",
@@ -74,7 +82,7 @@ export default function CreatePage3({
           <Q>Q4.(선택 사항)</Q>
           <TitleLayout>
             <Title>
-              제한할 시간을 선택하세요.{" "}
+              <span style={{ color: theme.color.primary }}>미팅 불가 시간</span>을 선택하세요.{" "}
               <button
                 style={{
                   display: "flex",
@@ -87,17 +95,16 @@ export default function CreatePage3({
                   Swal.fire({
                     icon: "info",
                     iconColor: `${theme.color.primary}`,
-                    title: "제한할 시간대란?",
-                    html: "회원님이 선택하신 날짜에서 유저들이 선택할 수 없는 시간을 만듭니다. <br/>사용 예시: 공통적으로 참여 못하는 시간, 개인 용무 시간 등",
-                    confirmButtonText: "메일 복사",
-                    confirmButtonColor: `${theme.color.button.blue}`,
+                    title: "미팅 불가 시간이란?",
+                    html: `유저ㅣ들이 선택할 수 없는 시간을 만듭니다. <br/>사용 예시: 공통적으로 참여 못하는 시간, 개인 용무 시간 등`,
+                    showConfirmButton: false,
                     showCancelButton: true,
-                    cancelButtonText: "취소",
-                    cancelButtonColor: `${theme.text.gamma[800]}`,
+                    cancelButtonText: "확인",
+                    cancelButtonColor: `${theme.color.primary}`,
                   });
                 }}
               >
-                <Help width={25} height={25} />
+                <Help_gamma500 width={25} height={25} />
               </button>{" "}
             </Title>
             <SubTitle>* 각 셀의 한 칸은 30 분입니다.</SubTitle>

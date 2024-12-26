@@ -47,7 +47,9 @@ export default function CreatePage1({ onNext, dates }) {
             <Button
               disabled={selectedDates.length === 0 ? true : false}
               onClick={() => {
-                onNext(selectedDates);
+                if (selectedDates.length > 0) {
+                  onNext(selectedDates);
+                }
               }}
             />
           </ButtonDiv>

@@ -108,7 +108,7 @@ const HeaderLayout = styled.div`
 
 const TitleLayout = styled.button`
   ${theme.styles.flexCenterRow}
-  font-size: 25px;
+  font-size: 28px;
   background: none;
   border: none;
   padding: 0;
@@ -117,7 +117,8 @@ const TitleLayout = styled.button`
   cursor: pointer;
 
   @media (max-width: 480px) {
-    font-size: 20px;
+    font-size: 24px;
+    margin-bottom: 3px;
   }
 `;
 
@@ -130,11 +131,11 @@ const ButtonDiv = styled.div`
     font-size: 18px;
   }
   @media (max-width: 480px) {
-    width: 70px;
-    height: 30px;
+    width: 80px;
+    height: 38px;
 
     button {
-      font-size: 12px;
+      font-size: 15px;
     }
   }
 `;
@@ -149,8 +150,8 @@ const HelpDiv = styled.div`
     height: 30px;
 
     @media (max-width: 480px) {
-      width: 20px;
-      height: 20px;
+      width: 23px;
+      height: 23px;
     }
   }
 `;

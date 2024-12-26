@@ -131,6 +131,7 @@ export default function UsePage() {
             endHour={endHour}
             timeInfo={selectedName ? datesInfo() : timeInfo}
             selectedName={selectedName}
+            setSelectedName={setSelectedName}
             title={title}
             banedCells={banedCells}
             setTableInfo={setTableInfo}

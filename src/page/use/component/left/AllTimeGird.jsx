@@ -13,6 +13,7 @@ export default function AllTimeGrid({
   endHour,
   timeInfo,
   selectedName,
+  setSelectedName,
   setTableInfo,
   tableId,
 }) {
@@ -41,8 +42,8 @@ export default function AllTimeGrid({
           <ButtonBox
             onClick={async () => {
               const res = await getTableInfo(tableId);
-              console.log(res);
               if (res._id) {
+                setSelectedName(false);
                 setTableInfo(res);
               } else {
                 await Toast.fire({
