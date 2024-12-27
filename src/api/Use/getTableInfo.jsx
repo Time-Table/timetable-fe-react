@@ -8,6 +8,6 @@ export const getTableInfo = async (tableId) => {
     return res.data.data;
   } catch (error) {
     console.error("getTableInfo: ", error.response);
-    return error.response?.data;
+    return error.response;
   }
 };

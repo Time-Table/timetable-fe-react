@@ -16,6 +16,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Loader from "./component/Loading";
+import NotFoundTable from "../NotFoundTable";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -37,6 +38,7 @@ export default function UsePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showIntro, setShowIntro] = useState(true); // State to control the floating introduction visibility
   const closeIntro = () => setShowIntro(false); // Close introduction
+  const [isValidTableId, setIsValidTableId] = useState(null);
 
   // useEffect(() => {
   //   switch (rightScreen) {
@@ -58,7 +60,13 @@ export default function UsePage() {
   useEffect(() => {
     const fetchTableInfo = async () => {
       const tableInfo = await getTableInfo(tableId);
+      if (tableInfo.status === 404) {
+        console.log("404");
+        setIsValidTableId(false);
+        return;
+      }
       setTableInfo(tableInfo);
+      setIsValidTableId(true);
     };
     fetchTableInfo();
   }, [tableId]);
@@ -233,8 +241,16 @@ export default function UsePage() {
       }
     }
   `;
-
-  return (
+  if (isValidTableId === null) {
+    return (
+      <LoaderLayout>
+        <Loader />
+        <h1>테이블을 찾고 있습니다.</h1>
+        <p>*만약 로딩 시간이 길어진다면 네트워크 연결 상태를 확인해주세요.</p>
+      </LoaderLayout>
+    );
+  }
+  return isValidTableId ? (
     <Frame>
       <DesktopView>
         <LeftArea>{showScreen(leftScreen)}</LeftArea>
@@ -403,6 +419,8 @@ export default function UsePage() {
         </SliderWrapper>
       </MobileView>
     </Frame>
+  ) : (
+    <NotFoundTable />
   );
 }
 
@@ -582,5 +600,16 @@ const ToggleButtonDiv = styled.div`
     button {
       font-size: 19px;
     }
+  }
+`;
+
+const LoaderLayout = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin: 150px 50px 0px 50px;
+  @media (max-width: 480px) {
+    margin: 200px 40px 0px 40px;
   }
 `;
