@@ -18,7 +18,6 @@ export default function MySchedule({
   usersScheduleList,
   banedCells,
   setSelectedToggle,
-  setCurrentSlide,
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const name = localStorage.getItem("name");
@@ -39,7 +38,6 @@ export default function MySchedule({
       });
       setRightScreen("AddUser");
       setSelectedToggle("참여하기");
-      setCurrentSlide(1);
       setIsLoading(false);
       return;
     }

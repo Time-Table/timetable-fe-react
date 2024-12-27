@@ -19,7 +19,6 @@ export default function AllSchedule({
   setSelectedName,
   usersSchedule,
   setSelectedToggle,
-  setCurrentSlide,
 }) {
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
@@ -53,7 +52,6 @@ export default function AllSchedule({
       setSelectedName(false);
     } else {
       setSelectedName(names[index]);
-      setSelectedToggle("");
     }
   };
 
@@ -128,7 +126,7 @@ export default function AllSchedule({
               onClick={() => {
                 toggleMemberDetail(index);
                 // setLeftScreen("AllTimeGrid");
-                setCurrentSlide(0);
+                // setCurrentSlide(0);
               }}
               selected={selectedName === name}
             >
@@ -143,7 +141,10 @@ export default function AllSchedule({
                   setSelectedToggle("참여하기");
                 }}
               >
-                <img src={Edit} />
+                <div style={{ background: " red" }}>
+                  {" "}
+                  <img src={Edit} />
+                </div>
               </EditBox>
             ) : null}
           </MemberContainer>

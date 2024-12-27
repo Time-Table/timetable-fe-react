@@ -92,7 +92,6 @@ export default function UsePage() {
       fetchData();
     }
   }, [saveButtonState, tableId]);
-
   const datesInfo = async () => {
     if (selectedName) {
       const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
@@ -119,13 +118,7 @@ export default function UsePage() {
         );
       case "Invite":
         return tableInfo ? (
-          <Invite
-            setRightScreen={setRightScreen}
-            tableId={tableId}
-            title={title}
-            setCurrentSlide={setCurrentSlide}
-            currentSlide={currentSlide}
-          />
+          <Invite setRightScreen={setRightScreen} tableId={tableId} title={title} />
         ) : (
           <div>
             <Loader />

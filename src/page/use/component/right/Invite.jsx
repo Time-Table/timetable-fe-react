@@ -5,7 +5,7 @@ import theme from "../../../../theme";
 import Swal from "sweetalert2";
 import Copy from "../../../../assets/svg/Copy.png";
 
-export default function Invite({ setRightScreen, tableId, title, setCurrentSlide }) {
+export default function Invite({ setRightScreen, tableId, title }) {
   const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
 
   const copyToClipboard = () => {
@@ -46,7 +46,7 @@ export default function Invite({ setRightScreen, tableId, title, setCurrentSlide
               onClick={() => {
                 copyToClipboard();
                 setRightScreen("MySchedule");
-                setCurrentSlide(0);
+                // setCurrentSlide(0);
               }}
             />
           </ButtonDiv>
