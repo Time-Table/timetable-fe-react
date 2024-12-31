@@ -91,7 +91,7 @@ export default function UsePage() {
     if (tableId) {
       fetchData();
     }
-  }, [saveButtonState, tableId]);
+  }, [saveButtonState, tableId, name]);
   const datesInfo = async () => {
     if (selectedName) {
       const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
@@ -168,7 +168,6 @@ export default function UsePage() {
             usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}
-            name={name}
             setCurrentSlide={setCurrentSlide}
           />
         );

@@ -19,13 +19,13 @@ export default function AllSchedule({
   setSelectedName,
   usersSchedule,
   setSelectedToggle,
+  setCurrentSlide,
 }) {
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
   const isNameMatching = usersSchedule.some((item) => item.name === name);
-
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -52,6 +52,7 @@ export default function AllSchedule({
       setSelectedName(false);
     } else {
       setSelectedName(names[index]);
+      setCurrentSlide(0);
     }
   };
 
@@ -141,10 +142,7 @@ export default function AllSchedule({
                   setSelectedToggle("참여하기");
                 }}
               >
-                <div style={{ background: " red" }}>
-                  {" "}
-                  <img src={Edit} />
-                </div>
+                <img src={Edit} />
               </EditBox>
             ) : null}
           </MemberContainer>

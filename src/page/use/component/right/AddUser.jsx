@@ -15,6 +15,7 @@ export default function AddUser({
   setRightScreen,
   tableId,
   setSelectedToggle,
+  setName: setAfterName,
 }) {
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
   const [name, setName] = useState(beforeName ? beforeName : "");
@@ -158,6 +159,7 @@ export default function AddUser({
             // setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
             setSelectedToggle("내 일정");
+            setAfterName(name);
             return;
 
           case 201: // 유저가 없어서 새로 가입 가능
@@ -191,12 +193,14 @@ export default function AddUser({
               // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
+              setAfterName(name);
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
               // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
+              setAfterName(name);
               return;
             } else {
               Toast.fire({
