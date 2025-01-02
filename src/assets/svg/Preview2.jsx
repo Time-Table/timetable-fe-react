@@ -1,4 +1,4 @@
-export default function ({ width = 774, height = 552, color = "black", angle = "none" }) {
+export default function Preview2({ width = 774, height = 552, color = "black", angle = "none" }) {
   return (
     <svg
       width={width}

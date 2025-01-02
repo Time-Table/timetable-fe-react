@@ -1,4 +1,4 @@
-export default function ({ width = 10, height = 10, color = "black", angle = "none" }) {
+export default function Arrow({ width = 10, height = 10, color = "black", angle = "none" }) {
   return (
     <svg
       width={width}

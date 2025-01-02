@@ -12,7 +12,6 @@ import Refresh from "../../../../assets/svg/Refresh.jpg";
 export default function AllSchedule({
   tableId,
   name,
-  // setLeftScreen,
   setRightScreen,
   setName,
   selectedName,
@@ -126,8 +125,6 @@ export default function AllSchedule({
             <MemberDiv
               onClick={() => {
                 toggleMemberDetail(index);
-                // setLeftScreen("AllTimeGrid");
-                // setCurrentSlide(0);
               }}
               selected={selectedName === name}
             >
@@ -332,7 +329,6 @@ const InputLayout = styled.div`
   @media (max-width: 480px) {
     width: 90%;
 
-    //TODO: input fontsize 조절
     input {
       font-size: 18px;
     }
@@ -343,6 +339,7 @@ const ButtonBox = styled.button`
   ${theme.styles.flexCenterRow}
   background: none;
   border: none;
+  cursor: pointer;
 `;
 
 const EditBox = styled.button`

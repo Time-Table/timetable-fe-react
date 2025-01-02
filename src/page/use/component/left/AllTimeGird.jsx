@@ -29,7 +29,7 @@ export default function AllTimeGrid({
     },
   });
   return (
-    <>
+    <Frame>
       <TitleFrame>
         <TitleDiv>{title}</TitleDiv>
         <TitleDiv color={theme.color.primary}>타임테이블</TitleDiv>
@@ -68,9 +68,16 @@ export default function AllTimeGrid({
           banedCells={banedCells}
         />
       </ContentFrame>
-    </>
+    </Frame>
   );
 }
+
+const Frame = styled.div`
+  @media (max-width: 480px) {
+    height: 100%;
+    margin-bottom: 400px;
+  }
+`;
 
 const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}
@@ -108,4 +115,5 @@ const ButtonBox = styled.button`
   background: none;
   border: none;
   flex: 1;
+  cursor: pointer;
 `;

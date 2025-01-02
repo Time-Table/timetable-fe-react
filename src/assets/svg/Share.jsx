@@ -1,4 +1,4 @@
-export default function ({ width = 30, height = 30, color = "black" }) {
+export default function Share({ width = 30, height = 30, color = "black" }) {
   return (
     <svg
       width={width}

@@ -8,10 +8,10 @@ import { getUserInfo } from "../../../../api/Use/getUserInfo";
 import { deleteUser } from "../../../../api/Use/deleteUser";
 import Swal from "sweetalert2";
 import Enter from "../../../../assets/svg/Enter.png";
+import { keyframes } from "@emotion/react";
 
 export default function AddUser({
   name: beforeName,
-  // setLeftScreen,
   setRightScreen,
   tableId,
   setSelectedToggle,
@@ -190,14 +190,12 @@ export default function AddUser({
                 title: res.message,
               });
               localStorage.setItem("name", res.data.name);
-              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               setAfterName(name);
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
-              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               setAfterName(name);
@@ -247,8 +245,8 @@ export default function AddUser({
           alignItems: "center",
         }}
       >
-        <img src={Enter} />
-        <TitleFrame>입장하기</TitleFrame>
+        <AnimatedImage src={Enter} alt="Copy Icon" />
+        <AnimatedText>입장하기</AnimatedText>
       </div>
       <ContentFrame>
         <ContentDiv>
@@ -334,6 +332,32 @@ export default function AddUser({
     </Frame>
   );
 }
+
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
+const AnimatedImage = styled.img`
+  @media (max-width: 480px) {
+    animation: ${fadeIn} 1s ease-in-out;
+  }
+`;
+
+const AnimatedText = styled.span`
+  color: ${theme.color.button.blue};
+  font-family: Pretendard-SemiBold;
+  font-size: 28px;
+
+  @media (max-width: 480px) {
+    animation: ${fadeIn} 1.2s ease-in-out;
+    font-size: 24px;
+  }
+`;
 
 const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}

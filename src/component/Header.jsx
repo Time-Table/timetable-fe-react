@@ -81,7 +81,7 @@ export default function Header() {
 
         <ButtonDiv
           onClick={() => {
-            window.location.href = "/CreatePage";
+            window.location.href = "/create";
           }}
         >
           <Button title="새 테이블" fontFamily="Pretendard-SemiBold" />

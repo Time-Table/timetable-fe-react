@@ -58,7 +58,7 @@ export default function AboutPage() {
   const handleButtonClick = () => {
     localStorage.clear();
     localStorage.setItem("title", inputValue);
-    window.location.href = "/createPage";
+    window.location.href = "/create";
   };
 
   return (
