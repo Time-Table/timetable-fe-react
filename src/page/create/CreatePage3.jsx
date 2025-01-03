@@ -6,7 +6,8 @@ import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
 import { createTable } from "../../api/Create/createTable";
-import Help_gamma500 from "../../assets/svg/Help_gamma500";
+import { IoHelpCircleOutline } from "react-icons/io5";
+
 export default function CreatePage3({
   startHour,
   endHour,
@@ -104,7 +105,7 @@ export default function CreatePage3({
                   });
                 }}
               >
-                <Help_gamma500 width={25} height={25} />
+                <IoHelpCircleOutline color={theme.text.gamma[500]} size={25} />
               </button>{" "}
             </Title>
             <SubTitle>* 각 셀의 한 칸은 30 분입니다.</SubTitle>

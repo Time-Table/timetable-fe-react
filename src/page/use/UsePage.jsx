@@ -329,7 +329,7 @@ export default function UsePage() {
                     <ButtonDiv>
                       <Button
                         background={theme.color.button.primary}
-                        title="알겠습니다."
+                        title="확인 (전체 일정)"
                         onClick={closeIntro}
                       />
                     </ButtonDiv>{" "}

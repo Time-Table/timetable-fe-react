@@ -1,11 +1,11 @@
 import styled from "@emotion/styled/macro";
-import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
-import Copy from "../../../../assets/svg/Copy.png";
 import { useEffect } from "react";
 import { keyframes } from "@emotion/react";
+import { MdContentCopy } from "react-icons/md";
+import { GrShareOption } from "react-icons/gr";
 
 export default function Invite({ setRightScreen, tableId, title, setSelectedToggle }) {
   const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
@@ -33,15 +33,19 @@ export default function Invite({ setRightScreen, tableId, title, setSelectedTogg
   return (
     <Frame>
       <Title>
-        <AnimatedImage src={Copy} alt="Copy Icon" />
+        <AnimatedDiv alt="Copy Icon">
+          <MdContentCopy size={40} />
+        </AnimatedDiv>
+
         <AnimatedText>초대하기</AnimatedText>
-      </Title>{" "}
+      </Title>
       <TitleFrame>
         <TitleDiv>{title}</TitleDiv>
       </TitleFrame>
       <ContentFrame>
         <UrlDiv>
-          <Share />
+          <GrShareOption color={theme.text.gamma[500]} size={30} />
+
           {tableUrl}
         </UrlDiv>
         <ButtonLayout>
@@ -70,7 +74,7 @@ const fadeIn = keyframes`
   }
 `;
 
-const AnimatedImage = styled.img`
+const AnimatedDiv = styled.div`
   @media (max-width: 480px) {
     animation: ${fadeIn} 1s ease-in-out;
   }
@@ -160,8 +164,11 @@ const ButtonDiv = styled.div`
 `;
 
 const TitleDiv = styled.div`
-  font-size: 20px;
+  font-size: 28px;
   color: ${(props) => props.color};
+  @media (max-width: 480px) {
+    font-size: 25px;
+  }
 `;
 
 const Title = styled.div`

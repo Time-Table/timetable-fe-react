@@ -1007,16 +1007,16 @@ export default function Preview1({ width = 580, height = 400, color = "black", a
       <path
         d="M580.728 827.816L571.456 838L580.728 848.184"
         stroke="#D9D9D9"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
         d="M610.728 848.184L620 838L610.728 827.816"
         stroke="black"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <rect width="583" height="1047" transform="translate(806)" fill="white" />
       <rect x="1057" y="71" width="160" height="56" rx="10" fill="#4E87E9" />
@@ -2026,16 +2026,16 @@ export default function Preview1({ width = 580, height = 400, color = "black", a
       <path
         d="M1247.23 827.816L1237.96 838L1247.23 848.184"
         stroke="#D9D9D9"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
         d="M1277.23 848.184L1286.5 838L1277.23 827.816"
         stroke="black"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <rect x="1183" y="899" width="160" height="56" rx="10" fill="#FE6F6F" />
       <path

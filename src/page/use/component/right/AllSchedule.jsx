@@ -1,13 +1,14 @@
 import styled from "@emotion/styled/macro";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
-import Send from "../../../../assets/svg/Send";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import Edit from "../../../../assets/svg/Edit.jpg";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
 import Swal from "sweetalert2";
-import Refresh from "../../../../assets/svg/Refresh.jpg";
+import { MdOutlineModeEdit } from "react-icons/md";
+import { LuRefreshCw } from "react-icons/lu";
+import { keyframes } from "@emotion/react";
+import { BsSend } from "react-icons/bs";
 
 export default function AllSchedule({
   tableId,
@@ -25,6 +26,12 @@ export default function AllSchedule({
   const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
   const isNameMatching = usersSchedule.some((item) => item.name === name);
+  const [isRotating, setIsRotating] = useState(false);
+  const handleClick = () => {
+    setIsRotating(true);
+    setTimeout(() => setIsRotating(false), 1000);
+  };
+
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -139,7 +146,8 @@ export default function AllSchedule({
                   setSelectedToggle("참여하기");
                 }}
               >
-                <img src={Edit} />
+                {/* <img src={Edit} /> */}
+                <MdOutlineModeEdit size={25} color={theme.text.gamma[800]} />
               </EditBox>
             ) : null}
           </MemberContainer>
@@ -150,16 +158,24 @@ export default function AllSchedule({
         <div style={{ display: "flex", width: "100%" }}>
           <div
             style={{
+              flex: 1,
+            }}
+          />
+          <div
+            style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               width: "90%",
+              flex: 1,
             }}
           >
             채팅
           </div>
           <ButtonBox
+            className={isRotating ? "rotating" : ""}
             onClick={async () => {
+              handleClick();
               const res = await getChating(tableId);
               if (res.status === 200) {
                 setChatLog(res.data);
@@ -175,14 +191,13 @@ export default function AllSchedule({
               }
             }}
           >
-            {/* <Refresh /> */}
-            <img src={Refresh} />
+            <LuRefreshCw size={25} color={theme.text.gamma[800]} />
           </ButtonBox>
         </div>
         <ChatingDiv ref={chatEndRef}>
           {chatLog.map((chat, idx) => (
             <ChatDiv key={idx}>
-              <NameDiv>{chat.name}</NameDiv>
+              <NameDiv>{chat.name}:</NameDiv>
               <MessageDiv>{chat.message}</MessageDiv>
             </ChatDiv>
           ))}
@@ -190,8 +205,17 @@ export default function AllSchedule({
         <InputLayout>
           <Input
             placeholder={"채팅을 입력하세요."}
-            maxLength={300}
-            onChange={(e) => setMessage(e.target.value)}
+            maxLength={500}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              if (e.target.value.length >= 500) {
+                Toast.fire({
+                  icon: "error",
+                  iconColor: `${theme.color.primary}`,
+                  title: "최대 500 자까지 입력 가능합니다.",
+                });
+              }
+            }}
             value={message}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -200,7 +224,7 @@ export default function AllSchedule({
             }}
           />
           <ButtonBox onClick={updateChatLog}>
-            <Send />
+            <BsSend color={theme.text.gamma[800]} />
           </ButtonBox>
         </InputLayout>
       </ChatLayout>
@@ -269,10 +293,10 @@ const ChatingDiv = styled.div`
   width: 423px;
   gap: 10px;
   min-height: 105px;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
   scroll-behavior: smooth;
-
+  border-radius: 8px;
   ::-webkit-scrollbar {
     display: none;
   }
@@ -280,12 +304,14 @@ const ChatingDiv = styled.div`
   scrollbar-width: none; //Firefox
 
   @media (max-width: 480px) {
-    width: 90%;
+    max-height: 200px;
+    width: 280px;
   }
 `;
 
 const ChatDiv = styled.div`
-  ${theme.styles.flexCenterRow}
+  ${theme.styles.flexCenterColumn}
+  align-items: flex-start;
   font-family: Pretendard-Light;
   width: 100%;
   gap: auto;
@@ -298,26 +324,26 @@ const ChatDiv = styled.div`
 
 const NameDiv = styled.div`
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: start;
   font-family: Pretendard-Medium;
   font-size: 22px;
-  width: 70px;
-  height: 100%;
+  width: 100%;
 
   @media (max-width: 480px) {
     font-size: 18px;
-    width: 20%;
+    /* width: 20%; */
   }
 `;
 
 const MessageDiv = styled.div`
   height: 100%;
-  width: 343px;
+  width: 100%;
   font-family: Pretendard-Light;
-
+  word-wrap: break-word; /* 긴 단어나 텍스트가 넘어갈 경우 자동으로 줄바꿈 */
+  white-space: normal; /* 기본적으로 줄바꿈이 가능하도록 설정 */
   @media (max-width: 480px) {
-    width: 80%;
     font-size: 18px;
   }
 `;
@@ -335,11 +361,26 @@ const InputLayout = styled.div`
   }
 `;
 
-const ButtonBox = styled.button`
+const rotate = keyframes`
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(180deg);
+  }
+`;
+
+const ButtonBox = styled.div`
   ${theme.styles.flexCenterRow}
   background: none;
   border: none;
   cursor: pointer;
+  flex: 1;
+  transition: all 0.3s ease;
+
+  &.rotating {
+    animation: ${rotate} 0.5s linear infinite;
+  }
 `;
 
 const EditBox = styled.button`

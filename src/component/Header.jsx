@@ -2,7 +2,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../theme";
 import Button from "./Button";
 import Swal from "sweetalert2";
-import Help from "../assets/svg/Help";
+import { IoHelpCircleOutline } from "react-icons/io5";
 
 export default function Header() {
   return (
@@ -33,7 +33,7 @@ export default function Header() {
               });
             }}
           >
-            <Help />
+            <IoHelpCircleOutline color={theme.text.gamma[800]} />
           </HelpDiv>
         </ButtonDiv>
         <ButtonDiv

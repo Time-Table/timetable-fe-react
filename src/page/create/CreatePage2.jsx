@@ -177,14 +177,14 @@ export default function CreatePage2({
           <Title>모임의 주제는 무엇인가요?</Title>
           <InputLayout>
             <Input
-              maxLength={50}
+              maxLength={25}
               onChange={(e) => {
                 setTitle(e.target.value);
-                if (e.target.value.length >= 50) {
+                if (e.target.value.length >= 25) {
                   Toast.fire({
                     icon: "error",
                     iconColor: `${theme.color.primary}`,
-                    title: "최대 50 자까지 입력 가능합니다.",
+                    title: "최대 20 자까지 입력 가능합니다.",
                   });
                 }
               }}
