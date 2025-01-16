@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Button from "../../component/Button";
@@ -16,6 +16,21 @@ export default function CreatePage3({
   onBack,
   endTimeClicked,
 }) {
+  const message = () =>
+    Swal.fire({
+      icon: "info",
+      iconColor: `${theme.color.primary}`,
+      title: "공통 불가 시간이란?",
+      html: `선택할 수 없는 시간 구역을 만들면 모두가 그 시간대는 선택할 수 없게 됩니다. <h4>예시: 점심 시간(12-13시), 공통적으로 참여 못하는 시간대</h4>`,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: "확인",
+      cancelButtonColor: `${theme.color.primary}`,
+    });
+
+  useEffect(() => {
+    message();
+  }, []);
   const [selectedCells, setSelectedCells] = useState([]);
 
   const formattedDates = () => {
@@ -80,10 +95,10 @@ export default function CreatePage3({
         </ArrowLayout>
         <QuestionDiv>
           <div style={{ width: "100%" }}></div>
-          <Q>Q4.(선택 사항)</Q>
+          <Q>Q4.(필수 X )</Q>
           <TitleLayout>
             <Title>
-              <span style={{ color: theme.color.primary }}>미팅 불가 시간</span>을 선택하세요.{" "}
+              <span style={{ color: theme.color.primary }}>공통 불가 시간</span>을 선택하세요.{" "}
               <button
                 style={{
                   display: "flex",
@@ -93,16 +108,7 @@ export default function CreatePage3({
                   border: "none",
                 }}
                 onClick={() => {
-                  Swal.fire({
-                    icon: "info",
-                    iconColor: `${theme.color.primary}`,
-                    title: "미팅 불가 시간이란?",
-                    html: `유저들이 선택할 수 없는 시간을 만듭니다. <br/>사용 예시: 공통적으로 참여 못하는 시간, 개인 용무 시간 등`,
-                    showConfirmButton: false,
-                    showCancelButton: true,
-                    cancelButtonText: "확인",
-                    cancelButtonColor: `${theme.color.primary}`,
-                  });
+                  message();
                 }}
               >
                 <IoHelpCircleOutline color={theme.text.gamma[500]} size={25} />
@@ -122,7 +128,7 @@ export default function CreatePage3({
         <ButtonLayout>
           <ButtonDiv>
             <Button
-              title="완료"
+              title="생성"
               background={theme.color.button.blue}
               onClick={() => {
                 onClickEvent();

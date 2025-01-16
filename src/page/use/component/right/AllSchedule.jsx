@@ -100,7 +100,7 @@ export default function AllSchedule({
       } else if (res.status === 201) {
         const info = [
           {
-            name: "팁: ",
+            name: "팁",
             message: "공지사항이나 의견 등을 자유롭게 공유해 보세요. ",
           },
         ];

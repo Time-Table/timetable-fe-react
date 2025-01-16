@@ -306,8 +306,14 @@ export default function UsePage() {
                   <IntroContent>
                     <span>환영합니다!</span>
                     <span>
-                      오른쪽으로 <span style={{ color: theme.color.primary }}>슬라이드</span>하여
-                      일정에 참여해 보세요.
+                      현재 페이지는{" "}
+                      <span style={{ fontFamily: "Pretendard-semiBold", fontSize: "19px" }}>
+                        전체 일정
+                      </span>
+                      입니다. <br />
+                      오른쪽으로
+                      <span style={{ color: theme.color.primary }}>슬라이드</span>하여 일정에
+                      참여하세요.
                     </span>
                     <IconDiv>
                       <TbHandFinger color={theme.color.primary} />
@@ -446,7 +452,7 @@ const IntroContent = styled.div`
   border-radius: 20px;
   text-align: center;
   width: 85%;
-  gap: 45px;
+  gap: 42px;
   box-sizing: border-box;
   font-family: Pretendard-Regular;
   font-size: 19px;
