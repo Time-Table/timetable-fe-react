@@ -1,3 +1,4 @@
+import image from "../assets/ogImage.png";
 export default function ManagerPage() {
   return (
     <div
@@ -38,6 +39,7 @@ export default function ManagerPage() {
       >
         About 이동
       </button>
+      <img src={image} />
     </div>
   );
 }
