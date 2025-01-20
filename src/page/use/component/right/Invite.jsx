@@ -1,12 +1,18 @@
 import styled from "@emotion/styled/macro";
-import Share from "../../../../assets/svg/Share";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
-import Copy from "../../../../assets/svg/Copy.png";
+import { useEffect } from "react";
+import { keyframes } from "@emotion/react";
+import { MdContentCopy } from "react-icons/md";
+import { GrShareOption } from "react-icons/gr";
 
-export default function Invite({ setRightScreen, tableId, title }) {
+export default function Invite({ setRightScreen, tableId, title, setSelectedToggle }) {
   const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
+
+  useEffect(() => {
+    setSelectedToggle("초대하기");
+  }, []);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tableUrl).then(() => {
@@ -27,15 +33,19 @@ export default function Invite({ setRightScreen, tableId, title }) {
   return (
     <Frame>
       <Title>
-        <img src={Copy} />
-        <span>초대하기</span>
-      </Title>{" "}
+        <AnimatedDiv alt="Copy Icon">
+          <MdContentCopy size={40} />
+        </AnimatedDiv>
+
+        <AnimatedText>초대하기</AnimatedText>
+      </Title>
       <TitleFrame>
         <TitleDiv>{title}</TitleDiv>
       </TitleFrame>
       <ContentFrame>
         <UrlDiv>
-          <Share />
+          <GrShareOption color={theme.text.gamma[500]} size={30} />
+
           {tableUrl}
         </UrlDiv>
         <ButtonLayout>
@@ -46,7 +56,6 @@ export default function Invite({ setRightScreen, tableId, title }) {
               onClick={() => {
                 copyToClipboard();
                 setRightScreen("MySchedule");
-                // setCurrentSlide(0);
               }}
             />
           </ButtonDiv>
@@ -55,6 +64,28 @@ export default function Invite({ setRightScreen, tableId, title }) {
     </Frame>
   );
 }
+
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
+const AnimatedDiv = styled.div`
+  @media (max-width: 480px) {
+    animation: ${fadeIn} 1s ease-in-out;
+  }
+`;
+
+const AnimatedText = styled.span`
+  @media (max-width: 480px) {
+    animation: ${fadeIn} 1.2s ease-in-out;
+  }
+`;
+
 const Frame = styled.div`
   width: 65%;
   height: 100%;
@@ -67,9 +98,10 @@ const Frame = styled.div`
   border-radius: 50px;
   padding: 40px 30px 200px 30px;
   @media (max-width: 480px) {
+    width: 70%;
     font-size: 24px;
     border-radius: 50px 50px 0px 0px;
-    padding: 40px 50px 300px 50px;
+    padding: 40px 30px 300px 30px;
   }
 `;
 
@@ -93,12 +125,14 @@ const UrlDiv = styled.div`
   font-size: 20px;
   width: 100%;
   height: 50px;
-  border-radius: 10px;
+  border-radius: 30px;
+  padding: 8px;
+  border: 2px solid ${theme.text.gamma[800]};
   gap: 5px;
 
   @media (max-width: 480px) {
-    font-size: 13px;
-    width: 90%;
+    font-size: 14px;
+    width: 100%;
     height: 35px;
     justify-content: space-evenly;
   }
@@ -130,8 +164,11 @@ const ButtonDiv = styled.div`
 `;
 
 const TitleDiv = styled.div`
-  font-size: 20px;
+  font-size: 28px;
   color: ${(props) => props.color};
+  @media (max-width: 480px) {
+    font-size: 25px;
+  }
 `;
 
 const Title = styled.div`

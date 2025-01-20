@@ -133,7 +133,7 @@ export default function CreatePage2({
     return (
       <TimeLayout>
         <Button
-          width="80px"
+          width="90px"
           height="40px"
           title={sHour}
           fontFamily="Pretendard-Medium"
@@ -143,7 +143,7 @@ export default function CreatePage2({
         {startDropdown ? startTimeSlot() : null}
         부터
         <Button
-          width="80px"
+          width="90px"
           height="40px"
           title={eHour}
           fontFamily="Pretendard-Medium"
@@ -177,14 +177,14 @@ export default function CreatePage2({
           <Title>모임의 주제는 무엇인가요?</Title>
           <InputLayout>
             <Input
-              maxLength={50}
+              maxLength={25}
               onChange={(e) => {
                 setTitle(e.target.value);
-                if (e.target.value.length >= 50) {
+                if (e.target.value.length >= 25) {
                   Toast.fire({
                     icon: "error",
                     iconColor: `${theme.color.primary}`,
-                    title: "최대 50 자까지 입력 가능합니다.",
+                    title: "최대 20 자까지 입력 가능합니다.",
                   });
                 }
               }}
@@ -309,9 +309,9 @@ const TimeSlots = styled.div`
   align-items: center;
   position: absolute;
   top: 110%;
-  left: ${(props) => (props.isStart ? "1.5%" : "53%")};
+  left: ${(props) => (props.isStart ? "0%" : "52.5%")};
   font-family: Pretendard-Light;
-  width: 80px;
+  width: 90px;
   background-color: white;
   border: 2px solid ${theme.text.gamma[500]};
   border-radius: 10px;
@@ -328,10 +328,10 @@ const TimeSlots = styled.div`
   scrollbar-width: none; //Firefox
 
   @media (max-width: 480px) {
-    width: 75px;
+    width: 90px;
     gap: 3px;
     max-height: 210px;
-    left: ${(props) => (props.isStart ? "3%" : "52%")};
+    left: ${(props) => (props.isStart ? "0%" : "52%")};
   }
 `;
 

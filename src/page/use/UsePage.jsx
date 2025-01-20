@@ -17,6 +17,8 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Loader from "./component/Loading";
 import NotFoundTable from "../NotFoundTable";
+import { keyframes } from "@emotion/react";
+import { TbHandFinger } from "react-icons/tb";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -26,36 +28,16 @@ export default function UsePage() {
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [timeInfo, setTimeInfo] = useState([]);
   const title = tableInfo ? tableInfo.title : "";
-  // const isFirstUser = usersScheduleList.length === 0;
-  // const [leftScreen, setLeftScreen] = useState("AllTimeGrid");
   const leftScreen = "AllTimeGrid";
-  // const [rightScreen, setRightScreen] = useState(isFirstUser ? "Invite" : "MySchedule");
   const [rightScreen, setRightScreen] = useState("AllSchedule");
-  const [selectedToggle, setSelectedToggle] = useState("전체 일정");
+  const [selectedToggle, setSelectedToggle] = useState("인원");
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showIntro, setShowIntro] = useState(true); // State to control the floating introduction visibility
-  const closeIntro = () => setShowIntro(false); // Close introduction
+  const [showIntro, setShowIntro] = useState(true);
+  const closeIntro = () => setShowIntro(false);
   const [isValidTableId, setIsValidTableId] = useState(null);
-
-  // useEffect(() => {
-  //   switch (rightScreen) {
-  //     case "AddUser":
-  //     case "AllSchedule":
-  //     case "MySchedule":
-  //     case "Rank":
-  //     case "Invite":
-  //       // setCurrentSlide(1);
-  //       break;
-  //     default:
-  //   }
-  //   switch (leftScreen) {
-  //     default:
-  //       break;
-  //   }
-  // }, [leftScreen, rightScreen]);
 
   useEffect(() => {
     const fetchTableInfo = async () => {
@@ -91,7 +73,7 @@ export default function UsePage() {
     if (tableId) {
       fetchData();
     }
-  }, [saveButtonState, tableId]);
+  }, [saveButtonState, tableId, name]);
   const datesInfo = async () => {
     if (selectedName) {
       const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
@@ -108,7 +90,6 @@ export default function UsePage() {
       case "AddUser":
         return (
           <AddUser
-            // setLeftScreen={setLeftScreen}
             setRightScreen={setRightScreen}
             setName={setName}
             name={name}
@@ -118,7 +99,12 @@ export default function UsePage() {
         );
       case "Invite":
         return tableInfo ? (
-          <Invite setRightScreen={setRightScreen} tableId={tableId} title={title} />
+          <Invite
+            setRightScreen={setRightScreen}
+            tableId={tableId}
+            title={title}
+            setSelectedToggle={setSelectedToggle}
+          />
         ) : (
           <div>
             <Loader />
@@ -143,7 +129,6 @@ export default function UsePage() {
       case "AllSchedule":
         return (
           <AllSchedule
-            // setLeftScreen={setLeftScreen}
             setRightScreen={setRightScreen}
             setName={setName}
             selectedName={selectedName}
@@ -168,8 +153,6 @@ export default function UsePage() {
             usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}
-            name={name}
-            setCurrentSlide={setCurrentSlide}
           />
         );
       case "Rank":
@@ -222,11 +205,11 @@ export default function UsePage() {
         transition: background 0.3s ease;
 
         &.slick-active {
-          background: ${theme.color.primary}; /* 현재 슬라이드 닷 색상 */
+          background: ${theme.color.primary};
         }
 
         &:not(.slick-active) {
-          background: ${theme.color.timeGrid[40]}; /* 비활성 닷 색상 */
+          background: ${theme.color.timeGrid[40]};
         }
       }
       button {
@@ -264,7 +247,6 @@ export default function UsePage() {
                 background={theme.color.primary}
                 title="참여하기"
                 onClick={() => {
-                  // setLeftScreen("AllTimeGrid");
                   setRightScreen("AddUser");
                 }}
               />
@@ -273,16 +255,13 @@ export default function UsePage() {
           <ToggleLayout>
             <ToggleButtonDiv>
               <Button
-                fontFamily={
-                  selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
-                }
-                title={`전체 일정(${usersScheduleList.length})`}
+                fontFamily={selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"}
+                title={`인원(${usersScheduleList.length})`}
                 background="none"
-                color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                color={selectedToggle === "인원" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("AllSchedule");
-                  // setLeftScreen("AllTimeGrid");
-                  handleToggle("전체 일정");
+                  handleToggle("인원");
                   setSelectedName(false);
                 }}
               />
@@ -295,7 +274,6 @@ export default function UsePage() {
                 color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("MySchedule");
-                  // setLeftScreen("AllTimeGrid");
                   handleToggle("내 일정");
                 }}
               />
@@ -308,7 +286,6 @@ export default function UsePage() {
                 color={selectedToggle === "순위" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("Rank");
-                  // setLeftScreen("AllTimeGrid");
                   handleToggle("순위");
                   setSelectedName(false);
                 }}
@@ -322,16 +299,55 @@ export default function UsePage() {
         <SliderWrapper>
           <Slider {...sliderSettings}>
             <LeftArea>
-              {" "}
               {showIntro && (
                 <IntroOverlay>
                   <IntroContent>
-                    <span>환영합니다~!</span>
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span>오른쪽으로 슬라이드 하여 일정에 참여해 보세요.</span>
-                      <span>➡️</span>
-                    </div>{" "}
-                    <CloseButton onClick={closeIntro}>이해했습니다.</CloseButton>
+                    <span>환영합니다!</span>
+                    <span>
+                      현재 페이지는{" "}
+                      <span
+                        style={{
+                          fontFamily: "Pretendard-semiBold",
+                          fontSize: "19px",
+                        }}
+                      >
+                        '전체 일정'
+                      </span>
+                      입니다. <br />
+                      참여하시거나 초대하시려면 <br />
+                      오른쪽으로
+                      <span
+                        style={{ color: theme.color.primary, fontFamily: "Pretendard-semiBold" }}
+                      >
+                        슬라이드
+                      </span>
+                      해주세요.
+                    </span>
+                    <IconDiv>
+                      <TbHandFinger color={theme.color.primary} />
+                    </IconDiv>
+                    <ButtonDiv>
+                      <Button
+                        background={theme.color.button.primary}
+                        title="확인"
+                        onClick={closeIntro}
+                      />
+                    </ButtonDiv>
+                    {/* <span style={{ fontSize: "15px", fontFamily: "Pretendard-bold" }}>OR</span>
+                    <span>
+                      초대하시려면 아래 <span style={{ color: theme.color.button.blue }}>버튼</span>
+                      을 눌러주세요.
+                    </span>
+                    <ButtonDiv>
+                      <Button
+                        background={theme.color.button.blue}
+                        title="초대하기"
+                        onClick={() => {
+                          setRightScreen("Invite");
+                          setCurrentSlide(1);
+                        }}
+                      />
+                    </ButtonDiv> */}
                   </IntroContent>
                 </IntroOverlay>
               )}
@@ -351,7 +367,6 @@ export default function UsePage() {
                     background={theme.color.primary}
                     title="참여하기"
                     onClick={() => {
-                      // setLeftScreen("AllTimeGrid");
                       setRightScreen("AddUser");
                     }}
                   />
@@ -361,15 +376,14 @@ export default function UsePage() {
                 <ToggleButtonDiv>
                   <Button
                     fontFamily={
-                      selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                      selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"
                     }
-                    title={`전체 일정(${usersScheduleList.length})`}
+                    title={`인원(${usersScheduleList.length})`}
                     background="none"
-                    color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                    color={selectedToggle === "인원" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("AllSchedule");
-                      // setLeftScreen("AllTimeGrid");
-                      handleToggle("전체 일정");
+                      handleToggle("인원");
                       setSelectedName(false);
                     }}
                   />
@@ -384,7 +398,6 @@ export default function UsePage() {
                     color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("MySchedule");
-                      // setLeftScreen("AllTimeGrid");
                       handleToggle("내 일정");
                     }}
                   />
@@ -399,7 +412,6 @@ export default function UsePage() {
                     color={selectedToggle === "순위" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("Rank");
-                      // setLeftScreen("AllTimeGrid");
                       handleToggle("순위");
                       setSelectedName(false);
                     }}
@@ -417,45 +429,63 @@ export default function UsePage() {
   );
 }
 
+const slideAnimation = keyframes`
+  0% {
+    transform: translateX(80px);
+  }
+  100% {
+    transform: translateX(-80px);
+  }
+`;
+
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 const IntroOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 300px;
+  padding-top: 130px;
   z-index: 1000;
+  margin-bottom: 1000px;
+  animation: ${fadeIn} 1s ease-in-out forwards;
 `;
 
 const IntroContent = styled.div`
   display: flex;
   flex-direction: column;
-  font-size: 23px;
-  color: white;
-  padding: 5px;
+  background-color: white;
+  padding: 20px 20px 50px 20px;
+  border-radius: 25px;
   text-align: center;
-  max-width: 250px;
-  gap: 25px;
-  font-family: Pretendard-semi-bold;
-  /* margin-bottom: 100px; */
+  width: 85%;
+  gap: 40px;
+  box-sizing: border-box;
+  font-family: Pretendard-Regular;
+  font-size: 19px;
+  margin-top: 50px;
+
+  span:first-of-type {
+    font-size: 21px;
+    font-family: Pretendard-Medium;
+  }
 `;
 
-const CloseButton = styled.button`
-  padding: 10px 15px;
-  background-color: ${theme.color.primary};
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${theme.color.primaryTint};
-  }
+const IconDiv = styled.div`
+  font-size: 40px;
+  animation: ${slideAnimation} 3s infinite;
 `;
 
 const Frame = styled.div`
@@ -570,9 +600,6 @@ const ToggleLayout = styled.div`
   width: 60%;
   height: 30px;
 
-  & > div:first-of-type {
-    flex: 1.8;
-  }
   @media (max-width: 1100px) {
     width: 100%;
   }

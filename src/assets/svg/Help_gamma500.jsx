@@ -1,4 +1,4 @@
-export default function ({ width = 30, height = 30 }) {
+export default function Help_gamma500({ width = 30, height = 30 }) {
   return (
     <svg
       width={width}

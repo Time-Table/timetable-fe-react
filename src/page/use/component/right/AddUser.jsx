@@ -8,13 +8,14 @@ import { getUserInfo } from "../../../../api/Use/getUserInfo";
 import { deleteUser } from "../../../../api/Use/deleteUser";
 import Swal from "sweetalert2";
 import Enter from "../../../../assets/svg/Enter.png";
+import { keyframes } from "@emotion/react";
 
 export default function AddUser({
   name: beforeName,
-  // setLeftScreen,
   setRightScreen,
   tableId,
   setSelectedToggle,
+  setName: setAfterName,
 }) {
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
   const [name, setName] = useState(beforeName ? beforeName : "");
@@ -158,6 +159,7 @@ export default function AddUser({
             // setLeftScreen("AllTimeGrid");
             setRightScreen("MySchedule");
             setSelectedToggle("내 일정");
+            setAfterName(name);
             return;
 
           case 201: // 유저가 없어서 새로 가입 가능
@@ -188,15 +190,15 @@ export default function AddUser({
                 title: res.message,
               });
               localStorage.setItem("name", res.data.name);
-              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
+              setAfterName(name);
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
-              // setLeftScreen("AllTimeGrid");
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
+              setAfterName(name);
               return;
             } else {
               Toast.fire({
@@ -243,8 +245,8 @@ export default function AddUser({
           alignItems: "center",
         }}
       >
-        <img src={Enter} />
-        <TitleFrame>입장하기</TitleFrame>
+        <AnimatedImage src={Enter} alt="Copy Icon" />
+        <AnimatedText>입장하기</AnimatedText>
       </div>
       <ContentFrame>
         <ContentDiv>
@@ -331,13 +333,28 @@ export default function AddUser({
   );
 }
 
-const TitleFrame = styled.div`
-  ${theme.styles.flexCenterColumn}
-  font-family: Pretendard-SemiBold;
-  width: 100%;
-  font-size: 28px;
-  color: ${theme.color.button.blue};
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
+const AnimatedImage = styled.img`
   @media (max-width: 480px) {
+    animation: ${fadeIn} 1s ease-in-out;
+  }
+`;
+
+const AnimatedText = styled.span`
+  color: ${theme.color.button.blue};
+  font-family: Pretendard-SemiBold;
+  font-size: 28px;
+
+  @media (max-width: 480px) {
+    animation: ${fadeIn} 1.2s ease-in-out;
     font-size: 24px;
   }
 `;
@@ -361,9 +378,10 @@ const Frame = styled.div`
   border-radius: 50px;
   padding: 40px 30px 200px 30px;
   @media (max-width: 480px) {
+    width: 70%;
     font-size: 24px;
     border-radius: 50px 50px 0px 0px;
-    padding: 40px 50px 200px 50px;
+    padding: 40px 30px 300px 30px;
   }
 `;
 

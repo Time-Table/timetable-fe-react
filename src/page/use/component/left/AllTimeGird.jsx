@@ -1,9 +1,11 @@
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
 import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
-import Refresh from "../../../../assets/svg/Refresh.jpg";
 import { getTableInfo } from "../../../../api/Use/getTableInfo";
 import Swal from "sweetalert2";
+import { LuRefreshCw } from "react-icons/lu";
+import { keyframes } from "@emotion/react";
+import { useState } from "react";
 
 export default function AllTimeGrid({
   banedCells,
@@ -28,8 +30,15 @@ export default function AllTimeGrid({
       toast.onmouseleave = Swal.resumeTimer;
     },
   });
+
+  const [isRotating, setIsRotating] = useState(false);
+  const handleClick = () => {
+    setIsRotating(true);
+    setTimeout(() => setIsRotating(false), 1000);
+  };
+
   return (
-    <>
+    <Frame>
       <TitleFrame>
         <TitleDiv>{title}</TitleDiv>
         <TitleDiv color={theme.color.primary}>타임테이블</TitleDiv>
@@ -40,7 +49,9 @@ export default function AllTimeGrid({
           <div style={{ flex: 1 }} />
           <NoteText>{selectedName ? selectedName + " 님의" : "전체"} 테이블</NoteText>
           <ButtonBox
+            className={isRotating ? "rotating" : ""}
             onClick={async () => {
+              handleClick();
               const res = await getTableInfo(tableId);
               if (res._id) {
                 setSelectedName(false);
@@ -54,7 +65,7 @@ export default function AllTimeGrid({
               }
             }}
           >
-            <img src={Refresh} />
+            <LuRefreshCw size={25} color={theme.text.gamma[800]} />
           </ButtonBox>
         </div>
 
@@ -68,9 +79,16 @@ export default function AllTimeGrid({
           banedCells={banedCells}
         />
       </ContentFrame>
-    </>
+    </Frame>
   );
 }
+
+const Frame = styled.div`
+  @media (max-width: 480px) {
+    height: 100%;
+    margin-bottom: 400px;
+  }
+`;
 
 const TitleFrame = styled.div`
   ${theme.styles.flexCenterColumn}
@@ -103,9 +121,24 @@ const NoteText = styled.span`
   flex: 3;
 `;
 
+const rotate = keyframes`
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(180deg);
+  }
+`;
+
 const ButtonBox = styled.button`
   ${theme.styles.flexCenterRow}
   background: none;
   border: none;
   flex: 1;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &.rotating {
+    animation: ${rotate} 0.5s linear infinite;
+  }
 `;
