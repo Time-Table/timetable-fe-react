@@ -62,7 +62,7 @@ export default function AboutPage() {
   };
 
   return (
-    <CreatePageDiv>
+    <AboutPageDiv>
       <ContentDiv>
         <div>
           <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
@@ -133,7 +133,7 @@ export default function AboutPage() {
           </a>
         </StyledWrapper>
       </ContentDiv>
-    </CreatePageDiv>
+    </AboutPageDiv>
   );
 }
 
@@ -156,7 +156,7 @@ const InputWrapper = styled.div`
   }
 `;
 
-const CreatePageDiv = styled.div`
+const AboutPageDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   width: 100%;
 `;
@@ -164,12 +164,12 @@ const CreatePageDiv = styled.div`
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   gap: 40px;
-  padding: 200px 0 350px 0;
+  padding: 200px 0px 350px 0px;
   width: 700px;
 
   @media (max-width: 480px) {
     width: 100%;
-    padding: 200px;
+    padding: 200px 0px 200px 0px;
     svg {
       width: 95%;
     }
