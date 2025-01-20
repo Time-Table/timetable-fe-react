@@ -306,7 +306,7 @@ export default function UsePage() {
                     <span>
                       현재 페이지는{" "}
                       <span style={{ fontFamily: "Pretendard-semiBold", fontSize: "19px" }}>
-                        멤버
+                        전체 일정
                       </span>
                       입니다. <br />
                       오른쪽으로

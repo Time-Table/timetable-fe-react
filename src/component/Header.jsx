@@ -76,7 +76,7 @@ export default function Header() {
             });
           }}
         >
-          <Button title="FAQ" background="white" color="black" fontFamily="Pretendard-SemiBold" />
+          <Button title="Q&A" background="white" color="black" fontFamily="Pretendard-Medium" />
         </ButtonDiv>
 
         <ButtonDiv
