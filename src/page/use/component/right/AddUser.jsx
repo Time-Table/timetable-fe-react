@@ -359,17 +359,6 @@ const AnimatedText = styled.span`
   }
 `;
 
-const TitleFrame = styled.div`
-  ${theme.styles.flexCenterColumn}
-  font-family: Pretendard-SemiBold;
-  width: 100%;
-  font-size: 28px;
-  color: ${theme.color.button.blue};
-  @media (max-width: 480px) {
-    font-size: 24px;
-  }
-`;
-
 const ContentFrame = styled.div`
   ${theme.styles.flexCenterColumn}
   font-family: Pretendard-SemiBold;
@@ -389,9 +378,10 @@ const Frame = styled.div`
   border-radius: 50px;
   padding: 40px 30px 200px 30px;
   @media (max-width: 480px) {
+    width: 70%;
     font-size: 24px;
     border-radius: 50px 50px 0px 0px;
-    padding: 40px 50px 200px 50px;
+    padding: 40px 30px 300px 30px;
   }
 `;
 

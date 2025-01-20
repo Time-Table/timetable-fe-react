@@ -30,7 +30,7 @@ export default function UsePage() {
   const title = tableInfo ? tableInfo.title : "";
   const leftScreen = "AllTimeGrid";
   const [rightScreen, setRightScreen] = useState("AllSchedule");
-  const [selectedToggle, setSelectedToggle] = useState("전체 일정");
+  const [selectedToggle, setSelectedToggle] = useState("멤버");
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
@@ -255,15 +255,13 @@ export default function UsePage() {
           <ToggleLayout>
             <ToggleButtonDiv>
               <Button
-                fontFamily={
-                  selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
-                }
-                title={`전체 일정(${usersScheduleList.length})`}
+                fontFamily={selectedToggle === "멤버" ? "Pretendard-Bold" : "Pretendard-Regular"}
+                title={`멤버(${usersScheduleList.length})`}
                 background="none"
-                color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                color={selectedToggle === "멤버" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("AllSchedule");
-                  handleToggle("전체 일정");
+                  handleToggle("멤버");
                   setSelectedName(false);
                 }}
               />
@@ -308,7 +306,7 @@ export default function UsePage() {
                     <span>
                       현재 페이지는{" "}
                       <span style={{ fontFamily: "Pretendard-semiBold", fontSize: "19px" }}>
-                        전체 일정
+                        멤버
                       </span>
                       입니다. <br />
                       오른쪽으로
@@ -335,7 +333,7 @@ export default function UsePage() {
                     <ButtonDiv>
                       <Button
                         background={theme.color.button.primary}
-                        title="확인 (전체 일정)"
+                        title="확인 (멤버)"
                         onClick={closeIntro}
                       />
                     </ButtonDiv>{" "}
@@ -367,14 +365,14 @@ export default function UsePage() {
                 <ToggleButtonDiv>
                   <Button
                     fontFamily={
-                      selectedToggle === "전체 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                      selectedToggle === "멤버" ? "Pretendard-Bold" : "Pretendard-Regular"
                     }
-                    title={`전체 일정(${usersScheduleList.length})`}
+                    title={`멤버(${usersScheduleList.length})`}
                     background="none"
-                    color={selectedToggle === "전체 일정" ? theme.color.primary : "black"}
+                    color={selectedToggle === "멤버" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("AllSchedule");
-                      handleToggle("전체 일정");
+                      handleToggle("멤버");
                       setSelectedName(false);
                     }}
                   />
@@ -580,9 +578,6 @@ const ToggleLayout = styled.div`
   width: 60%;
   height: 30px;
 
-  & > div:first-of-type {
-    flex: 1.8;
-  }
   @media (max-width: 1100px) {
     width: 100%;
   }
