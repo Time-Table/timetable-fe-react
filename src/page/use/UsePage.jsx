@@ -30,7 +30,7 @@ export default function UsePage() {
   const title = tableInfo ? tableInfo.title : "";
   const leftScreen = "AllTimeGrid";
   const [rightScreen, setRightScreen] = useState("AllSchedule");
-  const [selectedToggle, setSelectedToggle] = useState("멤버");
+  const [selectedToggle, setSelectedToggle] = useState("인원");
   const [selectedName, setSelectedName] = useState(false);
   const [name, setName] = useState("");
   const banedCells = tableInfo ? tableInfo.banedCells : [];
@@ -255,13 +255,13 @@ export default function UsePage() {
           <ToggleLayout>
             <ToggleButtonDiv>
               <Button
-                fontFamily={selectedToggle === "멤버" ? "Pretendard-Bold" : "Pretendard-Regular"}
-                title={`멤버(${usersScheduleList.length})`}
+                fontFamily={selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"}
+                title={`인원(${usersScheduleList.length})`}
                 background="none"
-                color={selectedToggle === "멤버" ? theme.color.primary : "black"}
+                color={selectedToggle === "인원" ? theme.color.primary : "black"}
                 onClick={() => {
                   setRightScreen("AllSchedule");
-                  handleToggle("멤버");
+                  handleToggle("인원");
                   setSelectedName(false);
                 }}
               />
@@ -305,17 +305,35 @@ export default function UsePage() {
                     <span>환영합니다!</span>
                     <span>
                       현재 페이지는{" "}
-                      <span style={{ fontFamily: "Pretendard-semiBold", fontSize: "19px" }}>
-                        전체 일정
+                      <span
+                        style={{
+                          fontFamily: "Pretendard-semiBold",
+                          fontSize: "19px",
+                        }}
+                      >
+                        '전체 일정'
                       </span>
                       입니다. <br />
+                      참여하시거나 초대하시려면 <br />
                       오른쪽으로
-                      <span style={{ color: theme.color.primary }}>슬라이드</span>하여 일정에
-                      참여하세요.
+                      <span
+                        style={{ color: theme.color.primary, fontFamily: "Pretendard-semiBold" }}
+                      >
+                        슬라이드
+                      </span>
+                      해주세요.
                     </span>
                     <IconDiv>
                       <TbHandFinger color={theme.color.primary} />
                     </IconDiv>
+                    <ButtonDiv>
+                      <Button
+                        background={theme.color.button.primary}
+                        title="확인"
+                        onClick={closeIntro}
+                      />
+                    </ButtonDiv>
+                    {/* <span style={{ fontSize: "15px", fontFamily: "Pretendard-bold" }}>OR</span>
                     <span>
                       초대하시려면 아래 <span style={{ color: theme.color.button.blue }}>버튼</span>
                       을 눌러주세요.
@@ -329,14 +347,7 @@ export default function UsePage() {
                           setCurrentSlide(1);
                         }}
                       />
-                    </ButtonDiv>{" "}
-                    <ButtonDiv>
-                      <Button
-                        background={theme.color.button.primary}
-                        title="확인 (멤버)"
-                        onClick={closeIntro}
-                      />
-                    </ButtonDiv>{" "}
+                    </ButtonDiv> */}
                   </IntroContent>
                 </IntroOverlay>
               )}
@@ -365,14 +376,14 @@ export default function UsePage() {
                 <ToggleButtonDiv>
                   <Button
                     fontFamily={
-                      selectedToggle === "멤버" ? "Pretendard-Bold" : "Pretendard-Regular"
+                      selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"
                     }
-                    title={`멤버(${usersScheduleList.length})`}
+                    title={`인원(${usersScheduleList.length})`}
                     background="none"
-                    color={selectedToggle === "멤버" ? theme.color.primary : "black"}
+                    color={selectedToggle === "인원" ? theme.color.primary : "black"}
                     onClick={() => {
                       setRightScreen("AllSchedule");
-                      handleToggle("멤버");
+                      handleToggle("인원");
                       setSelectedName(false);
                     }}
                   />
@@ -427,6 +438,15 @@ const slideAnimation = keyframes`
   }
 `;
 
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 const IntroOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -440,6 +460,7 @@ const IntroOverlay = styled.div`
   padding-top: 130px;
   z-index: 1000;
   margin-bottom: 1000px;
+  animation: ${fadeIn} 1s ease-in-out forwards;
 `;
 
 const IntroContent = styled.div`
@@ -447,13 +468,14 @@ const IntroContent = styled.div`
   flex-direction: column;
   background-color: white;
   padding: 20px 20px 50px 20px;
-  border-radius: 20px;
+  border-radius: 25px;
   text-align: center;
   width: 85%;
-  gap: 42px;
+  gap: 40px;
   box-sizing: border-box;
   font-family: Pretendard-Regular;
   font-size: 19px;
+  margin-top: 50px;
 
   span:first-of-type {
     font-size: 21px;
