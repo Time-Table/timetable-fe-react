@@ -20,8 +20,8 @@ export default function CreatePage3({
     Swal.fire({
       icon: "info",
       iconColor: `${theme.color.primary}`,
-      title: "공통 불가 시간이란?",
-      html: `선택할 수 없는 시간 구역을 만들면 모두가 그 시간대는 선택할 수 없게 됩니다. <h4>예시: 점심 시간(12-13시), 공통적으로 참여 못하는 시간대</h4>`,
+      title: "공통 선택불가 시간이란?",
+      html: `모두가 선택할 수 없는 시간 구역을 만듭니다. <h4>예시: 점심 시간(12-13시), 공통적으로 참여 못하는 시간대</h4>`,
       showConfirmButton: false,
       showCancelButton: true,
       cancelButtonText: "확인",
@@ -98,7 +98,7 @@ export default function CreatePage3({
           <Q>Q4.(필수 X )</Q>
           <TitleLayout>
             <Title>
-              <span style={{ color: theme.color.primary }}>공통 불가 시간</span>을 선택하세요.{" "}
+              <span style={{ color: theme.color.primary }}>공통 선택불가 시간</span>을 만들까요?{" "}
               <button
                 style={{
                   display: "flex",
