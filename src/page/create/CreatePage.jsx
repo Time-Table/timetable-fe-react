@@ -15,7 +15,7 @@ export default function CreatePage() {
 
   return (
     <>
-      <Seo description="약속을 만들어주세요." />
+      <Seo title={`타임테이블 - 생성`} description="약속을 만들어주세요." />
       <funnel.Render
         CreatePage1={({ history, context }) => (
           <CreatePage1

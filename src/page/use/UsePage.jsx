@@ -230,8 +230,8 @@ export default function UsePage() {
   return isValidTableId ? (
     <Frame>
       <Seo
-        title={`${title} - 타임테이블`}
-        description="클릭하여 지금 바로 되는 시간을 선택해 보세요."
+        title={`${title}`}
+        description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
         url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
       />
       <DesktopView>
