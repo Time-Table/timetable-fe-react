@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 
 const Seo = ({
   title = "타임테이블",
-  description = "소,대규모 모임 - 인원 별 시간 정리",
+  description = "팀 일정 조율이 더 쉬워집니다. 최적의 시간을 찾아보세요.",
   url = "https://www.timetable2.com/",
 }) => {
   useEffect(() => {
