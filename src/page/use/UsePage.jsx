@@ -19,6 +19,7 @@ import Loader from "./component/Loading";
 import NotFoundTable from "../NotFoundTable";
 import { keyframes } from "@emotion/react";
 import { TbHandFinger } from "react-icons/tb";
+import Seo from "../../Seo";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -228,6 +229,11 @@ export default function UsePage() {
   }
   return isValidTableId ? (
     <Frame>
+      <Seo
+        title={`⟪ ${title} ⟫ 타임테이블`}
+        description="클릭하여 지금 바로 되는 시간을 선택해 보세요."
+        url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
+      />
       <DesktopView>
         <LeftArea>{showScreen(leftScreen)}</LeftArea>
         <RightArea>
@@ -333,21 +339,6 @@ export default function UsePage() {
                         onClick={closeIntro}
                       />
                     </ButtonDiv>
-                    {/* <span style={{ fontSize: "15px", fontFamily: "Pretendard-bold" }}>OR</span>
-                    <span>
-                      초대하시려면 아래 <span style={{ color: theme.color.button.blue }}>버튼</span>
-                      을 눌러주세요.
-                    </span>
-                    <ButtonDiv>
-                      <Button
-                        background={theme.color.button.blue}
-                        title="초대하기"
-                        onClick={() => {
-                          setRightScreen("Invite");
-                          setCurrentSlide(1);
-                        }}
-                      />
-                    </ButtonDiv> */}
                   </IntroContent>
                 </IntroOverlay>
               )}

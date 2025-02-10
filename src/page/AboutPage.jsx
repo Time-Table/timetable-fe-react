@@ -5,6 +5,7 @@ import Preview1 from "../assets/svg/Preview1";
 import Preview2 from "../assets/svg/Preview2";
 import Preview3 from "../assets/svg/Preview3";
 import Talk from "../assets/svg/Talk";
+import Seo from "../Seo";
 
 export default function AboutPage() {
   const sectionsRef = useRef([]);
@@ -63,6 +64,10 @@ export default function AboutPage() {
 
   return (
     <AboutPageDiv>
+      <Seo
+        description={"타임테이블에 대해 궁금하신가요?"}
+        url={"https://www.timetable2.com/about"}
+      />
       <ContentDiv>
         <div>
           <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
