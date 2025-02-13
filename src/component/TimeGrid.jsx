@@ -13,7 +13,6 @@ export default function TimeGrid({
   isViewMode,
   banedCells = [],
 }) {
-  console.log("z");
   const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
@@ -124,7 +123,6 @@ export default function TimeGrid({
       };
     }
   }, [isDragging, dragAction, selectedCells]);
-
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
     setWeeks(groupedWeeks);
