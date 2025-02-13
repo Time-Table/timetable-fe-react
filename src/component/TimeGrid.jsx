@@ -3,74 +3,6 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
-// 각 셀에 대해 네이티브 이벤트 리스너를 등록한 컴포넌트
-function DraggableCell({
-  date,
-  time,
-  isDisabled,
-  cellKey,
-  banedCells,
-  timeIndex,
-  cellIndex,
-  isSelected,
-  selectedCellColor,
-  isViewMode,
-  handleTouchStart,
-  handleTouchMove,
-  handleTouchEnd,
-  handleMouseDown,
-  handleMouseOver,
-}) {
-  const cellRef = useRef(null);
-
-  useEffect(() => {
-    const el = cellRef.current;
-    if (!el) return;
-
-    const touchStartHandler = (e) => {
-      if (!isDisabled) {
-        handleTouchStart(date, time, e);
-      }
-    };
-    const touchMoveHandler = (e) => {
-      if (!isDisabled) {
-        handleTouchMove(date, time, e);
-      }
-    };
-    const touchEndHandler = (e) => {
-      if (!isDisabled) {
-        handleTouchEnd(e);
-      }
-    };
-
-    el.addEventListener("touchstart", touchStartHandler, { passive: false });
-    el.addEventListener("touchmove", touchMoveHandler, { passive: false });
-    el.addEventListener("touchend", touchEndHandler, { passive: false });
-
-    return () => {
-      el.removeEventListener("touchstart", touchStartHandler);
-      el.removeEventListener("touchmove", touchMoveHandler);
-      el.removeEventListener("touchend", touchEndHandler);
-    };
-  }, [date, time, isDisabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  return (
-    <Cell
-      ref={cellRef}
-      cellKey={cellKey}
-      banedCells={banedCells}
-      timeIndex={timeIndex}
-      cellIndex={cellIndex}
-      isSelected={isSelected}
-      selectedCellColor={selectedCellColor}
-      isDisabled={isDisabled}
-      isViewMode={isViewMode}
-      onMouseDown={() => !isDisabled && handleMouseDown(date, time)}
-      onMouseOver={() => !isDisabled && handleMouseOver(date, time)}
-    />
-  );
-}
-
 export default function TimeGrid({
   dates = [],
   startHour = "00:00",
@@ -81,70 +13,117 @@ export default function TimeGrid({
   isViewMode,
   banedCells = [],
 }) {
+  console.log("z");
+  const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
-  // 드래그 시작 시 선택할지 해제할지를 저장 ("select" 또는 "deselect")
   const [dragAction, setDragAction] = useState(null);
 
-  // 현재 dragAction에 따라 셀의 선택 상태를 업데이트
   const updateSelection = (cellKey, action) => {
-    if (action === "select") {
-      if (!selectedCells.includes(cellKey)) {
-        setSelectedCells((prev) => [...prev, cellKey]);
+    setSelectedCells((prev) => {
+      if (action === "select") {
+        if (!prev.includes(cellKey)) return [...prev, cellKey];
+      } else if (action === "deselect") {
+        if (prev.includes(cellKey)) return prev.filter((cell) => cell !== cellKey);
       }
-    } else if (action === "deselect") {
-      if (selectedCells.includes(cellKey)) {
-        setSelectedCells((prev) => prev.filter((cell) => cell !== cellKey));
-      }
-    }
+      return prev;
+    });
   };
 
-  // 터치 이벤트 핸들러 (네이티브 이벤트 리스너를 통해 호출됨)
-  const handleTouchStart = (date, time, event) => {
-    event.preventDefault();
+  // 터치 이벤트 핸들러 (모바일)
+  const handleTouchStart = (e) => {
+    // 화살표 버튼 등 별도의 요소를 클릭한 경우 드래그 로직을 무시
+    if (e.target.closest(".arrow-layout")) return;
+    if (e.cancelable) e.preventDefault();
     setIsDragging(true);
-    const cellKey = `${date}-${time}`;
-    // 시작 시 셀이 이미 선택되어 있으면 해제, 아니면 선택 액션 결정
-    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-    setDragAction(action);
-    updateSelection(cellKey, action);
-  };
-
-  const handleTouchMove = (date, time, event) => {
-    event.preventDefault();
-    if (isDragging) {
-      const cellKey = `${date}-${time}`;
-      updateSelection(cellKey, dragAction);
+    const touch = e.touches[0];
+    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elem && elem.dataset && elem.dataset.cellkey) {
+      const cellKey = elem.dataset.cellkey;
+      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+      setDragAction(action);
+      updateSelection(cellKey, action);
     }
   };
 
-  const handleTouchEnd = (event) => {
-    event.preventDefault();
+  const handleTouchMove = (e) => {
+    if (e.cancelable) e.preventDefault();
+    if (isDragging && dragAction) {
+      const touch = e.touches[0];
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (elem && elem.dataset && elem.dataset.cellkey) {
+        const cellKey = elem.dataset.cellkey;
+        updateSelection(cellKey, dragAction);
+      }
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.cancelable) e.preventDefault();
     setIsDragging(false);
     setDragAction(null);
   };
 
-  // 마우스 이벤트 핸들러 (데스크탑)
-  const handleMouseDown = (date, time) => {
+  // 마우스 이벤트 핸들러 (PC)
+  const handleMouseDownGlobal = (e) => {
+    // 화살표 버튼이면 드래그 로직 실행하지 않음
+    if (e.target.closest(".arrow-layout")) return;
+    e.preventDefault();
     setIsDragging(true);
-    const cellKey = `${date}-${time}`;
-    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-    setDragAction(action);
-    updateSelection(cellKey, action);
-  };
-
-  const handleMouseOver = (date, time) => {
-    if (isDragging) {
-      const cellKey = `${date}-${time}`;
-      updateSelection(cellKey, dragAction);
+    const elem = document.elementFromPoint(e.clientX, e.clientY);
+    if (elem && elem.dataset && elem.dataset.cellkey) {
+      const cellKey = elem.dataset.cellkey;
+      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+      setDragAction(action);
+      updateSelection(cellKey, action);
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseMoveGlobal = (e) => {
+    if (isDragging && dragAction) {
+      const elem = document.elementFromPoint(e.clientX, e.clientY);
+      if (elem && elem.dataset && elem.dataset.cellkey) {
+        const cellKey = elem.dataset.cellkey;
+        updateSelection(cellKey, dragAction);
+      }
+    }
+  };
+
+  const handleMouseUpGlobal = (e) => {
     setIsDragging(false);
     setDragAction(null);
   };
+
+  // 터치 이벤트 리스너 등록 (모바일)
+  useEffect(() => {
+    const gridEl = gridRef.current;
+    if (gridEl) {
+      gridEl.addEventListener("touchstart", handleTouchStart, { passive: false });
+      gridEl.addEventListener("touchmove", handleTouchMove, { passive: false });
+      gridEl.addEventListener("touchend", handleTouchEnd, { passive: false });
+      return () => {
+        gridEl.removeEventListener("touchstart", handleTouchStart);
+        gridEl.removeEventListener("touchmove", handleTouchMove);
+        gridEl.removeEventListener("touchend", handleTouchEnd);
+      };
+    }
+  }, [isDragging, dragAction, selectedCells]);
+
+  // 마우스 이벤트 리스너 등록 (PC)
+  useEffect(() => {
+    const gridEl = gridRef.current;
+    if (gridEl) {
+      gridEl.addEventListener("mousedown", handleMouseDownGlobal, { passive: false });
+      document.addEventListener("mousemove", handleMouseMoveGlobal, { passive: false });
+      document.addEventListener("mouseup", handleMouseUpGlobal, { passive: false });
+      return () => {
+        gridEl.removeEventListener("mousedown", handleMouseDownGlobal);
+        document.removeEventListener("mousemove", handleMouseMoveGlobal);
+        document.removeEventListener("mouseup", handleMouseUpGlobal);
+      };
+    }
+  }, [isDragging, dragAction, selectedCells]);
 
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
@@ -162,7 +141,6 @@ export default function TimeGrid({
       }
       weeks[weekKey].push(date);
     });
-
     const fullWeeks = Object.keys(weeks).map((weekKey) => {
       const weekStart = new Date(weekKey);
       const fullWeek = [];
@@ -217,56 +195,51 @@ export default function TimeGrid({
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
   return (
-    <GridWrapper onMouseUp={handleMouseUp}>
-      <MonthDisplay>
-        <span>{monthYear}</span>
-      </MonthDisplay>
-      <Grid columns={currentWeek.length + 1}>
-        <HeaderRow>
-          <EmptyCell />
-          {currentWeek.map((date, index) => {
-            const { day, weekday } = formatDate(date);
-            return (
-              <HeaderCell key={index} isDisabled={!dates.includes(date)}>
-                <WeekBox>{day}</WeekBox>
-                <WeekBox>{weekday}</WeekBox>
-              </HeaderCell>
-            );
-          })}
-        </HeaderRow>
-        {timeRange.map((time, timeIndex) => (
-          <Row key={timeIndex}>
-            <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
-            {currentWeek.map((date, dateIndex) => {
-              const cellKey = `${date}-${time}`;
-              const isSelected = selectedCells.includes(cellKey);
-              const isDisabled = !dates.includes(date);
+    <>
+      <GridWrapper ref={gridRef}>
+        <MonthDisplay>
+          <span>{monthYear}</span>
+        </MonthDisplay>
+        <Grid columns={currentWeek.length + 1}>
+          <HeaderRow>
+            <EmptyCell />
+            {currentWeek.map((date, index) => {
+              const { day, weekday } = formatDate(date);
               return (
-                <DraggableCell
-                  key={cellKey}
-                  date={date}
-                  time={time}
-                  cellKey={cellKey}
-                  banedCells={banedCells}
-                  timeIndex={timeIndex}
-                  cellIndex={dateIndex}
-                  isSelected={isSelected}
-                  selectedCellColor={selectedCellColor}
-                  isDisabled={isDisabled}
-                  isViewMode={isViewMode}
-                  handleTouchStart={handleTouchStart}
-                  handleTouchMove={handleTouchMove}
-                  handleTouchEnd={handleTouchEnd}
-                  handleMouseDown={handleMouseDown}
-                  handleMouseOver={handleMouseOver}
-                />
+                <HeaderCell key={index} isDisabled={!dates.includes(date)}>
+                  <WeekBox>{day}</WeekBox>
+                  <WeekBox>{weekday}</WeekBox>
+                </HeaderCell>
               );
             })}
-          </Row>
-        ))}
-      </Grid>
+          </HeaderRow>
+          {timeRange.map((time, timeIndex) => (
+            <Row key={timeIndex}>
+              <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
+              {currentWeek.map((date, dateIndex) => {
+                const cellKey = `${date}-${time}`;
+                const isSelected = selectedCells.includes(cellKey);
+                const isDisabled = !dates.includes(date);
+                return (
+                  <Cell
+                    key={cellKey}
+                    data-cellkey={cellKey}
+                    cellIndex={dateIndex}
+                    timeIndex={timeIndex}
+                    isSelected={isSelected}
+                    selectedCellColor={selectedCellColor}
+                    isDisabled={isDisabled}
+                    banedCells={banedCells}
+                    isViewMode={isViewMode}
+                  />
+                );
+              })}
+            </Row>
+          ))}
+        </Grid>
+      </GridWrapper>
       <WeekNavigation>
-        <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
+        <ArrowLayout className="arrow-layout" disabled={currentWeekIndex === 0} onClick={prevWeek}>
           <Arrow
             width={10}
             height={20}
@@ -274,7 +247,11 @@ export default function TimeGrid({
             angle={180}
           />
         </ArrowLayout>
-        <ArrowLayout disabled={currentWeekIndex === weeks.length - 1} onClick={nextWeek}>
+        <ArrowLayout
+          className="arrow-layout"
+          disabled={currentWeekIndex === weeks.length - 1}
+          onClick={nextWeek}
+        >
           <Arrow
             width={10}
             height={20}
@@ -282,7 +259,7 @@ export default function TimeGrid({
           />
         </ArrowLayout>
       </WeekNavigation>
-    </GridWrapper>
+    </>
   );
 }
 
