@@ -193,6 +193,17 @@ export default function AddUser({
               setRightScreen("MySchedule");
               setSelectedToggle("내 일정");
               setAfterName(name);
+              Swal.fire({
+                icon: "success",
+                iconColor: `${theme.color.primary}`,
+                title: `<div style="font-size: 0.8em;">환영합니다!</div>`,
+                html: `<div class="${CustomText.className}">모두가 볼 수 있게 가능한 시간을 선택해주세요.</div>`,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: "확인",
+                cancelButtonColor: `${theme.color.primary}`,
+                width: "23em",
+              });
               return;
             } else if (res && res.code === 201) {
               localStorage.setItem("name", res.data.name);
@@ -424,4 +435,8 @@ const InputLayout = styled.div`
   @media (max-width: 480px) {
     width: 90%;
   }
+`;
+const CustomText = styled.div`
+  font-size: 2em;
+  /* margin: 3px 0; */
 `;
