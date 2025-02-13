@@ -16,6 +16,26 @@ export default function TimeGrid({
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  // 터치 이벤트 핸들러
+  const handleTouchStart = (date, time, event) => {
+    event.preventDefault();
+    setIsDragging(true);
+    const cellKey = `${date}-${time}`;
+    toggleSelection(cellKey);
+  };
+
+  const handleTouchMove = (date, time, event) => {
+    event.preventDefault();
+    if (isDragging) {
+      const cellKey = `${date}-${time}`;
+      toggleSelection(cellKey);
+    }
+  };
+
+  const handleTouchEnd = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+  };
 
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
@@ -155,6 +175,9 @@ export default function TimeGrid({
                     isViewMode={isViewMode}
                     onMouseDown={() => !isDisabled && handleMouseDown(date, time)}
                     onMouseOver={() => !isDisabled && handleMouseOver(date, time)}
+                    onTouchStart={(e) => !isDisabled && handleTouchStart(date, time, e)}
+                    onTouchMove={(e) => !isDisabled && handleTouchMove(date, time, e)}
+                    onTouchEnd={handleTouchEnd}
                   />
                 );
               })}
