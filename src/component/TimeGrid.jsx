@@ -18,8 +18,11 @@ export default function TimeGrid({
   const [weeks, setWeeks] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [dragAction, setDragAction] = useState(null);
+  const [lastSelectedCell, setLastSelectedCell] = useState(null);
 
   const updateSelection = (cellKey, action) => {
+    if (!cellKey || cellKey === lastSelectedCell) return;
+
     setSelectedCells((prev) => {
       if (action === "select") {
         if (!prev.includes(cellKey)) return [...prev, cellKey];
@@ -28,33 +31,29 @@ export default function TimeGrid({
       }
       return prev;
     });
+    setLastSelectedCell(cellKey);
   };
 
   // 터치 이벤트 핸들러 (모바일)
   const handleTouchStart = (e) => {
-    // 화살표 버튼 등 별도의 요소를 클릭한 경우 드래그 로직을 무시
-    if (e.target.closest(".arrow-layout")) return;
+    if (!e.target.dataset.cellkey) return;
     if (e.cancelable) e.preventDefault();
+
     setIsDragging(true);
-    const touch = e.touches[0];
-    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (elem && elem.dataset && elem.dataset.cellkey) {
-      const cellKey = elem.dataset.cellkey;
-      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-      setDragAction(action);
-      updateSelection(cellKey, action);
-    }
+    const cellKey = e.target.dataset.cellkey;
+    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+    setDragAction(action);
+    updateSelection(cellKey, action);
   };
 
   const handleTouchMove = (e) => {
+    if (!isDragging || !dragAction) return;
     if (e.cancelable) e.preventDefault();
-    if (isDragging && dragAction) {
-      const touch = e.touches[0];
-      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (elem && elem.dataset && elem.dataset.cellkey) {
-        const cellKey = elem.dataset.cellkey;
-        updateSelection(cellKey, dragAction);
-      }
+
+    const touch = e.touches[0];
+    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elem && elem.dataset && elem.dataset.cellkey) {
+      updateSelection(elem.dataset.cellkey, dragAction);
     }
   };
 
@@ -62,67 +61,64 @@ export default function TimeGrid({
     if (e.cancelable) e.preventDefault();
     setIsDragging(false);
     setDragAction(null);
+    setLastSelectedCell(null);
   };
 
   // 마우스 이벤트 핸들러 (PC)
-  const handleMouseDownGlobal = (e) => {
-    // 화살표 버튼이면 드래그 로직 실행하지 않음
-    if (e.target.closest(".arrow-layout")) return;
+  const handleMouseDown = (e) => {
+    if (!e.target.dataset.cellkey) return;
     e.preventDefault();
+
     setIsDragging(true);
+    const cellKey = e.target.dataset.cellkey;
+    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+    setDragAction(action);
+    updateSelection(cellKey, action);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !dragAction) return;
+
     const elem = document.elementFromPoint(e.clientX, e.clientY);
     if (elem && elem.dataset && elem.dataset.cellkey) {
-      const cellKey = elem.dataset.cellkey;
-      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-      setDragAction(action);
-      updateSelection(cellKey, action);
+      updateSelection(elem.dataset.cellkey, dragAction);
     }
   };
 
-  const handleMouseMoveGlobal = (e) => {
-    if (isDragging && dragAction) {
-      const elem = document.elementFromPoint(e.clientX, e.clientY);
-      if (elem && elem.dataset && elem.dataset.cellkey) {
-        const cellKey = elem.dataset.cellkey;
-        updateSelection(cellKey, dragAction);
-      }
-    }
-  };
-
-  const handleMouseUpGlobal = (e) => {
+  const handleMouseUp = () => {
     setIsDragging(false);
     setDragAction(null);
+    setLastSelectedCell(null);
   };
 
-  // 터치 이벤트 리스너 등록 (모바일)
+  // 이벤트 리스너 등록
   useEffect(() => {
     const gridEl = gridRef.current;
     if (gridEl) {
+      // 모바일 이벤트
       gridEl.addEventListener("touchstart", handleTouchStart, { passive: false });
       gridEl.addEventListener("touchmove", handleTouchMove, { passive: false });
       gridEl.addEventListener("touchend", handleTouchEnd, { passive: false });
+
+      // PC 이벤트
+      gridEl.addEventListener("mousedown", handleMouseDown);
+      gridEl.addEventListener("mousemove", handleMouseMove);
+      gridEl.addEventListener("mouseup", handleMouseUp);
+      // 드래그 중 그리드 밖으로 나갔을 때도 이벤트 처리
+      gridEl.addEventListener("mouseleave", handleMouseUp);
+
       return () => {
         gridEl.removeEventListener("touchstart", handleTouchStart);
         gridEl.removeEventListener("touchmove", handleTouchMove);
         gridEl.removeEventListener("touchend", handleTouchEnd);
+        gridEl.removeEventListener("mousedown", handleMouseDown);
+        gridEl.removeEventListener("mousemove", handleMouseMove);
+        gridEl.removeEventListener("mouseup", handleMouseUp);
+        gridEl.removeEventListener("mouseleave", handleMouseUp);
       };
     }
   }, [isDragging, dragAction, selectedCells]);
 
-  // 마우스 이벤트 리스너 등록 (PC)
-  useEffect(() => {
-    const gridEl = gridRef.current;
-    if (gridEl) {
-      gridEl.addEventListener("mousedown", handleMouseDownGlobal, { passive: false });
-      document.addEventListener("mousemove", handleMouseMoveGlobal, { passive: false });
-      document.addEventListener("mouseup", handleMouseUpGlobal, { passive: false });
-      return () => {
-        gridEl.removeEventListener("mousedown", handleMouseDownGlobal);
-        document.removeEventListener("mousemove", handleMouseMoveGlobal);
-        document.removeEventListener("mouseup", handleMouseUpGlobal);
-      };
-    }
-  }, [isDragging, dragAction, selectedCells]);
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
     setWeeks(groupedWeeks);
