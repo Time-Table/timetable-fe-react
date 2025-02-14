@@ -15,6 +15,10 @@ export default function Rank({
   const isValidArray = Array.isArray(timeInfo);
   const sortedTimeInfo = isValidArray ? [...timeInfo].sort((a, b) => b.count - a.count) : [];
 
+  if (sortedTimeInfo.length > 50) {
+    sortedTimeInfo.splice(50);
+  }
+
   useEffect(() => {
     if (!isValidArray || sortedTimeInfo.length === 0) {
       Swal.fire({
