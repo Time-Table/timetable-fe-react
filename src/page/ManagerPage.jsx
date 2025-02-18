@@ -20,14 +20,14 @@ export default function ManagerPage() {
       </button>
       <button
         onClick={() => {
-          window.location.href = "/table/ef2f2bb8-79a7-4c94-971e-3992c02ba55a";
+          window.location.href = "/table/7c2d11f8-d0e2-4f6a-b54d-7499276c6aa8";
         }}
       >
         긴 use 이동
       </button>
       <button
         onClick={() => {
-          window.location.href = "/table/f919f443-5b24-4c4a-bd63-ced54c6edefe";
+          window.location.href = "/table/753991b4-369d-4a3d-a744-56430c2c1235";
         }}
       >
         짧은 use 이동

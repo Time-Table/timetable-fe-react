@@ -44,7 +44,6 @@ export default function UsePage() {
     const fetchTableInfo = async () => {
       const tableInfo = await getTableInfo(tableId);
       if (tableInfo.status === 404) {
-        console.log("404");
         setIsValidTableId(false);
         return;
       }
