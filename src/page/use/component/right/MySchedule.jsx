@@ -25,7 +25,7 @@ export default function MySchedule({
   const [selectedCells, setSelectedCells] = useState([]);
   const areArraysEqual = (arr1, arr2) =>
     arr1.length === arr2.length && arr1.every((value, index) => value === arr2[index]);
-  console.log(banedCells);
+
   useEffect(() => {
     if (!name) {
       Swal.fire({
