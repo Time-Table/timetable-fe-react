@@ -18,6 +18,7 @@ export default function MySchedule({
   usersScheduleList,
   banedCells,
   setSelectedToggle,
+  timeInfo = [],
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const name = localStorage.getItem("name");
@@ -96,6 +97,7 @@ export default function MySchedule({
         setSelectedCells={setSelectedCells}
         isViewMode={false}
         banedCells={banedCells}
+        timeInfo={timeInfo}
       />
       <ButtonLayout>
         <ButtonDiv>

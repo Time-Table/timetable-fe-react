@@ -154,6 +154,7 @@ export default function UsePage() {
             usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             setSelectedToggle={setSelectedToggle}
+            timeInfo={timeInfo}
           />
         );
       case "Rank":

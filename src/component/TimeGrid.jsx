@@ -12,6 +12,7 @@ export default function TimeGrid({
   selectedCellColor,
   isViewMode,
   banedCells = [],
+  timeInfo = [],
 }) {
   const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -19,6 +20,31 @@ export default function TimeGrid({
   const [isDragging, setIsDragging] = useState(false);
   const [dragAction, setDragAction] = useState(null);
   const [lastSelectedCell, setLastSelectedCell] = useState(null);
+  const [existingCellKeys, setExistingCellKeys] = useState([]);
+
+  useEffect(() => {
+    if (timeInfo && timeInfo.length > 0) {
+      const cellKeys = timeInfo
+        .map((item) => {
+          const parts = item.time.split("-");
+          if (parts.length < 4) return null;
+
+          const year = parts[0];
+          const month = parts[1];
+          const day = parts[2];
+          const time = parts[3];
+
+          if (!year || !month || !day || !time) return null;
+
+          const formattedDate = `${year}-${month}-${day}`;
+
+          return `${formattedDate}-${time}`;
+        })
+        .filter((key) => key !== null);
+
+      setExistingCellKeys(cellKeys);
+    }
+  }, [timeInfo]);
 
   const updateSelection = (cellKey, action) => {
     if (!cellKey || cellKey === lastSelectedCell) return;
@@ -192,6 +218,10 @@ export default function TimeGrid({
     return banedCells.includes(cellKey);
   };
 
+  const hasExistingSchedule = (cellKey) => {
+    return existingCellKeys.includes(cellKey);
+  };
+
   return (
     <>
       <GridWrapper ref={gridRef}>
@@ -219,6 +249,8 @@ export default function TimeGrid({
                 const isSelected = selectedCells.includes(cellKey);
                 const isDisabled = !dates.includes(date);
                 const isBaned = isCellBaned(cellKey);
+                const hasSchedule = hasExistingSchedule(cellKey);
+
                 return (
                   <Cell
                     key={cellKey}
@@ -230,6 +262,7 @@ export default function TimeGrid({
                     isDisabled={isDisabled}
                     isBaned={isBaned}
                     isViewMode={isViewMode}
+                    hasSchedule={hasSchedule}
                   />
                 );
               })}
@@ -347,12 +380,17 @@ const Cell = styled.div`
     else if (!props.isDisabled) return `1px solid ${theme.text.gamma[800]}`;
     return `2px solid ${theme.text.gamma[800]}`;
   }};
-  background-color: ${(props) =>
-    props.isSelected
-      ? `${props.selectedCellColor}`
-      : props.isDisabled || props.isBaned
-      ? `${theme.text.gamma[800]}`
-      : "white"};
+  background-color: ${(props) => {
+    if (props.isSelected) {
+      return props.selectedCellColor;
+    } else if (props.isDisabled || props.isBaned) {
+      return theme.text.gamma[800];
+    } else if (props.hasSchedule) {
+      return theme.color.timeGrid.hasSchedule;
+    } else {
+      return "white";
+    }
+  }};
   cursor: ${(props) =>
     props.isDisabled || props.isViewMode || props.isBaned ? "not-allowed" : "pointer"};
   pointer-events: ${(props) =>
