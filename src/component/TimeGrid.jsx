@@ -188,6 +188,10 @@ export default function TimeGrid({
 
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
+  const isCellBaned = (cellKey) => {
+    return banedCells.includes(cellKey);
+  };
+
   return (
     <>
       <GridWrapper ref={gridRef}>
@@ -214,6 +218,7 @@ export default function TimeGrid({
                 const cellKey = `${date}-${time}`;
                 const isSelected = selectedCells.includes(cellKey);
                 const isDisabled = !dates.includes(date);
+                const isBaned = isCellBaned(cellKey);
                 return (
                   <Cell
                     key={cellKey}
@@ -223,7 +228,7 @@ export default function TimeGrid({
                     isSelected={isSelected}
                     selectedCellColor={selectedCellColor}
                     isDisabled={isDisabled}
-                    banedCells={banedCells}
+                    isBaned={isBaned}
                     isViewMode={isViewMode}
                   />
                 );
@@ -345,17 +350,13 @@ const Cell = styled.div`
   background-color: ${(props) =>
     props.isSelected
       ? `${props.selectedCellColor}`
-      : props.isDisabled || props.banedCells.includes(props.cellKey)
+      : props.isDisabled || props.isBaned
       ? `${theme.text.gamma[800]}`
       : "white"};
   cursor: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "not-allowed"
-      : "pointer"};
+    props.isDisabled || props.isViewMode || props.isBaned ? "not-allowed" : "pointer"};
   pointer-events: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "none"
-      : "auto"};
+    props.isDisabled || props.isViewMode || props.isBaned ? "none" : "auto"};
   @media (max-width: 480px) {
     width: 43px;
     height: 20px;
