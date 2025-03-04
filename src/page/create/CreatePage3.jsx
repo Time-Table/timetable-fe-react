@@ -34,14 +34,13 @@ export default function CreatePage3({
   const [selectedCells, setSelectedCells] = useState([]);
 
   const formattedDates = () => {
-    const dateList = [];
-    dates.map((date) => {
-      let formatteddate = new Date(date);
-      formatteddate.setHours(formatteddate.getHours() + 9);
-      formatteddate = formatteddate.toISOString().split("T")[0];
-      dateList.push(formatteddate);
-    });
-    return dateList;
+    return dates
+      .map((date) => {
+        let formattedDate = new Date(date);
+        formattedDate.setHours(formattedDate.getHours() + 9);
+        return formattedDate.toISOString().split("T")[0];
+      })
+      .sort((a, b) => new Date(a) - new Date(b));
   };
 
   const onClickEvent = async () => {
