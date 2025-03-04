@@ -5,6 +5,8 @@ import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
 
 export default function Header() {
+  const email = "timetable2official@gmail.com";
+
   return (
     <HeaderLayout>
       <TitleLayout
@@ -42,14 +44,13 @@ export default function Header() {
               icon: "success",
               iconColor: `${theme.color.primary}`,
               title: "문의하기",
-              html: "사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>jjjangtoy7@gmail.com</strong>",
+              html: `사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>${email}</strong>`,
               confirmButtonText: "메일 복사",
               confirmButtonColor: `${theme.color.button.blue}`,
               showCancelButton: true,
               cancelButtonText: "취소",
               cancelButtonColor: `${theme.text.gamma[800]}`,
               preConfirm: () => {
-                const email = "jjjangtoy7@gmail.com";
                 return navigator.clipboard
                   .writeText(email)
                   .then(() => {
