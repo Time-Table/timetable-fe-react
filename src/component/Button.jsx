@@ -14,7 +14,10 @@ export default function Button({
   disabled,
 }) {
   return (
-    <div style={{ display: "flex", width: width, ...StyleDiv }} onClick={onClick}>
+    <div
+      style={{ display: "flex", width: width, ...StyleDiv }}
+      onClick={!disabled ? onClick : undefined}
+    >
       <button
         disabled={disabled}
         style={{

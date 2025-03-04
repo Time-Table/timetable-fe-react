@@ -39,7 +39,7 @@ export default function CreatePage2({
     if (localStorage.getItem("title")) {
       setTitle(preTitle);
     }
-  }, [sHour && eHour && title && dates && endTimeClicked]);
+  }, [sHour && eHour && dates && endTimeClicked]);
 
   const genStartTime = () => {
     const times = [];
@@ -196,7 +196,7 @@ export default function CreatePage2({
         <ButtonLayout>
           <ButtonDiv>
             <Button
-              disabled={!title ? true : false}
+              disabled={!title ? true : false || !isEndTimeClicked}
               onClick={() => {
                 if (title) {
                   onNext(sHour, eHour, title, isEndTimeClicked);
