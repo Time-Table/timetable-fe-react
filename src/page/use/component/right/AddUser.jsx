@@ -340,9 +340,43 @@ export default function AddUser({
           />
         </ButtonDiv>
       </ButtonLayout>
+      <TermsPrivacyContainer>
+        <TermsPrivacyText onClick={() => (window.location.href = "/terms")}>
+          이용약관
+        </TermsPrivacyText>
+        <span> | </span>
+        <TermsPrivacyText onClick={() => (window.location.href = "/privacy")}>
+          개인정보처리방침
+        </TermsPrivacyText>
+      </TermsPrivacyContainer>
     </Frame>
   );
 }
+
+const TermsPrivacyContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 14px;
+  color: ${theme.text.gamma[500]};
+  cursor: pointer;
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+`;
+
+const TermsPrivacyText = styled.span`
+  color: ${theme.text.gamma[700]};
+  text-decoration: underline;
+  cursor: pointer;
+  margin: 0 5px;
+
+  &:hover {
+    color: ${theme.color.primary};
+  }
+`;
 
 const fadeIn = keyframes`
   0% {

@@ -8,6 +8,8 @@ import AboutPage from "./page/AboutPage";
 import NotFound from "./page/NotFound";
 import Seo from "./Seo";
 import { HelmetProvider } from "react-helmet-async";
+import TermsPage from "./page/TermsPage";
+import PrivacyPage from "./page/PrivacyPage";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
           <Route path="/create" element={<CreatePage />}></Route>
           <Route path="/table/:tableId" element={<UsePage />}></Route>
           <Route path="/about" element={<AboutPage />}></Route>
+          <Route path="/terms" element={<TermsPage />}></Route>
+          <Route path="/privacy" element={<PrivacyPage />}></Route>
           <Route path="*" element={<NotFound />}></Route>
         </Routes>
       </Router>
