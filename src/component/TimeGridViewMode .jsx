@@ -3,6 +3,7 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 import Loader from "../page/use/component/Loading";
+import Swal from "sweetalert2";
 
 export default function TimeGridViewMode({
   dates = [],
@@ -18,7 +19,6 @@ export default function TimeGridViewMode({
   const [cellColorMap, setCellColorMap] = useState({});
   const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const resolveTimeInfo = async () => {
       setIsLoading(true);
@@ -157,6 +157,33 @@ export default function TimeGridViewMode({
     return <Loader />;
   }
 
+  const handleCellClick = (cellKey) => {
+    const info = resolvedTimeInfo.find((item) => item.time === cellKey);
+    if (!document.getElementById("swal-styles")) {
+      const style = document.createElement("style");
+      style.id = "swal-styles";
+      style.innerHTML = `
+        .swal-popup { border-radius: 10px; padding: 20px; }
+        .swal-title { font-size: 22px; font-weight: bold; }
+        .swal-html { font-size: 16px; color: #333; }
+      `;
+      document.head.appendChild(style);
+    }
+    Swal.fire({
+      title: info ? `시간: ${info.time}` : "정보 없음",
+      html: info
+        ? `<div style="text-align:left;">
+            <p><strong>인원:</strong> ${info.count} 명</p>
+            <p><strong>참여:</strong> ${info.members.join(", ")}</p>
+          </div>`
+        : "해당 셀에 대한 정보가 없습니다.",
+      icon: info ? "info" : "warning",
+      confirmButtonText: "확인",
+      confirmButtonColor: theme.color.primary,
+      customClass: { popup: "swal-popup", title: "swal-title", htmlContainer: "swal-html" },
+    });
+  };
+
   return (
     <GridWrapper>
       <MonthDisplay>{monthYear}</MonthDisplay>
@@ -179,6 +206,9 @@ export default function TimeGridViewMode({
             {currentWeek.map((date, dateIndex) => {
               const cellKey = `${date}-${time}`;
               const isDisabled = !dates.includes(date);
+              const infoForCell = resolvedTimeInfo.find((item) => item.time === cellKey);
+              const hasParticipants = infoForCell ? infoForCell.count > 0 : false;
+              const clickable = !isDisabled && hasParticipants;
               const colorNumber = cellColorMap[cellKey];
               const isSelected = !!colorNumber;
 
@@ -193,6 +223,8 @@ export default function TimeGridViewMode({
                   color={colorNumber}
                   banedCells={banedCells}
                   cellKey={cellKey}
+                  clickable={clickable}
+                  onClick={clickable ? () => handleCellClick(cellKey) : null}
                 />
               );
             })}
@@ -297,9 +329,8 @@ const Cell = styled.div`
   width: 60px;
   height: 30px;
   grid-column: span 1;
-  border-right: ${(props) => {
-    return props.cellIndex === 6 ? `none` : `1px solid ${theme.text.gamma[800]}`;
-  }};
+  border-right: ${(props) =>
+    props.cellIndex === 6 ? "none" : `1px solid ${theme.text.gamma[800]}`};
   border-top: ${(props) => {
     if (props.timeIndex === 0) return "none";
     else if (props.timeIndex % 2 === 0 && !props.isDisabled)
@@ -316,14 +347,9 @@ const Cell = styled.div`
       : props.isDisabled || props.banedCells.includes(props.cellKey)
       ? `${theme.text.gamma[800]}`
       : "white"};
-  cursor: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "not-allowed"
-      : "pointer"};
-  pointer-events: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "none"
-      : "auto"};
+
+  cursor: ${(props) => (props.clickable ? "pointer" : "not-allowed")};
+  pointer-events: ${(props) => (props.clickable ? "auto" : "none")};
 
   @media (max-width: 480px) {
     width: 43px;
