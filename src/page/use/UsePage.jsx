@@ -20,6 +20,7 @@ import NotFoundTable from "../NotFoundTable";
 import { keyframes } from "@emotion/react";
 import { TbHandFinger } from "react-icons/tb";
 import Seo from "../../Seo";
+import { trackVisit } from "../../api/trackVisit";
 
 export default function UsePage() {
   const { tableId } = useParams();
@@ -39,6 +40,13 @@ export default function UsePage() {
   const [showIntro, setShowIntro] = useState(true);
   const closeIntro = () => setShowIntro(false);
   const [isValidTableId, setIsValidTableId] = useState(null);
+
+  useEffect(() => {
+    const getVisitLog = async () => {
+      await trackVisit("table");
+    };
+    getVisitLog();
+  }, []);
 
   useEffect(() => {
     const fetchTableInfo = async () => {

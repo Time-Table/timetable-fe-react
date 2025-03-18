@@ -6,12 +6,17 @@ import Preview2 from "../assets/svg/Preview2";
 import Preview3 from "../assets/svg/Preview3";
 import Talk from "../assets/svg/Talk";
 import Seo from "../Seo";
+import { trackVisit } from "../api/trackVisit";
 
 export default function AboutPage() {
   const sectionsRef = useRef([]);
   const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
+    const getVisitLog = async () => {
+      await trackVisit("about");
+    };
+    getVisitLog();
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

@@ -139,14 +139,29 @@ export default function AddUser({
       Toast.fire({
         icon: "error",
         iconColor: `${theme.color.primary}`,
-        title: "이름과 비밀번호를 모두 입력해주세요.", // 유저가 있으니까 수정 페이지 이동
+        title: "이름과 비밀번호를 모두 입력해주세요.",
       });
       return;
     }
     try {
-      // 1. 유저 정보를 가져옴
-      const user = await getUserInfo(tableId, name, password);
+      if (!inputCondition.test(name)) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
+        });
+        return;
+      }
 
+      if (!inputCondition.test(password)) {
+        Toast.fire({
+          icon: "error",
+          iconColor: `${theme.color.primary}`,
+          title: "비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
+        });
+        return;
+      }
+      const user = await joinUser(tableId, name, password, availableTimes);
       if (user) {
         switch (user.code) {
           case 200: // 유저가 존재하는 경우
@@ -163,64 +178,37 @@ export default function AddUser({
             return;
 
           case 201: // 유저가 없어서 새로 가입 가능
-            if (!inputCondition.test(name)) {
-              Toast.fire({
-                icon: "error",
-                iconColor: `${theme.color.primary}`,
-                title: "이름은 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
-              });
-              return;
-            }
+            Toast.fire({
+              icon: "success",
+              iconColor: `${theme.color.button.blue}`,
+              title: user.message,
+            });
+            localStorage.setItem("name", user.data.name);
+            setRightScreen("MySchedule");
+            setSelectedToggle("내 일정");
+            setAfterName(name);
+            Swal.fire({
+              icon: "success",
+              iconColor: `${theme.color.primary}`,
+              title: `<div style="font-size: 0.8em;">환영합니다!</div>`,
+              html: `<div class="${CustomText.className}">모두가 볼 수 있게 가능한 시간을 선택해주세요.</div>`,
+              showConfirmButton: false,
+              showCancelButton: true,
+              cancelButtonText: "확인",
+              cancelButtonColor: `${theme.color.primary}`,
+              width: "23em",
+            });
+            return;
 
-            if (!inputCondition.test(password)) {
-              Toast.fire({
-                icon: "error",
-                iconColor: `${theme.color.primary}`,
-                title: "비밀번호는 영문자, 숫자, 한글, 공백만 사용할 수 있습니다.",
-              });
-              return;
-            }
+          case 401: // id 양식 x
+            Toast.fire({
+              icon: "error",
+              iconColor: `${theme.color.primary}`,
+              title: user.message,
+            });
+            return;
 
-            // 3. 유저 정보가 없으므로 새로 가입 처리
-            const res = await joinUser(tableId, name, password, availableTimes);
-            if (res && res.code === 200) {
-              Toast.fire({
-                icon: "success",
-                iconColor: `${theme.color.button.blue}`,
-                title: res.message,
-              });
-              localStorage.setItem("name", res.data.name);
-              setRightScreen("MySchedule");
-              setSelectedToggle("내 일정");
-              setAfterName(name);
-              Swal.fire({
-                icon: "success",
-                iconColor: `${theme.color.primary}`,
-                title: `<div style="font-size: 0.8em;">환영합니다!</div>`,
-                html: `<div class="${CustomText.className}">모두가 볼 수 있게 가능한 시간을 선택해주세요.</div>`,
-                showConfirmButton: false,
-                showCancelButton: true,
-                cancelButtonText: "확인",
-                cancelButtonColor: `${theme.color.primary}`,
-                width: "23em",
-              });
-              return;
-            } else if (res && res.code === 201) {
-              localStorage.setItem("name", res.data.name);
-              setRightScreen("MySchedule");
-              setSelectedToggle("내 일정");
-              setAfterName(name);
-              return;
-            } else {
-              Toast.fire({
-                icon: "error",
-                iconColor: `${theme.color.primary}`,
-                title: "유저 등록에 실패했습니다. 다시 시도해주세요.",
-              });
-              return;
-            }
-
-          case 401: // 비밀번호가 틀린 경우
+          case 402: // 비밀번호가 양식 x
             Toast.fire({
               icon: "error",
               iconColor: `${theme.color.primary}`,
