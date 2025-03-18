@@ -36,6 +36,8 @@ export default function ManagerPage() {
     todayLogin: "🟡 오늘 로그인 수",
     totalSignUp: "🟣 누적 가입자 수",
     totalLogin: "🟡 누적 로그인 수",
+    todayTableCreateCount: "🔴 오늘 생성된 테이블 수",
+    totalTableCreateCount: "🔴 누적 생성된 테이블 수",
   };
 
   return (
@@ -141,8 +143,7 @@ const DataRow = styled.div`
   font-size: 16px;
   color: #333;
   margin-bottom: 5px;
-  background: ${({ index }) =>
-    index % 2 === 0 ? "#f8f9fa" : "#e9ecef"}; // 짝수/홀수 행에 색상 추가
+  background: ${({ index }) => (index % 2 === 0 ? "#f8f9fa" : "#e9ecef")};
 `;
 
 const DataKey = styled.span`
