@@ -138,7 +138,7 @@ export default function AboutPage() {
           />
         </InputWrapper>
         <StyledWrapper onClick={handleButtonClick}>
-          <a className="btn" href="#">
+          <a className="btn" role="button">
             1분 생성
           </a>
         </StyledWrapper>

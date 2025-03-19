@@ -1,6 +1,4 @@
-import Swal from "sweetalert2";
 import theme from "../theme";
-import { useEffect } from "react";
 
 export default function PrivacyPage() {
   return (
