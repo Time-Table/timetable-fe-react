@@ -33,7 +33,7 @@ export default function Rank({
       return;
     }
     setRankDetails(Array(sortedTimeInfo.length).fill(false));
-  }, []);
+  }, [isValidArray, sortedTimeInfo.length, setRightScreen, setSelectedToggle]);
 
   const [rankDetails, setRankDetails] = useState([]);
 

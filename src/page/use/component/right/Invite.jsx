@@ -12,7 +12,7 @@ export default function Invite({ setRightScreen, tableId, title, setSelectedTogg
 
   useEffect(() => {
     setSelectedToggle("초대하기");
-  }, []);
+  }, [setSelectedToggle]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tableUrl).then(() => {

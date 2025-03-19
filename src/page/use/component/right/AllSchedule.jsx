@@ -1,7 +1,7 @@
 import styled from "@emotion/styled/macro";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
 import Swal from "sweetalert2";
@@ -32,17 +32,21 @@ export default function AllSchedule({
     setTimeout(() => setIsRotating(false), 1000);
   };
 
-  const Toast = Swal.mixin({
-    toast: true,
-    position: "top-end",
-    showConfirmButton: false,
-    timer: 1200,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      toast.onmouseenter = Swal.stopTimer;
-      toast.onmouseleave = Swal.resumeTimer;
-    },
-  });
+  const Toast = useMemo(
+    () =>
+      Swal.mixin({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.onmouseenter = Swal.stopTimer;
+          toast.onmouseleave = Swal.resumeTimer;
+        },
+      }),
+    []
+  );
 
   const names = usersSchedule.map((user) => user.name);
   const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
@@ -62,6 +66,31 @@ export default function AllSchedule({
     }
   };
 
+  const fetchData = async () => {
+    const res = await getChating(tableId);
+    if (res.status === 200) {
+      setChatLog(res.data);
+    } else if (res.status === 201) {
+      setChatLog([
+        {
+          name: "팁",
+          message: "공지사항이나 의견 등을 자유롭게 공유해 보세요.",
+        },
+      ]);
+    } else {
+      setChatLog([]);
+      await Toast.fire({
+        icon: "error",
+        iconColor: `${theme.color.primary}`,
+        title: "채팅 데이터를 가져오는 중 오류 발생",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const updateChatLog = async () => {
     if (!name || !isNameMatching) {
       setRightScreen("MySchedule");
@@ -72,7 +101,7 @@ export default function AllSchedule({
       const res = await postChat(tableId, name, message);
       if (res.success) {
         setMessage("");
-        setShouldFetch((prev) => !prev);
+        await fetchData();
         if (chatEndRef.current) {
           chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
         }
@@ -91,31 +120,6 @@ export default function AllSchedule({
       });
     }
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await getChating(tableId);
-      if (res.status === 200) {
-        setChatLog(res.data);
-      } else if (res.status === 201) {
-        const info = [
-          {
-            name: "팁",
-            message: "공지사항이나 의견 등을 자유롭게 공유해 보세요. ",
-          },
-        ];
-        setChatLog(info);
-      } else {
-        setChatLog([]);
-        await Toast.fire({
-          icon: "error",
-          iconColor: `${theme.color.primary}`,
-          title: "채팅 데이터를 가져오는 중 오류 발생",
-        });
-      }
-    };
-    fetchData();
-  }, [tableId, shouldFetch]);
 
   useLayoutEffect(() => {
     if (chatEndRef.current) {

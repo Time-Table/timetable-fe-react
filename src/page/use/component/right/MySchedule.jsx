@@ -48,7 +48,15 @@ export default function MySchedule({
     }
 
     setIsLoading(false);
-  }, [name, usersScheduleList, setRightScreen, setSelectedToggle, setSaveButtonState]);
+  }, [
+    name,
+    usersScheduleList,
+    setRightScreen,
+    setSelectedToggle,
+    setSaveButtonState,
+    selectedCells.length,
+    userScheduleInfo?.availableTimes,
+  ]);
 
   const handleButtonClick = async () => {
     if (!tableId || !name) {

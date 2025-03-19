@@ -27,7 +27,6 @@ export default function CreatePage2({
     timer: 2000,
     padding: "1.5em",
   });
-
   useEffect(() => {
     const preTitle = localStorage.getItem("title");
     if (startHour && endHour && tableTitle && dates && endTimeClicked) {
@@ -36,10 +35,10 @@ export default function CreatePage2({
       setTitle(tableTitle);
       setIsEndTimeClicked(endTimeClicked);
     }
-    if (localStorage.getItem("title")) {
+    if (preTitle) {
       setTitle(preTitle);
     }
-  }, [sHour && eHour && dates && endTimeClicked]);
+  }, [startHour, endHour, tableTitle, dates, endTimeClicked]);
 
   const genStartTime = () => {
     const times = [];
