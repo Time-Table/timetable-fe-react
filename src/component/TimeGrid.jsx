@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
@@ -46,76 +46,89 @@ export default function TimeGrid({
     }
   }, [timeInfo]);
 
-  const updateSelection = (cellKey, action) => {
-    if (!cellKey || cellKey === lastSelectedCell) return;
-
-    setSelectedCells((prev) => {
-      if (action === "select") {
-        if (!prev.includes(cellKey)) return [...prev, cellKey];
-      } else if (action === "deselect") {
-        if (prev.includes(cellKey)) return prev.filter((cell) => cell !== cellKey);
-      }
-      return prev;
-    });
-    setLastSelectedCell(cellKey);
-  };
+  const updateSelection = useCallback(
+    (cellKey, action) => {
+      if (!cellKey || cellKey === lastSelectedCell) return;
+      setSelectedCells((prev) => {
+        if (action === "select") {
+          if (!prev.includes(cellKey)) return [...prev, cellKey];
+        } else if (action === "deselect") {
+          if (prev.includes(cellKey)) return prev.filter((cell) => cell !== cellKey);
+        }
+        return prev;
+      });
+      setLastSelectedCell(cellKey);
+    },
+    [lastSelectedCell, setSelectedCells]
+  );
 
   // 터치 이벤트 핸들러 (모바일)
-  const handleTouchStart = (e) => {
-    if (!e.target.dataset.cellkey) return;
-    if (e.cancelable) e.preventDefault();
+  const handleTouchStart = useCallback(
+    (e) => {
+      if (!e.target.dataset.cellkey) return;
+      if (e.cancelable) e.preventDefault();
 
-    setIsDragging(true);
-    const cellKey = e.target.dataset.cellkey;
-    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-    setDragAction(action);
-    updateSelection(cellKey, action);
-  };
+      setIsDragging(true);
+      const cellKey = e.target.dataset.cellkey;
+      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+      setDragAction(action);
+      updateSelection(cellKey, action);
+    },
+    [selectedCells, updateSelection]
+  );
 
-  const handleTouchMove = (e) => {
-    if (!isDragging || !dragAction) return;
-    if (e.cancelable) e.preventDefault();
+  const handleTouchMove = useCallback(
+    (e) => {
+      if (!isDragging || !dragAction) return;
+      if (e.cancelable) e.preventDefault();
 
-    const touch = e.touches[0];
-    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (elem && elem.dataset && elem.dataset.cellkey) {
-      updateSelection(elem.dataset.cellkey, dragAction);
-    }
-  };
+      const touch = e.touches[0];
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (elem && elem.dataset && elem.dataset.cellkey) {
+        updateSelection(elem.dataset.cellkey, dragAction);
+      }
+    },
+    [isDragging, dragAction, updateSelection]
+  );
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = useCallback((e) => {
     if (e.cancelable) e.preventDefault();
     setIsDragging(false);
     setDragAction(null);
     setLastSelectedCell(null);
-  };
+  }, []);
 
   // 마우스 이벤트 핸들러 (PC)
-  const handleMouseDown = (e) => {
-    if (!e.target.dataset.cellkey) return;
-    e.preventDefault();
+  const handleMouseDown = useCallback(
+    (e) => {
+      if (!e.target.dataset.cellkey) return;
+      e.preventDefault();
 
-    setIsDragging(true);
-    const cellKey = e.target.dataset.cellkey;
-    const action = selectedCells.includes(cellKey) ? "deselect" : "select";
-    setDragAction(action);
-    updateSelection(cellKey, action);
-  };
+      setIsDragging(true);
+      const cellKey = e.target.dataset.cellkey;
+      const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+      setDragAction(action);
+      updateSelection(cellKey, action);
+    },
+    [selectedCells, updateSelection]
+  );
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || !dragAction) return;
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDragging || !dragAction) return;
+      const elem = document.elementFromPoint(e.clientX, e.clientY);
+      if (elem && elem.dataset && elem.dataset.cellkey) {
+        updateSelection(elem.dataset.cellkey, dragAction);
+      }
+    },
+    [isDragging, dragAction, updateSelection]
+  );
 
-    const elem = document.elementFromPoint(e.clientX, e.clientY);
-    if (elem && elem.dataset && elem.dataset.cellkey) {
-      updateSelection(elem.dataset.cellkey, dragAction);
-    }
-  };
-
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     setDragAction(null);
     setLastSelectedCell(null);
-  };
+  }, []);
 
   // 이벤트 리스너 등록
   useEffect(() => {
@@ -125,12 +138,10 @@ export default function TimeGrid({
       gridEl.addEventListener("touchstart", handleTouchStart, { passive: false });
       gridEl.addEventListener("touchmove", handleTouchMove, { passive: false });
       gridEl.addEventListener("touchend", handleTouchEnd, { passive: false });
-
       // PC 이벤트
       gridEl.addEventListener("mousedown", handleMouseDown);
       gridEl.addEventListener("mousemove", handleMouseMove);
       gridEl.addEventListener("mouseup", handleMouseUp);
-      // 드래그 중 그리드 밖으로 나갔을 때도 이벤트 처리
       gridEl.addEventListener("mouseleave", handleMouseUp);
 
       return () => {
@@ -143,7 +154,14 @@ export default function TimeGrid({
         gridEl.removeEventListener("mouseleave", handleMouseUp);
       };
     }
-  }, [isDragging, dragAction, selectedCells]);
+  }, [
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+  ]);
 
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
