@@ -17,7 +17,7 @@ export default function CreatePage2({
 }) {
   const [startDropdown, setStartDropdown] = useState(false);
   const [endDropdown, setEndDropdown] = useState(false);
-  const [sHour, setSHour] = useState("00:00");
+  const [sHour, setSHour] = useState("15:00");
   const [eHour, setEHour] = useState("-- : --");
   const [isEndTimeClicked, setIsEndTimeClicked] = useState(0);
   const [title, setTitle] = useState("");

@@ -87,7 +87,7 @@ export default function ManagerPage() {
       </ButtonContainer>
       <br />
       <br />
-      <img src={image} alt="OG Image" />
+      <img src={image} alt="OG Preview" />
     </Container>
   );
 }

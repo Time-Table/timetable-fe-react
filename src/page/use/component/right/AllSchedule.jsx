@@ -1,7 +1,7 @@
 import styled from "@emotion/styled/macro";
 import Input from "../../../../component/Input";
 import theme from "../../../../theme";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
 import Swal from "sweetalert2";
@@ -23,7 +23,6 @@ export default function AllSchedule({
 }) {
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState([]);
-  const [shouldFetch, setShouldFetch] = useState(false);
   const chatEndRef = useRef(null);
   const isNameMatching = usersSchedule.some((item) => item.name === name);
   const [isRotating, setIsRotating] = useState(false);
@@ -65,18 +64,14 @@ export default function AllSchedule({
       setCurrentSlide(0);
     }
   };
+  const cachedChatLog = useMemo(() => chatLog, [chatLog]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const res = await getChating(tableId);
     if (res.status === 200) {
       setChatLog(res.data);
     } else if (res.status === 201) {
-      setChatLog([
-        {
-          name: "팁",
-          message: "공지사항이나 의견 등을 자유롭게 공유해 보세요.",
-        },
-      ]);
+      setChatLog([{ name: "팁", message: "공지사항이나 의견 등을 자유롭게 공유해 보세요." }]);
     } else {
       setChatLog([]);
       await Toast.fire({
@@ -85,11 +80,11 @@ export default function AllSchedule({
         title: "채팅 데이터를 가져오는 중 오류 발생",
       });
     }
-  };
+  }, [tableId, Toast]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const updateChatLog = async () => {
     if (!name || !isNameMatching) {
@@ -199,7 +194,7 @@ export default function AllSchedule({
           </ButtonBox>
         </div>
         <ChatingDiv ref={chatEndRef}>
-          {chatLog.map((chat, idx) => (
+          {cachedChatLog.map((chat, idx) => (
             <ChatDiv key={idx}>
               <NameDiv>{chat.name}:</NameDiv>
               <MessageDiv>{chat.message}</MessageDiv>
