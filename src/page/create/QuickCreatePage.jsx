@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import styled from "@emotion/styled";
-import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme";
 import Seo from "../../Seo";
