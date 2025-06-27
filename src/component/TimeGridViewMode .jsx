@@ -3,388 +3,348 @@ import styled from "@emotion/styled";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 import Loader from "../page/use/component/Loading";
-import Swal from "sweetalert2";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function TimeGridViewMode({
-  dates = [],
-  startHour = "00:00",
-  endHour = "00:30",
-  timeInfo,
-  selectedName,
-  isViewMode,
-  banedCells = [],
+     dates = [],
+     startHour = "00:00",
+     endHour = "00:30",
+     timeInfo,
+     banedCells = [],
 }) {
-  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
-  const [weeks, setWeeks] = useState([]);
-  const [cellColorMap, setCellColorMap] = useState({});
-  const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const resolveTimeInfo = async () => {
-      setIsLoading(true);
-      try {
-        if (timeInfo instanceof Promise) {
-          const resolved = await timeInfo;
-          setResolvedTimeInfo(Array.isArray(resolved) ? resolved : []);
-        } else {
-          setResolvedTimeInfo(Array.isArray(timeInfo) ? timeInfo : []);
-        }
-      } catch (error) {
-        console.error("Error resolving timeInfo:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+     const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+     const [weeks, setWeeks] = useState([]);
+     const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]);
+     const [isLoading, setIsLoading] = useState(true);
+     const [maxCount, setMaxCount] = useState(1);
+     const [hoveredCell, setHoveredCell] = useState(null);
+     const todayDateString = new Date().toISOString().split("T")[0];
 
-    resolveTimeInfo();
-  }, [timeInfo]);
+     useEffect(() => {
+          const resolveTimeInfo = async () => {
+               setIsLoading(true);
+               try {
+                    const resolved = timeInfo instanceof Promise ? await timeInfo : timeInfo;
+                    const validData = Array.isArray(resolved) ? resolved : [];
+                    setResolvedTimeInfo(validData);
+                    const max = validData.reduce((acc, cur) => Math.max(acc, cur.count), 1);
+                    setMaxCount(max);
+               } catch (error) {
+                    console.error("Error resolving timeInfo:", error);
+                    setResolvedTimeInfo([]);
+               } finally {
+                    setIsLoading(false);
+               }
+          };
+          resolveTimeInfo();
+     }, [timeInfo]);
 
-  useEffect(() => {
-    if (Array.isArray(dates) && dates.length > 0) {
-      setWeeks(groupDatesByWeek(dates));
-    }
-  }, [dates]);
+     const groupDatesByWeek = (datesArray) => {
+          if (!datesArray || datesArray.length === 0) return [];
+          const weeks = {};
+          datesArray.forEach((date) => {
+               const current = new Date(date + "T00:00:00Z");
+               const dayOfWeek = current.getUTCDay();
+               current.setUTCDate(current.getUTCDate() - dayOfWeek);
+               const weekKey = current.toISOString().split("T")[0];
+               if (!weeks[weekKey]) weeks[weekKey] = new Set();
+               weeks[weekKey].add(date);
+          });
+          return Object.keys(weeks)
+               .sort()
+               .map((weekKey) => {
+                    const weekStart = new Date(weekKey + "T00:00:00Z");
+                    return Array.from({ length: 7 }, (_, i) => {
+                         const day = new Date(weekStart);
+                         day.setUTCDate(weekStart.getUTCDate() + i);
+                         return day.toISOString().split("T")[0];
+                    });
+               });
+     };
 
-  useEffect(() => {
-    if (Array.isArray(resolvedTimeInfo)) {
-      if (selectedName) {
-        updateSelectedNameDateInfo(resolvedTimeInfo);
-      } else {
-        updateDateInfo(resolvedTimeInfo);
-      }
-    } else {
-      console.error("timeInfo is not an array:", resolvedTimeInfo);
-    }
-  }, [resolvedTimeInfo, selectedName]);
+     useEffect(() => {
+          if (Array.isArray(dates) && dates.length > 0) {
+               setWeeks(groupDatesByWeek(dates));
+               setCurrentWeekIndex(0);
+          }
+     }, [dates]);
 
-  const updateSelectedNameDateInfo = (data) => {
-    if (!Array.isArray(data)) {
-      console.error("Expected an array, but received:", data);
-      return;
-    }
+     const generateTimeRange = (start, end) => {
+          const times = [];
+          let [startHourNum] = start.split(":").map(Number);
+          let [endHourNum] = end.split(":").map(Number);
+          if (startHourNum >= endHourNum) return [];
+          while (startHourNum < endHourNum) {
+               times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
+               times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
+               startHourNum++;
+          }
+          return times;
+     };
+     const timeRange = generateTimeRange(startHour, endHour);
+     const currentWeek = weeks[currentWeekIndex] || [];
+     const nextWeek = () => {
+          if (currentWeekIndex < weeks.length - 1) setCurrentWeekIndex((prev) => prev + 1);
+     };
+     const prevWeek = () => {
+          if (currentWeekIndex > 0) setCurrentWeekIndex((prev) => prev - 1);
+     };
+     const formatDate = (dateString) => {
+          const date = new Date(dateString + "T00:00:00Z");
+          const day = date.getUTCDate();
+          const weekday = date.toLocaleDateString("ko-KR", { weekday: "short", timeZone: "UTC" });
+          const monthYear = date.toLocaleDateString("ko-KR", { month: "long", year: "numeric", timeZone: "UTC" });
+          return { day, weekday, monthYear };
+     };
+     const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
-    const newCellColorMap = {};
+     if (isLoading) return <Loader />;
 
-    data.forEach((dateInfo) => {
-      if (dateInfo) {
-        newCellColorMap[dateInfo] = "select";
-      }
-    });
+     return (
+          <div style={{ width: "100%" }}>
+               <GridHeader>
+                    <MonthDisplay>{monthYear}</MonthDisplay>
+                    <WeekNavigation>
+                         <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
+                              <Arrow
+                                   width={10}
+                                   height={20}
+                                   color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
+                                   angle={180}
+                              />
+                         </ArrowLayout>
+                         <ArrowLayout disabled={currentWeekIndex >= weeks.length - 1} onClick={nextWeek}>
+                              <Arrow
+                                   width={10}
+                                   height={20}
+                                   color={currentWeekIndex >= weeks.length - 1 ? theme.text.gamma[800] : "black"}
+                              />
+                         </ArrowLayout>
+                    </WeekNavigation>
+               </GridHeader>
+               <GridContainer>
+                    <Grid>
+                         <HeaderRow>
+                              <EmptyCell />
+                              {currentWeek.map((date) => {
+                                   const { day, weekday } = formatDate(date);
+                                   const isToday = date === todayDateString;
+                                   return (
+                                        <HeaderCell key={date} isDisabled={!dates.includes(date)} isToday={isToday}>
+                                             <WeekdayBox>{weekday}</WeekdayBox>
+                                             <DayBox isToday={isToday}>{day}</DayBox>
+                                        </HeaderCell>
+                                   );
+                              })}
+                         </HeaderRow>
+                         {timeRange.map((time, timeIndex) => (
+                              <Row key={timeIndex}>
+                                   <TimeCell>{timeIndex % 2 === 0 ? time : ""}</TimeCell>
+                                   {currentWeek.map((date) => {
+                                        const cellKey = `${date}-${time}`;
+                                        const info = resolvedTimeInfo.find((item) => item.time === cellKey);
+                                        const count = info?.count || 0;
+                                        const opacity = count > 0 ? 0.2 + (count / maxCount) * 0.8 : 0;
 
-    setCellColorMap((prev) =>
-      JSON.stringify(prev) === JSON.stringify(newCellColorMap) ? prev : newCellColorMap
-    );
-  };
-
-  const updateDateInfo = (data) => {
-    const newCellColorMap = {};
-    data.forEach((dateInfo) => {
-      if (dateInfo?.time) {
-        newCellColorMap[dateInfo.time] = dateInfo.colorNumber || 20;
-      }
-    });
-    setCellColorMap((prev) =>
-      JSON.stringify(prev) === JSON.stringify(newCellColorMap) ? prev : newCellColorMap
-    );
-  };
-
-  function groupDatesByWeek(datesArray) {
-    const weeks = {};
-    datesArray.forEach((date) => {
-      const current = new Date(date);
-      const firstDayOfWeek = new Date(current.setDate(current.getDate() - current.getDay()));
-      const weekKey = firstDayOfWeek.toISOString().split("T")[0];
-      if (!weeks[weekKey]) {
-        weeks[weekKey] = [];
-      }
-      weeks[weekKey].push(date);
-    });
-
-    return Object.keys(weeks).map((weekKey) => {
-      const weekStart = new Date(weekKey);
-      return Array.from({ length: 7 }, (_, i) => {
-        const day = new Date(weekStart);
-        day.setDate(weekStart.getDate() + i);
-        return day.toISOString().split("T")[0];
-      });
-    });
-  }
-
-  const generateTimeRange = (start, end) => {
-    const times = [];
-    let [startHourNum] = start.split(":").map(Number);
-    let [endHourNum] = end.split(":").map(Number);
-
-    if (startHourNum > endHourNum) {
-      [startHourNum, endHourNum] = [endHourNum, startHourNum];
-    }
-
-    while (startHourNum < endHourNum || (startHourNum === endHourNum && times.length === 0)) {
-      times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
-      times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
-      startHourNum++;
-    }
-
-    return times;
-  };
-
-  const timeRange = generateTimeRange(startHour, endHour);
-  const currentWeek = weeks[currentWeekIndex] || [];
-
-  const nextWeek = () => {
-    if (currentWeekIndex < weeks.length - 1) {
-      setCurrentWeekIndex((prev) => prev + 1);
-    }
-  };
-
-  const prevWeek = () => {
-    if (currentWeekIndex > 0) {
-      setCurrentWeekIndex((prev) => prev - 1);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const weekday = date.toLocaleDateString("ko-KR", { weekday: "short" });
-    const monthYear = date.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
-    return { day, weekday, monthYear };
-  };
-
-  const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
-
-  if (isLoading) {
-    return <Loader />;
-  }
-
-  const handleCellClick = (cellKey) => {
-    const info = resolvedTimeInfo.find((item) => item.time === cellKey);
-    if (!document.getElementById("swal-styles")) {
-      const style = document.createElement("style");
-      style.id = "swal-styles";
-      style.innerHTML = `
-        .swal-popup { border-radius: 10px; padding: 20px; }
-        .swal-title { font-size: 22px; font-weight: bold; }
-        .swal-html { font-size: 16px; color: #333; }
-      `;
-      document.head.appendChild(style);
-    }
-    Swal.fire({
-      title: info ? `시간: ${info.time}` : "정보 없음",
-      html: info
-        ? `<div style="text-align:left;">
-            <p><strong>인원:</strong> ${info.count} 명</p>
-            <p><strong>참여:</strong> ${info.members.join(", ")}</p>
-          </div>`
-        : "해당 셀에 대한 정보가 없습니다.",
-      icon: info ? "info" : "warning",
-      confirmButtonText: "확인",
-      confirmButtonColor: theme.color.primary,
-      customClass: { popup: "swal-popup", title: "swal-title", htmlContainer: "swal-html" },
-    });
-  };
-
-  return (
-    <GridWrapper>
-      <MonthDisplay>{monthYear}</MonthDisplay>
-      <Grid columns={currentWeek.length + 1}>
-        <HeaderRow>
-          <EmptyCell />
-          {currentWeek.map((date, index) => {
-            const { day, weekday } = formatDate(date);
-            return (
-              <HeaderCell key={index} isDisabled={!dates.includes(date)}>
-                <WeekBox>{day}</WeekBox>
-                <WeekBox>{weekday}</WeekBox>
-              </HeaderCell>
-            );
-          })}
-        </HeaderRow>
-        {timeRange.map((time, timeIndex) => (
-          <Row key={timeIndex}>
-            <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
-            {currentWeek.map((date, dateIndex) => {
-              const cellKey = `${date}-${time}`;
-              const isDisabled = !dates.includes(date);
-              const infoForCell = resolvedTimeInfo.find((item) => item.time === cellKey);
-              const hasParticipants = infoForCell ? infoForCell.count > 0 : false;
-              const clickable = !isDisabled && hasParticipants;
-              const colorNumber = cellColorMap[cellKey];
-              const isSelected = !!colorNumber;
-
-              return (
-                <Cell
-                  key={cellKey}
-                  timeIndex={timeIndex}
-                  cellIndex={dateIndex}
-                  isSelected={isSelected}
-                  isDisabled={isDisabled}
-                  isViewMode={isViewMode}
-                  color={colorNumber}
-                  banedCells={banedCells}
-                  cellKey={cellKey}
-                  clickable={clickable}
-                  onClick={clickable ? () => handleCellClick(cellKey) : null}
-                />
-              );
-            })}
-          </Row>
-        ))}
-      </Grid>
-      <WeekNavigation>
-        <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
-          <Arrow
-            width={10}
-            height={20}
-            color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
-            angle={180}
-          />
-        </ArrowLayout>
-        <ArrowLayout disabled={currentWeekIndex === weeks.length - 1} onClick={nextWeek}>
-          <Arrow
-            width={10}
-            height={20}
-            color={currentWeekIndex === weeks.length - 1 ? theme.text.gamma[800] : "black"}
-          />
-        </ArrowLayout>
-      </WeekNavigation>
-    </GridWrapper>
-  );
+                                        return (
+                                             <Cell
+                                                  key={cellKey}
+                                                  isDisabled={!dates.includes(date)}
+                                                  isBaned={banedCells.includes(cellKey)}
+                                                  onMouseEnter={() => setHoveredCell(info)}
+                                                  onMouseLeave={() => setHoveredCell(null)}
+                                                  onTouchStart={() => setHoveredCell(info)}
+                                                  onTouchEnd={() => setTimeout(() => setHoveredCell(null), 2000)}
+                                             >
+                                                  <ColoringLayer style={{ opacity }} />
+                                                  <AnimatePresence>
+                                                       {hoveredCell === info && info && (
+                                                            <Tooltip
+                                                                 initial={{ opacity: 0, y: 10 }}
+                                                                 animate={{ opacity: 1, y: 0 }}
+                                                                 exit={{ opacity: 0, y: 10 }}
+                                                            >
+                                                                 <TooltipContent>
+                                                                      <strong>{info.count}명</strong>
+                                                                      <span>{info.members.join(", ")}</span>
+                                                                 </TooltipContent>
+                                                            </Tooltip>
+                                                       )}
+                                                  </AnimatePresence>
+                                             </Cell>
+                                        );
+                                   })}
+                              </Row>
+                         ))}
+                    </Grid>
+               </GridContainer>
+          </div>
+     );
 }
 
-const GridWrapper = styled.div`
-  ${theme.styles.flexCenterColumn};
-  user-select: none;
-  gap: 30px;
+const GridHeader = styled.div`
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 12px;
+     padding: 0 4px;
 `;
-
 const MonthDisplay = styled.div`
-  width: 70%;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-family: "Pretendard-Medium";
-  font-size: 23px;
-  margin-bottom: 10px;
-  @media (max-width: 480px) {
-    font-size: 20px;
-  }
+     font-family: "Pretendard-Bold";
+     font-size: 22px;
+     color: ${theme.text.gamma[300]};
+     @media (max-width: 480px) {
+          font-size: 18px;
+     }
 `;
-
 const WeekNavigation = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 80px;
-  gap: 20px;
-  width: 100%;
-
-  @media (max-width: 480px) {
-    padding-right: 0px;
-  }
+     display: flex;
+     gap: 16px;
 `;
-
+const GridContainer = styled.div`
+     position: relative;
+`;
 const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr repeat(${(props) => props.columns - 1}, 1fr);
+     display: grid;
+     grid-template-columns: 55px repeat(7, 1fr);
+     background-color: white;
+     @media (max-width: 480px) {
+          grid-template-columns: 45px repeat(7, 1fr);
+     }
 `;
-
 const HeaderRow = styled.div`
-  display: contents;
+     display: contents;
 `;
-
 const Row = styled.div`
-  font-size: 16px;
-  display: contents;
+     font-size: 16px;
+     display: contents;
 `;
-
 const EmptyCell = styled.div`
-  grid-column: span 1;
+     grid-column: 1 / 2;
+     border-bottom: 1px solid ${theme.text.gamma[900]};
 `;
-
 const HeaderCell = styled.div`
-  grid-column: span 1;
-  width: 60px;
-  font-family: "Pretendard-Regular";
-  font-size: 20px;
-  pointer-events: ${(props) => (props.isDisabled ? "none" : "auto")};
-
-  @media (max-width: 480px) {
-    width: 40px;
-    font-size: 17px;
-  }
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     gap: 4px;
+     padding: 8px 0 12px;
+     color: ${(props) => (props.isDisabled ? theme.text.gamma[800] : "inherit")};
+     background-color: ${(props) => (props.isToday ? `${theme.color.primary}10` : "transparent")};
 `;
-
+const WeekdayBox = styled.div`
+     font-family: "Pretendard-Regular";
+     font-size: 13px;
+     color: ${theme.text.gamma[500]};
+`;
+const DayBox = styled.div`
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     font-family: "Pretendard-SemiBold";
+     font-size: 18px;
+     width: 32px;
+     height: 32px;
+     border-radius: 50%;
+     background-color: ${(props) => (props.isToday ? theme.color.primary : "transparent")};
+     color: ${(props) => (props.isToday ? "white" : "inherit")};
+`;
 const TimeCell = styled.div`
-  grid-column: span 1;
-  text-align: right;
-  padding-right: 10px;
-  @media (max-width: 480px) {
-    padding-right: 5px;
-  }
+     position: relative;
+     top: -8px;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     grid-column: 1 / 2;
+     font-size: 12px;
+     font-family: "Pretendard-Medium";
+     color: ${theme.text.gamma[600]};
 `;
 
 const Cell = styled.div`
-  width: 60px;
-  height: 30px;
-  grid-column: span 1;
-  border-right: ${(props) =>
-    props.cellIndex === 6 ? "none" : `1px solid ${theme.text.gamma[800]}`};
-  border-top: ${(props) => {
-    if (props.timeIndex === 0) return "none";
-    else if (props.timeIndex % 2 === 0 && !props.isDisabled)
-      return `2px solid ${theme.text.gamma[800]}`;
-    else if (!props.isDisabled) return `1px solid ${theme.text.gamma[800]}`;
-    return `2px solid ${theme.text.gamma[800]}`;
-  }};
-
-  background-color: ${(props) =>
-    props.isSelected
-      ? props.color
-        ? `${theme.color.timeGrid[props.color]}`
-        : `${theme.color.primary}`
-      : props.isDisabled || props.banedCells.includes(props.cellKey)
-      ? `${theme.text.gamma[800]}`
-      : "white"};
-
-  cursor: ${(props) => (props.clickable ? "pointer" : "not-allowed")};
-  pointer-events: ${(props) => (props.clickable ? "auto" : "none")};
-
-  @media (max-width: 480px) {
-    width: 43px;
-    height: 20px;
-  }
+     position: relative;
+     height: 30px;
+     border-right: 1px solid ${theme.text.gamma[900]};
+     border-bottom: 1px solid ${theme.text.gamma[900]};
+     background-color: ${(props) => (props.isDisabled || props.isBaned) && theme.text.gamma[900]};
+     cursor: ${(props) => (props.isDisabled || props.isBaned ? "not-allowed" : "pointer")};
+     @media (max-width: 480px) {
+          height: 26px;
+     }
 `;
 
-const WeekBox = styled.div`
-  ${theme.styles.flexCenterColumn}
-  width: 60px;
-  height: 40px;
+const ColoringLayer = styled.div`
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     background-color: ${theme.color.primary};
+     transition: opacity 0.3s ease;
+`;
 
-  @media (max-width: 480px) {
-    width: 40px;
-  }
+const Tooltip = styled(motion.div)`
+     position: absolute;
+     bottom: calc(100% + 8px);
+     left: 50%;
+     transform: translateX(-50%);
+     padding: 8px 12px;
+     background-color: ${theme.text.gamma[100]};
+     color: white;
+     border-radius: 8px;
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+     z-index: 20;
+     width: max-content;
+     max-width: 200px;
+     pointer-events: none;
+
+     &::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          border: 6px solid transparent;
+          border-top-color: ${theme.text.gamma[100]};
+     }
+`;
+
+const TooltipContent = styled.div`
+     display: flex;
+     flex-direction: column;
+     gap: 4px;
+
+     strong {
+          font-family: "Pretendard-Bold";
+          font-size: 14px;
+     }
+     span {
+          font-family: "Pretendard-Regular";
+          font-size: 12px;
+          white-space: pre-wrap;
+     }
 `;
 
 const ArrowLayout = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-
-  svg {
-    width: ${(props) => (props.width ? `${props.width}px` : "10px")};
-    height: ${(props) => (props.height ? `${props.height}px` : "20px")};
-  }
-
-  @media (max-width: 480px) {
-    svg {
-      width: 7px;
-      height: 14px;
-    }
-  }
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     background: none;
+     border: 1px solid ${theme.text.gamma[800]};
+     border-radius: 50%;
+     width: 32px;
+     height: 32px;
+     cursor: pointer;
+     transition: background-color 0.2s, border-color 0.2s;
+     pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
+     opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+     &:hover {
+          background-color: ${theme.text.gamma[900]};
+          border-color: ${theme.text.gamma[700]};
+     }
+     svg {
+          width: 8px;
+          height: 16px;
+     }
 `;

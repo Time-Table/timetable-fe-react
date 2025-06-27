@@ -23,612 +23,596 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/trackVisit";
 
 export default function UsePage() {
-  const { tableId } = useParams();
-  const [tableInfo, setTableInfo] = useState();
-  const [usersScheduleList, setUsersScheduleList] = useState([]);
-  const { startHour, endHour, dates } = tableInfo ? tableInfo : "";
-  const [saveButtonState, setSaveButtonState] = useState(true);
-  const [timeInfo, setTimeInfo] = useState([]);
-  const title = tableInfo ? tableInfo.title : "";
-  const leftScreen = "AllTimeGrid";
-  const [rightScreen, setRightScreen] = useState("AllSchedule");
-  const [selectedToggle, setSelectedToggle] = useState("인원");
-  const [selectedName, setSelectedName] = useState(false);
-  const [name, setName] = useState("");
-  const banedCells = tableInfo ? tableInfo.banedCells : [];
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [showIntro, setShowIntro] = useState(true);
-  const closeIntro = () => setShowIntro(false);
-  const [isValidTableId, setIsValidTableId] = useState(null);
+     const { tableId } = useParams();
+     const [tableInfo, setTableInfo] = useState();
+     const [usersScheduleList, setUsersScheduleList] = useState([]);
+     const { startHour, endHour, dates } = tableInfo || {};
+     const [saveButtonState, setSaveButtonState] = useState(true);
+     const [timeInfo, setTimeInfo] = useState([]);
+     const title = tableInfo ? tableInfo.title : "";
+     const leftScreen = "AllTimeGrid";
+     const [rightScreen, setRightScreen] = useState("AllSchedule");
+     const [selectedToggle, setSelectedToggle] = useState("인원");
+     const [selectedName, setSelectedName] = useState(false);
+     const [name, setName] = useState("");
+     const banedCells = tableInfo ? tableInfo.banedCells : [];
+     const [currentSlide, setCurrentSlide] = useState(0);
+     const [showIntro, setShowIntro] = useState(true);
+     const closeIntro = () => setShowIntro(false);
+     const [isValidTableId, setIsValidTableId] = useState(null);
 
-  useEffect(() => {
-    const getVisitLog = async () => {
-      await trackVisit("table");
-    };
-    getVisitLog();
-  }, []);
+     useEffect(() => {
+          trackVisit("table");
+     }, []);
+     useEffect(() => {
+          const fetchTableInfo = async () => {
+               const tableData = await getTableInfo(tableId);
+               if (tableData.status === 404) {
+                    setIsValidTableId(false);
+                    return;
+               }
+               setTableInfo(tableData);
+               setIsValidTableId(true);
+          };
+          fetchTableInfo();
+     }, [tableId]);
+     useEffect(() => {
+          const storedName = localStorage.getItem("name");
+          if (tableId !== localStorage.getItem("tableId")) {
+               localStorage.clear();
+               localStorage.setItem("tableId", tableId);
+          }
+          if (storedName) {
+               setName(storedName);
+          }
+          const fetchData = async () => {
+               const membersSchedule = await getAllSchedule(tableId);
+               if (membersSchedule.code === 200) {
+                    setUsersScheduleList(membersSchedule.data);
+               }
+               const timeData = await getSchedule(tableId);
+               setTimeInfo(timeData);
+          };
+          if (tableId && isValidTableId) {
+               fetchData();
+          }
+     }, [saveButtonState, tableId, isValidTableId]);
 
-  useEffect(() => {
-    const fetchTableInfo = async () => {
-      const tableInfo = await getTableInfo(tableId);
-      if (tableInfo.status === 404) {
-        setIsValidTableId(false);
-        return;
-      }
-      setTableInfo(tableInfo);
-      setIsValidTableId(true);
-    };
-    fetchTableInfo();
-  }, [tableId]);
+     const datesInfo = async () => {
+          if (selectedName) {
+               const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
+               return scheduleOfSelectedName ? scheduleOfSelectedName.availableTimes : [];
+          }
+          return [];
+     };
+     const handleToggle = (button) => {
+          setSelectedToggle(button);
+     };
+     const showScreen = (Screen) => {
+          switch (Screen) {
+               case "AddUser":
+                    return (
+                         <AddUser
+                              setRightScreen={setRightScreen}
+                              setName={setName}
+                              name={name}
+                              tableId={tableId}
+                              setSelectedToggle={setSelectedToggle}
+                         />
+                    );
+               case "Invite":
+                    return tableInfo ? (
+                         <Invite
+                              setRightScreen={setRightScreen}
+                              tableId={tableId}
+                              title={title}
+                              setSelectedToggle={setSelectedToggle}
+                         />
+                    ) : (
+                         <Loader />
+                    );
+               case "AllTimeGrid":
+                    return tableInfo ? (
+                         <AllTimeGrid
+                              dates={dates}
+                              startHour={startHour}
+                              endHour={endHour}
+                              timeInfo={selectedName ? datesInfo() : timeInfo}
+                              selectedName={selectedName}
+                              setSelectedName={setSelectedName}
+                              title={title}
+                              banedCells={banedCells}
+                              setTableInfo={setTableInfo}
+                              tableId={tableId}
+                         />
+                    ) : (
+                         <Loader />
+                    );
+               case "AllSchedule":
+                    return (
+                         <AllSchedule
+                              setRightScreen={setRightScreen}
+                              setName={setName}
+                              selectedName={selectedName}
+                              setSelectedName={setSelectedName}
+                              usersSchedule={usersScheduleList}
+                              name={name}
+                              tableId={tableId}
+                              setSelectedToggle={setSelectedToggle}
+                              setCurrentSlide={setCurrentSlide}
+                         />
+                    );
+               case "MySchedule":
+                    return tableInfo ? (
+                         <MySchedule
+                              dates={dates}
+                              startHour={startHour}
+                              endHour={endHour}
+                              setRightScreen={setRightScreen}
+                              tableId={tableId}
+                              saveButtonState={saveButtonState}
+                              setSaveButtonState={setSaveButtonState}
+                              usersScheduleList={usersScheduleList}
+                              banedCells={banedCells}
+                              setSelectedToggle={setSelectedToggle}
+                              timeInfo={timeInfo}
+                         />
+                    ) : (
+                         <Loader />
+                    );
+               case "Rank":
+                    return (
+                         <Rank
+                              setRightScreen={setRightScreen}
+                              timeInfo={timeInfo}
+                              selectedName={selectedName}
+                              setSelectedName={setSelectedName}
+                              setSelectedToggle={setSelectedToggle}
+                              setCurrentSlide={setCurrentSlide}
+                         />
+                    );
+               default:
+                    return "예상치 못한 에러입니다. 다시 시도해주세요.";
+          }
+     };
+     const sliderSettings = {
+          dots: true,
+          infinite: false,
+          speed: 800,
+          slidesToShow: 1,
+          slidesToScroll: 1,
+          arrows: false,
+          adaptiveHeight: true,
+          dotsClass: "slick-dots custom-dots",
+          initialSlide: currentSlide,
+          beforeChange: (_, next) => setCurrentSlide(next),
+     };
 
-  useEffect(() => {
-    const name = localStorage.getItem("name");
-    if (tableId !== localStorage.getItem("tableId")) {
-      localStorage.clear();
-      localStorage.setItem("tableId", tableId);
-    }
-    if (name) {
-      setName(name);
-    }
-    const fetchData = async () => {
-      const membersSchedule = await getAllSchedule(tableId);
-      if (membersSchedule.code === 200) {
-        setUsersScheduleList(membersSchedule.data);
-      }
-      const timeData = await getSchedule(tableId);
-      setTimeInfo(timeData);
-    };
-    if (tableId) {
-      fetchData();
-    }
-  }, [saveButtonState, tableId, name]);
-  const datesInfo = async () => {
-    if (selectedName) {
-      const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
-      return scheduleOfSelectedName.availableTimes;
-    }
-  };
-
-  const handleToggle = (button) => {
-    setSelectedToggle(button);
-  };
-
-  const showScreen = (Screen) => {
-    switch (Screen) {
-      case "AddUser":
-        return (
-          <AddUser
-            setRightScreen={setRightScreen}
-            setName={setName}
-            name={name}
-            tableId={tableId}
-            setSelectedToggle={setSelectedToggle}
-          />
-        );
-      case "Invite":
-        return tableInfo ? (
-          <Invite
-            setRightScreen={setRightScreen}
-            tableId={tableId}
-            title={title}
-            setSelectedToggle={setSelectedToggle}
-          />
-        ) : (
-          <div>
-            <Loader />
-          </div>
-        );
-
-      case "AllTimeGrid":
-        return (
-          <AllTimeGrid
-            dates={dates}
-            startHour={startHour}
-            endHour={endHour}
-            timeInfo={selectedName ? datesInfo() : timeInfo}
-            selectedName={selectedName}
-            setSelectedName={setSelectedName}
-            title={title}
-            banedCells={banedCells}
-            setTableInfo={setTableInfo}
-            tableId={tableId}
-          />
-        );
-      case "AllSchedule":
-        return (
-          <AllSchedule
-            setRightScreen={setRightScreen}
-            setName={setName}
-            selectedName={selectedName}
-            setSelectedName={setSelectedName}
-            usersSchedule={usersScheduleList}
-            name={name}
-            tableId={tableId}
-            setSelectedToggle={setSelectedToggle}
-            setCurrentSlide={setCurrentSlide}
-          />
-        );
-      case "MySchedule":
-        return (
-          <MySchedule
-            dates={dates}
-            startHour={startHour}
-            endHour={endHour}
-            setRightScreen={setRightScreen}
-            tableId={tableId}
-            saveButtonState={saveButtonState}
-            setSaveButtonState={setSaveButtonState}
-            usersScheduleList={usersScheduleList}
-            banedCells={banedCells}
-            setSelectedToggle={setSelectedToggle}
-            timeInfo={timeInfo}
-          />
-        );
-      case "Rank":
-        return (
-          <Rank
-            setRightScreen={setRightScreen}
-            timeInfo={timeInfo}
-            selectedName={selectedName}
-            setSelectedName={setSelectedName}
-            setSelectedToggle={setSelectedToggle}
-            setCurrentSlide={setCurrentSlide}
-          />
-        );
-      default:
-        return "예상치 못한 에러입니다. 다시 시도해주세요.";
-    }
-  };
-
-  const sliderSettings = {
-    dots: true,
-    infinite: false,
-    speed: 800,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: false,
-    adaptiveHeight: true,
-    dotsClass: "slick-dots custom-dots",
-    initialSlide: currentSlide,
-    beforeChange: (_, next) => setCurrentSlide(next),
-  };
-
-  const SliderWrapper = styled.div`
-    position: relative;
-
-    .custom-dots {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex !important;
-      justify-content: center;
-      align-items: center;
-
-      li {
-        width: 8.5px;
-        height: 8.5px;
-        margin: 0 5px;
-        border-radius: 50%;
-        background: ${theme.text.gamma[300]};
-        transition: background 0.3s ease;
-
-        &.slick-active {
-          background: ${theme.color.primary};
-        }
-
-        &:not(.slick-active) {
-          background: ${theme.color.timeGrid[40]};
-        }
-      }
-      button {
-        display: none;
-      }
-    }
-  `;
-  if (isValidTableId === null) {
-    return (
-      <LoaderLayout>
-        <Loader />
-        <h1>테이블을 찾고 있습니다.</h1>
-        <p>*만약 로딩 시간이 길어진다면 네트워크 연결 상태를 확인해주세요.</p>
-      </LoaderLayout>
-    );
-  }
-  return isValidTableId ? (
-    <Frame>
-      <Seo
-        title={`${title}`}
-        description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
-        url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
-      />
-      <DesktopView>
-        <LeftArea>{showScreen(leftScreen)}</LeftArea>
-        <RightArea>
-          <ButtonLayout>
-            <ButtonDiv>
-              <Button
-                background={theme.color.button.blue}
-                title="초대하기"
-                onClick={() => {
-                  setRightScreen("Invite");
-                  setCurrentSlide(1);
-                }}
-              />
-            </ButtonDiv>
-            <ButtonDiv>
-              <Button
-                background={theme.color.primary}
-                title="참여하기"
-                onClick={() => {
-                  setRightScreen("AddUser");
-                }}
-              />
-            </ButtonDiv>
-          </ButtonLayout>
-          <ToggleLayout>
-            <ToggleButtonDiv>
-              <Button
-                fontFamily={selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"}
-                title={`인원(${usersScheduleList.length})`}
-                background="none"
-                color={selectedToggle === "인원" ? theme.color.primary : "black"}
-                onClick={() => {
-                  setRightScreen("AllSchedule");
-                  handleToggle("인원");
-                  setSelectedName(false);
-                }}
-              />
-            </ToggleButtonDiv>
-            <ToggleButtonDiv>
-              <Button
-                fontFamily={selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"}
-                title="내 일정"
-                background="none"
-                color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
-                onClick={() => {
-                  setRightScreen("MySchedule");
-                  handleToggle("내 일정");
-                }}
-              />
-            </ToggleButtonDiv>
-            <ToggleButtonDiv>
-              <Button
-                fontFamily={selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"}
-                title="순위"
-                background="none"
-                color={selectedToggle === "순위" ? theme.color.primary : "black"}
-                onClick={() => {
-                  setRightScreen("Rank");
-                  handleToggle("순위");
-                  setSelectedName(false);
-                }}
-              />
-            </ToggleButtonDiv>
-          </ToggleLayout>
-          {showScreen(rightScreen)}
-        </RightArea>
-      </DesktopView>
-      <MobileView>
-        <SliderWrapper>
-          <Slider {...sliderSettings}>
-            <LeftArea>
-              {showIntro && (
-                <IntroOverlay>
-                  <IntroContent>
-                    <span>환영합니다!</span>
-                    <span>
-                      현재 페이지는{" "}
-                      <span
-                        style={{
-                          fontFamily: "Pretendard-semiBold",
-                          fontSize: "19px",
-                        }}
-                      >
-                        '전체 일정'
-                      </span>
-                      입니다. <br />
-                      참여하시거나 초대하시려면 <br />
-                      오른쪽으로
-                      <span
-                        style={{ color: theme.color.primary, fontFamily: "Pretendard-semiBold" }}
-                      >
-                        슬라이드
-                      </span>
-                      해주세요.
-                    </span>
-                    <IconDiv>
-                      <TbHandFinger color={theme.color.primary} />
-                    </IconDiv>
-                    <ButtonDiv>
-                      <Button
-                        background={theme.color.button.primary}
-                        title="확인"
-                        onClick={closeIntro}
-                      />
-                    </ButtonDiv>
-                  </IntroContent>
-                </IntroOverlay>
-              )}
-              {showScreen(leftScreen)}
-            </LeftArea>
-            <RightArea>
-              <ButtonLayout>
-                <ButtonDiv>
-                  <Button
-                    background={theme.color.button.blue}
-                    title="초대하기"
-                    onClick={() => setRightScreen("Invite")}
-                  />
-                </ButtonDiv>
-                <ButtonDiv>
-                  <Button
-                    background={theme.color.primary}
-                    title="참여하기"
-                    onClick={() => {
-                      setRightScreen("AddUser");
-                    }}
-                  />
-                </ButtonDiv>
-              </ButtonLayout>
-              <ToggleLayout>
-                <ToggleButtonDiv>
-                  <Button
-                    fontFamily={
-                      selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"
-                    }
-                    title={`인원(${usersScheduleList.length})`}
-                    background="none"
-                    color={selectedToggle === "인원" ? theme.color.primary : "black"}
-                    onClick={() => {
-                      setRightScreen("AllSchedule");
-                      handleToggle("인원");
-                      setSelectedName(false);
-                    }}
-                  />
-                </ToggleButtonDiv>
-                <ToggleButtonDiv>
-                  <Button
-                    fontFamily={
-                      selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
-                    }
-                    title="내 일정"
-                    background="none"
-                    color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
-                    onClick={() => {
-                      setRightScreen("MySchedule");
-                      handleToggle("내 일정");
-                    }}
-                  />
-                </ToggleButtonDiv>
-                <ToggleButtonDiv>
-                  <Button
-                    fontFamily={
-                      selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"
-                    }
-                    title="순위"
-                    background="none"
-                    color={selectedToggle === "순위" ? theme.color.primary : "black"}
-                    onClick={() => {
-                      setRightScreen("Rank");
-                      handleToggle("순위");
-                      setSelectedName(false);
-                    }}
-                  />
-                </ToggleButtonDiv>
-              </ToggleLayout>
-              {showScreen(rightScreen)}
-            </RightArea>
-          </Slider>
-        </SliderWrapper>
-      </MobileView>
-    </Frame>
-  ) : (
-    <NotFoundTable />
-  );
+     if (isValidTableId === null) {
+          return (
+               <LoaderLayout>
+                    <Loader />
+                    <h1>테이블을 찾고 있습니다.</h1>
+                    <p>*만약 로딩 시간이 길어진다면 네트워크 연결 상태를 확인해주세요.</p>
+               </LoaderLayout>
+          );
+     }
+     return isValidTableId ? (
+          <Frame>
+               <Seo
+                    title={`${title}`}
+                    description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
+                    url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
+               />
+               <DesktopView>
+                    <LeftArea>{showScreen(leftScreen)}</LeftArea>
+                    <RightArea>
+                         <ButtonLayout>
+                              <ButtonDiv>
+                                   <Button
+                                        background={theme.color.button.blue}
+                                        title="초대하기"
+                                        onClick={() => {
+                                             setRightScreen("Invite");
+                                             setCurrentSlide(1);
+                                        }}
+                                   />
+                              </ButtonDiv>
+                              <ButtonDiv>
+                                   <Button
+                                        background={theme.color.primary}
+                                        title="참여하기"
+                                        onClick={() => {
+                                             setRightScreen("AddUser");
+                                        }}
+                                   />
+                              </ButtonDiv>
+                         </ButtonLayout>
+                         <ToggleLayout>
+                              <ToggleButtonDiv>
+                                   <Button
+                                        fontFamily={
+                                             selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"
+                                        }
+                                        title={`인원(${usersScheduleList.length})`}
+                                        background="none"
+                                        color={selectedToggle === "인원" ? theme.color.primary : "black"}
+                                        onClick={() => {
+                                             setRightScreen("AllSchedule");
+                                             handleToggle("인원");
+                                             setSelectedName(false);
+                                        }}
+                                   />
+                              </ToggleButtonDiv>
+                              <ToggleButtonDiv>
+                                   <Button
+                                        fontFamily={
+                                             selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
+                                        }
+                                        title="내 일정"
+                                        background="none"
+                                        color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
+                                        onClick={() => {
+                                             setRightScreen("MySchedule");
+                                             handleToggle("내 일정");
+                                        }}
+                                   />
+                              </ToggleButtonDiv>
+                              <ToggleButtonDiv>
+                                   <Button
+                                        fontFamily={
+                                             selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"
+                                        }
+                                        title="순위"
+                                        background="none"
+                                        color={selectedToggle === "순위" ? theme.color.primary : "black"}
+                                        onClick={() => {
+                                             setRightScreen("Rank");
+                                             handleToggle("순위");
+                                             setSelectedName(false);
+                                        }}
+                                   />
+                              </ToggleButtonDiv>
+                         </ToggleLayout>
+                         {showScreen(rightScreen)}
+                    </RightArea>
+               </DesktopView>
+               <MobileView>
+                    <SliderWrapper>
+                         <Slider {...sliderSettings}>
+                              <LeftArea>
+                                   {showIntro && (
+                                        <IntroOverlay>
+                                             <IntroContent>
+                                                  <span>환영합니다!</span>
+                                                  <span>
+                                                       현재 페이지는{" "}
+                                                       <span
+                                                            style={{
+                                                                 fontFamily: "Pretendard-semiBold",
+                                                                 fontSize: "19px",
+                                                            }}
+                                                       >
+                                                            '전체 일정'
+                                                       </span>
+                                                       입니다. <br />
+                                                       참여하시거나 초대하시려면 <br />
+                                                       오른쪽으로
+                                                       <span
+                                                            style={{
+                                                                 color: theme.color.primary,
+                                                                 fontFamily: "Pretendard-semiBold",
+                                                            }}
+                                                       >
+                                                            {" "}
+                                                            슬라이드
+                                                       </span>
+                                                       해주세요.
+                                                  </span>
+                                                  <IconDiv>
+                                                       <TbHandFinger color={theme.color.primary} />
+                                                  </IconDiv>
+                                                  <ButtonDiv>
+                                                       <Button
+                                                            background={theme.color.button.primary}
+                                                            title="확인"
+                                                            onClick={closeIntro}
+                                                       />
+                                                  </ButtonDiv>
+                                             </IntroContent>
+                                        </IntroOverlay>
+                                   )}
+                                   {showScreen(leftScreen)}
+                              </LeftArea>
+                              <RightArea>
+                                   <ButtonLayout>
+                                        <ButtonDiv>
+                                             <Button
+                                                  background={theme.color.button.blue}
+                                                  title="초대하기"
+                                                  onClick={() => setRightScreen("Invite")}
+                                             />
+                                        </ButtonDiv>
+                                        <ButtonDiv>
+                                             <Button
+                                                  background={theme.color.primary}
+                                                  title="참여하기"
+                                                  onClick={() => {
+                                                       setRightScreen("AddUser");
+                                                  }}
+                                             />
+                                        </ButtonDiv>
+                                   </ButtonLayout>
+                                   <ToggleLayout>
+                                        <ToggleButtonDiv>
+                                             <Button
+                                                  fontFamily={
+                                                       selectedToggle === "인원"
+                                                            ? "Pretendard-Bold"
+                                                            : "Pretendard-Regular"
+                                                  }
+                                                  title={`인원(${usersScheduleList.length})`}
+                                                  background="none"
+                                                  color={selectedToggle === "인원" ? theme.color.primary : "black"}
+                                                  onClick={() => {
+                                                       setRightScreen("AllSchedule");
+                                                       handleToggle("인원");
+                                                       setSelectedName(false);
+                                                  }}
+                                             />
+                                        </ToggleButtonDiv>
+                                        <ToggleButtonDiv>
+                                             <Button
+                                                  fontFamily={
+                                                       selectedToggle === "내 일정"
+                                                            ? "Pretendard-Bold"
+                                                            : "Pretendard-Regular"
+                                                  }
+                                                  title="내 일정"
+                                                  background="none"
+                                                  color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
+                                                  onClick={() => {
+                                                       setRightScreen("MySchedule");
+                                                       handleToggle("내 일정");
+                                                  }}
+                                             />
+                                        </ToggleButtonDiv>
+                                        <ToggleButtonDiv>
+                                             <Button
+                                                  fontFamily={
+                                                       selectedToggle === "순위"
+                                                            ? "Pretendard-Bold"
+                                                            : "Pretendard-Regular"
+                                                  }
+                                                  title="순위"
+                                                  background="none"
+                                                  color={selectedToggle === "순위" ? theme.color.primary : "black"}
+                                                  onClick={() => {
+                                                       setRightScreen("Rank");
+                                                       handleToggle("순위");
+                                                       setSelectedName(false);
+                                                  }}
+                                             />
+                                        </ToggleButtonDiv>
+                                   </ToggleLayout>
+                                   {showScreen(rightScreen)}
+                              </RightArea>
+                         </Slider>
+                    </SliderWrapper>
+               </MobileView>
+          </Frame>
+     ) : (
+          <NotFoundTable />
+     );
 }
 
-const slideAnimation = keyframes`
-  0% {
-    transform: translateX(80px);
-  }
-  100% {
-    transform: translateX(-80px);
-  }
-`;
-
-const fadeIn = keyframes`
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-`;
-
-const IntroOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 130px;
-  z-index: 1000;
-  margin-bottom: 1000px;
-  animation: ${fadeIn} 1s ease-in-out forwards;
-`;
-
-const IntroContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  padding: 20px 20px 50px 20px;
-  border-radius: 25px;
-  text-align: center;
-  width: 85%;
-  gap: 40px;
-  box-sizing: border-box;
-  font-family: Pretendard-Regular;
-  font-size: 19px;
-  margin-top: 50px;
-
-  span:first-of-type {
-    font-size: 21px;
-    font-family: Pretendard-Medium;
-  }
-`;
-
-const IconDiv = styled.div`
-  font-size: 40px;
-  animation: ${slideAnimation} 3s infinite;
-`;
-
 const Frame = styled.div`
-  @media (max-width: 880px) {
-    width: 100%;
-  }
+     width: 100%;
+     max-width: 1600px;
+     margin: 0 auto;
+     margin-bottom: 50px;
 `;
 
 const DesktopView = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  width: 100%;
-  @media (max-width: 480px) {
-    display: none;
-  }
-`;
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 3rem;
+     width: 100%;
+     padding: 0 2rem;
+     box-sizing: border-box;
+     align-items: start;
 
-const MobileView = styled.div`
-  display: none;
-
-  @media (max-width: 480px) {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-
-  .slick-slider {
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .slick-slide {
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    height: auto;
-  }
+     @media (max-width: 1024px) {
+          grid-template-columns: 1fr;
+          gap: 0;
+     }
+     @media (max-width: 480px) {
+          display: none;
+     }
 `;
 
 const LeftArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  width: 50%;
-  padding-top: 60px;
-  margin-bottom: 3rem;
-  @media (max-width: 480px) {
-    width: 100%;
-  }
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     gap: 30px;
+     padding-top: 60px;
+     width: 100%;
+     min-width: 0;
+
+     @media (max-width: 1024px) {
+          padding-top: 30px;
+     }
 `;
 
 const RightArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 30px;
-  padding-top: 60px;
-  width: 50%;
-  margin-bottom: 3rem;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     gap: 30px;
+     padding-top: 60px;
+     width: 100%;
+     min-width: 0;
 
-  @media (max-width: 480px) {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    width: 90%;
-  }
-
-  .slick-slide & {
-    display: flex !important;
-  }
+     @media (max-width: 1024px) {
+          padding-top: 30px;
+     }
+     @media (max-width: 480px) {
+          display: flex;
+          width: 90%;
+     }
+     .slick-slide & {
+          display: flex !important;
+     }
 `;
 
+const slideAnimation = keyframes`0% { transform: translateX(80px); } 100% { transform: translateX(-80px); }`;
+const fadeIn = keyframes`0% { opacity: 0; } 100% { opacity: 1; }`;
+const MobileView = styled.div`
+     display: none;
+     @media (max-width: 480px) {
+          display: block;
+          width: 100%;
+          height: auto;
+     }
+     .slick-slider {
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+     }
+     .slick-slide {
+          display: flex !important;
+          justify-content: center;
+          align-items: center;
+          height: auto;
+     }
+`;
+const SliderWrapper = styled.div`
+     position: relative;
+     .custom-dots {
+          position: fixed;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex !important;
+          justify-content: center;
+          align-items: center;
+          li {
+               width: 8.5px;
+               height: 8.5px;
+               margin: 0 5px;
+               border-radius: 50%;
+               background: ${theme.text.gamma[300]};
+               transition: background 0.3s ease;
+               &.slick-active {
+                    background: ${theme.color.primary};
+               }
+               &:not(.slick-active) {
+                    background: ${theme.color.timeGrid[40]};
+               }
+          }
+          button {
+               display: none;
+          }
+     }
+`;
+const IntroOverlay = styled.div`
+     position: fixed;
+     top: 0;
+     left: 0;
+     width: 100vw;
+     height: 100%;
+     background-color: rgba(0, 0, 0, 0.8);
+     display: flex;
+     justify-content: center;
+     align-items: flex-start;
+     padding-top: 130px;
+     z-index: 1000;
+     margin-bottom: 1000px;
+     animation: ${fadeIn} 1s ease-in-out forwards;
+`;
+const IntroContent = styled.div`
+     display: flex;
+     flex-direction: column;
+     background-color: white;
+     padding: 20px 20px 50px 20px;
+     border-radius: 25px;
+     text-align: center;
+     width: 85%;
+     gap: 40px;
+     box-sizing: border-box;
+     font-family: Pretendard-Regular;
+     font-size: 19px;
+     margin-top: 50px;
+     span:first-of-type {
+          font-size: 21px;
+          font-family: Pretendard-Medium;
+     }
+`;
+const IconDiv = styled.div`
+     font-size: 40px;
+     animation: ${slideAnimation} 3s infinite;
+`;
 const ButtonLayout = styled.div`
-  ${theme.styles.flexCenterRow}
-  justify-content: flex-end;
-  width: 490px;
-  gap: 12px;
-  @media (max-width: 480px) {
-    width: 320px;
-  }
+     ${theme.styles.flexCenterRow} justify-content: flex-end;
+     width: 100%;
+     max-width: 490px;
+     gap: 12px;
+     @media (max-width: 1024px) {
+          width: 100%;
+          justify-content: center;
+          max-width: 500px;
+     }
+     @media (max-width: 480px) {
+          width: 320px;
+     }
 `;
-
 const ButtonDiv = styled.div`
-  display: flex;
-  width: 160px;
-  height: 56px;
-  button {
-    font-size: 20px;
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    height: 50px;
-    button {
-      font-size: 16px;
-    }
-  }
+     display: flex;
+     width: 160px;
+     height: 56px;
+     button {
+          font-size: 20px;
+     }
+     @media (max-width: 480px) {
+          width: 100%;
+          height: 50px;
+          button {
+               font-size: 16px;
+          }
+     }
 `;
-
 const ToggleLayout = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  width: 60%;
-  height: 30px;
-
-  @media (max-width: 1100px) {
-    width: 100%;
-  }
-
-  @media (max-width: 480px) {
-    width: 85%;
-  }
+     display: flex;
+     flex-direction: row;
+     justify-content: center;
+     align-items: center;
+     width: 100%;
+     max-width: 490px;
+     height: 30px;
+     @media (max-width: 480px) {
+          width: 85%;
+     }
 `;
-
 const ToggleButtonDiv = styled.div`
-  display: flex;
-  flex: 1;
-  button {
-    font-size: 25px;
-  }
-
-  @media (max-width: 480px) {
-    button {
-      font-size: 19px;
-    }
-  }
+     display: flex;
+     flex: 1;
+     button {
+          font-size: 25px;
+     }
+     @media (max-width: 480px) {
+          button {
+               font-size: 19px;
+          }
+     }
 `;
-
 const LoaderLayout = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  margin: 150px 50px 0px 50px;
-  @media (max-width: 480px) {
-    margin: 200px 40px 0px 40px;
-  }
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     flex-direction: column;
+     margin: 150px 50px 0px 50px;
+     @media (max-width: 480px) {
+          margin: 200px 40px 0px 40px;
+     }
 `;
