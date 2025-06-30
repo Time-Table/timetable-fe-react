@@ -1,4 +1,4 @@
-export default function ({ width = 280, height = 643, color = "black", angle = "none" }) {
+export default function Talk({ width = 280, height = 643, color = "black", angle = "none" }) {
   return (
     <svg
       width={width}

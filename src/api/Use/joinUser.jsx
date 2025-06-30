@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const joinUser = async (tableId, name, password) => {
   try {
-    const res = await axios.post("http://localhost:3001/api/join", {
+    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/join`, {
       tableId: tableId,
       name: name,
       password: password,

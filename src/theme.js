@@ -19,6 +19,7 @@ const color = {
     line: "#868686",
     selected: "#FE6F6F",
     select: "#FFA29D",
+    hasSchedule: "rgba(240, 201, 130, 0.2)",
   },
 };
 const text = {

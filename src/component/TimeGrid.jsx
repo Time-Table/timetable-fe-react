@@ -1,319 +1,421 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled from "@emotion/styled";
+import { keyframes } from "@emotion/react";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 
 export default function TimeGrid({
-  dates = [],
-  startHour = "00:00",
-  endHour = "01:00",
-  selectedCells = [],
-  setSelectedCells,
-  selectedCellColor,
-  isViewMode,
-  banedCells = [],
+     dates = [],
+     startHour = "00:00",
+     endHour = "01:00",
+     selectedCells = [],
+     setSelectedCells,
+     selectedCellColor,
+     banedCells = [],
 }) {
-  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
-  const [weeks, setWeeks] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+     const gridRef = useRef(null);
+     const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+     const [weeks, setWeeks] = useState([]);
+     const [isDragging, setIsDragging] = useState(false);
+     const [dragAction, setDragAction] = useState(null);
+     const [lastSelectedCell, setLastSelectedCell] = useState(null);
+     const todayDateString = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
-    const groupedWeeks = groupDatesByWeek(dates);
-    setWeeks(groupedWeeks);
-  }, [dates]);
+     const updateSelection = useCallback(
+          (cellKey, action) => {
+               if (!cellKey || cellKey === lastSelectedCell) return;
+               setSelectedCells((prev) => {
+                    if (action === "select") {
+                         if (!prev.includes(cellKey)) return [...prev, cellKey];
+                    } else if (action === "deselect") {
+                         if (prev.includes(cellKey)) return prev.filter((cell) => cell !== cellKey);
+                    }
+                    return prev;
+               });
+               setLastSelectedCell(cellKey);
+          },
+          [lastSelectedCell, setSelectedCells]
+     );
+     const handleTouchStart = useCallback(
+          (e) => {
+               if (!e.target.dataset.cellkey) return;
+               if (e.cancelable) e.preventDefault();
+               setIsDragging(true);
+               const cellKey = e.target.dataset.cellkey;
+               const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+               setDragAction(action);
+               updateSelection(cellKey, action);
+          },
+          [selectedCells, updateSelection]
+     );
+     const handleTouchMove = useCallback(
+          (e) => {
+               if (!isDragging || !dragAction) return;
+               if (e.cancelable) e.preventDefault();
+               const touch = e.touches[0];
+               const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+               if (elem && elem.dataset && elem.dataset.cellkey) {
+                    updateSelection(elem.dataset.cellkey, dragAction);
+               }
+          },
+          [isDragging, dragAction, updateSelection]
+     );
+     const handleTouchEnd = useCallback((e) => {
+          if (e.cancelable) e.preventDefault();
+          setIsDragging(false);
+          setDragAction(null);
+          setLastSelectedCell(null);
+     }, []);
+     const handleMouseDown = useCallback(
+          (e) => {
+               if (!e.target.dataset.cellkey) return;
+               e.preventDefault();
+               setIsDragging(true);
+               const cellKey = e.target.dataset.cellkey;
+               const action = selectedCells.includes(cellKey) ? "deselect" : "select";
+               setDragAction(action);
+               updateSelection(cellKey, action);
+          },
+          [selectedCells, updateSelection]
+     );
+     const handleMouseMove = useCallback(
+          (e) => {
+               if (!isDragging || !dragAction) return;
+               const elem = document.elementFromPoint(e.clientX, e.clientY);
+               if (elem && elem.dataset && elem.dataset.cellkey) {
+                    updateSelection(elem.dataset.cellkey, dragAction);
+               }
+          },
+          [isDragging, dragAction, updateSelection]
+     );
+     const handleMouseUp = useCallback(() => {
+          setIsDragging(false);
+          setDragAction(null);
+          setLastSelectedCell(null);
+     }, []);
 
-  const groupDatesByWeek = (datesArray) => {
-    const weeks = {};
-    datesArray.forEach((date) => {
-      const current = new Date(date);
-      const firstDayOfWeek = new Date(current.setDate(current.getDate() - current.getDay()));
-      const weekKey = firstDayOfWeek.toISOString().split("T")[0];
-      if (!weeks[weekKey]) {
-        weeks[weekKey] = [];
-      }
-      weeks[weekKey].push(date);
-    });
+     useEffect(() => {
+          const gridEl = gridRef.current;
+          if (gridEl) {
+               gridEl.addEventListener("touchstart", handleTouchStart, { passive: false });
+               gridEl.addEventListener("touchmove", handleTouchMove, { passive: false });
+               gridEl.addEventListener("touchend", handleTouchEnd, { passive: false });
+               gridEl.addEventListener("mousedown", handleMouseDown);
+               gridEl.addEventListener("mousemove", handleMouseMove);
+               gridEl.addEventListener("mouseup", handleMouseUp);
+               gridEl.addEventListener("mouseleave", handleMouseUp);
+               return () => {
+                    gridEl.removeEventListener("touchstart", handleTouchStart);
+                    gridEl.removeEventListener("touchmove", handleTouchMove);
+                    gridEl.removeEventListener("touchend", handleTouchEnd);
+                    gridEl.removeEventListener("mousedown", handleMouseDown);
+                    gridEl.removeEventListener("mousemove", handleMouseMove);
+                    gridEl.removeEventListener("mouseup", handleMouseUp);
+                    gridEl.removeEventListener("mouseleave", handleMouseUp);
+               };
+          }
+     }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleMouseDown, handleMouseMove, handleMouseUp]);
 
-    const fullWeeks = Object.keys(weeks).map((weekKey) => {
-      const weekStart = new Date(weekKey);
-      const fullWeek = [];
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(weekStart);
-        day.setDate(weekStart.getDate() + i);
-        fullWeek.push(day.toISOString().split("T")[0]);
-      }
-      return fullWeek;
-    });
-    return fullWeeks;
-  };
+     const groupDatesByWeek = (datesArray) => {
+          if (!datesArray || datesArray.length === 0) return [];
+          const weeks = {};
+          datesArray.forEach((date) => {
+               const current = new Date(date + "T00:00:00Z");
+               const dayOfWeek = current.getUTCDay();
+               current.setUTCDate(current.getUTCDate() - dayOfWeek);
+               const weekKey = current.toISOString().split("T")[0];
+               if (!weeks[weekKey]) weeks[weekKey] = new Set();
+               weeks[weekKey].add(date);
+          });
+          return Object.keys(weeks)
+               .sort()
+               .map((weekKey) => {
+                    const weekStart = new Date(weekKey + "T00:00:00Z");
+                    return Array.from({ length: 7 }, (_, i) => {
+                         const day = new Date(weekStart);
+                         day.setUTCDate(weekStart.getUTCDate() + i);
+                         return day.toISOString().split("T")[0];
+                    });
+               });
+     };
 
-  const generateTimeRange = (start, end) => {
-    const times = [];
+     useEffect(() => {
+          const groupedWeeks = groupDatesByWeek(dates);
+          setWeeks(groupedWeeks);
+          setCurrentWeekIndex(0);
+     }, [dates]);
 
-    let [startHour] = start.split(":").map(Number);
-    let [endHour] = end.split(":").map(Number);
+     const currentWeek = weeks[currentWeekIndex] || [];
+     const generateTimeRange = (start, end) => {
+          const times = [];
+          let [startHourNum] = start.split(":").map(Number);
+          let [endHourNum] = end.split(":").map(Number);
+          if (startHourNum >= endHourNum) return [];
+          while (startHourNum < endHourNum) {
+               times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
+               times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
+               startHourNum++;
+          }
+          return times;
+     };
+     const timeRange = generateTimeRange(startHour, endHour);
+     const nextWeek = () => {
+          if (currentWeekIndex < weeks.length - 1) setCurrentWeekIndex(currentWeekIndex + 1);
+     };
+     const prevWeek = () => {
+          if (currentWeekIndex > 0) setCurrentWeekIndex(currentWeekIndex - 1);
+     };
+     const formatDate = (dateString) => {
+          const date = new Date(dateString + "T00:00:00Z");
+          const day = date.getUTCDate();
+          const weekday = date.toLocaleDateString("ko-KR", { weekday: "short", timeZone: "UTC" });
+          const monthYear = date.toLocaleDateString("ko-KR", { month: "long", year: "numeric", timeZone: "UTC" });
+          return { day, weekday, monthYear };
+     };
+     const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
-    if (startHour > endHour) {
-      [startHour, endHour] = [endHour, startHour];
-    }
+     const handleSelectRow = (time) => {
+          const cellsInRow = currentWeek.filter((date) => dates.includes(date)).map((date) => `${date}-${time}`);
+          const areAllSelected = cellsInRow.every((cell) => selectedCells.includes(cell));
+          setSelectedCells((prev) => {
+               const otherCells = prev.filter((cell) => !cellsInRow.includes(cell));
+               return areAllSelected ? otherCells : [...new Set([...otherCells, ...cellsInRow])];
+          });
+     };
+     const handleSelectColumn = (date) => {
+          if (!dates.includes(date)) return;
+          const cellsInColumn = timeRange.map((time) => `${date}-${time}`);
+          const areAllSelected = cellsInColumn.every((cell) => selectedCells.includes(cell));
+          setSelectedCells((prev) => {
+               const otherCells = prev.filter((cell) => !cellsInColumn.includes(cell));
+               return areAllSelected ? otherCells : [...new Set([...otherCells, ...cellsInColumn])];
+          });
+     };
 
-    while (startHour < endHour || (startHour === endHour && times.length === 0)) {
-      times.push(`${startHour.toString().padStart(2, "0")}:00`);
-      times.push(`${startHour.toString().padStart(2, "0")}:30`);
-      startHour++;
-    }
-
-    return times;
-  };
-
-  const timeRange = generateTimeRange(startHour, endHour);
-
-  const handleMouseDown = (date, time) => {
-    setIsDragging(true);
-    const cellKey = `${date}-${time}`;
-    toggleSelection(cellKey);
-  };
-
-  const handleMouseOver = (date, time) => {
-    if (isDragging) {
-      const cellKey = `${date}-${time}`;
-      toggleSelection(cellKey);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const toggleSelection = (cellKey) => {
-    if (selectedCells.includes(cellKey)) {
-      setSelectedCells((prev) => prev.filter((cell) => cell !== cellKey));
-    } else {
-      setSelectedCells((prev) => [...prev, cellKey]);
-    }
-  };
-
-  const nextWeek = () => {
-    if (currentWeekIndex < weeks.length - 1) {
-      setCurrentWeekIndex(currentWeekIndex + 1);
-    }
-  };
-
-  const prevWeek = () => {
-    if (currentWeekIndex > 0) {
-      setCurrentWeekIndex(currentWeekIndex - 1);
-    }
-  };
-
-  const currentWeek = weeks[currentWeekIndex] || [];
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const weekday = date.toLocaleDateString("ko-KR", { weekday: "short" });
-    const monthYear = date.toLocaleDateString("ko-KR", { month: "long", year: "numeric" });
-    return { day, weekday, monthYear };
-  };
-
-  const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
-  return (
-    <GridWrapper onMouseUp={handleMouseUp}>
-      <MonthDisplay>{monthYear}</MonthDisplay>
-      <Grid columns={currentWeek.length + 1}>
-        <HeaderRow>
-          <EmptyCell />
-          {currentWeek.map((date, index) => {
-            const { day, weekday } = formatDate(date);
-            return (
-              <HeaderCell key={index} isDisabled={!dates.includes(date)}>
-                <WeekBox>{day}</WeekBox>
-                <WeekBox>{weekday}</WeekBox>
-              </HeaderCell>
-            );
-          })}
-        </HeaderRow>
-        {timeRange.map((time, timeIndex) => {
-          return (
-            <Row key={timeIndex}>
-              <TimeCell>{timeIndex % 2 === 1 ? "" : time}</TimeCell>
-              {currentWeek.map((date, dateIndex) => {
-                const cellKey = `${date}-${time}`;
-                const isSelected = selectedCells.includes(cellKey);
-                const isDisabled = !dates.includes(date);
-                return (
-                  <Cell
-                    key={cellKey}
-                    cellKey={cellKey}
-                    banedCells={banedCells}
-                    timeIndex={timeIndex}
-                    cellIndex={dateIndex}
-                    isSelected={isSelected}
-                    selectedCellColor={selectedCellColor}
-                    isDisabled={isDisabled}
-                    isViewMode={isViewMode}
-                    onMouseDown={() => !isDisabled && handleMouseDown(date, time)}
-                    onMouseOver={() => !isDisabled && handleMouseOver(date, time)}
-                  />
-                );
-              })}
-            </Row>
-          );
-        })}
-      </Grid>
-      <WeekNavigation>
-        <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
-          <Arrow
-            width={10}
-            height={20}
-            color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
-            angle={180}
-          />
-        </ArrowLayout>
-        <ArrowLayout onClick={nextWeek} disabled={currentWeekIndex === weeks.length - 1}>
-          <Arrow
-            width={10}
-            height={20}
-            color={currentWeekIndex === weeks.length - 1 ? theme.text.gamma[800] : "black"}
-          />
-        </ArrowLayout>
-      </WeekNavigation>
-    </GridWrapper>
-  );
+     return (
+          <div style={{ width: "100%" }}>
+               <GridHeader>
+                    <MonthDisplay>{monthYear}</MonthDisplay>
+                    <WeekNavigation>
+                         <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
+                              <Arrow
+                                   width={10}
+                                   height={20}
+                                   color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
+                                   angle={180}
+                              />
+                         </ArrowLayout>
+                         <ArrowLayout disabled={currentWeekIndex >= weeks.length - 1} onClick={nextWeek}>
+                              <Arrow
+                                   width={10}
+                                   height={20}
+                                   color={currentWeekIndex >= weeks.length - 1 ? theme.text.gamma[800] : "black"}
+                              />
+                         </ArrowLayout>
+                    </WeekNavigation>
+               </GridHeader>
+               <GridContainer>
+                    <Grid ref={gridRef}>
+                         <HeaderRow>
+                              <EmptyCell />
+                              {currentWeek.map((date) => {
+                                   const { day, weekday } = formatDate(date);
+                                   const isToday = date === todayDateString;
+                                   return (
+                                        <HeaderCell
+                                             key={date}
+                                             isDisabled={!dates.includes(date)}
+                                             isToday={isToday}
+                                             onClick={() => handleSelectColumn(date)}
+                                        >
+                                             <WeekdayBox>{weekday}</WeekdayBox>
+                                             <DayBox isToday={isToday}>{day}</DayBox>
+                                        </HeaderCell>
+                                   );
+                              })}
+                         </HeaderRow>
+                         {timeRange.map((time, timeIndex) => (
+                              <Row key={timeIndex}>
+                                   <TimeCell onClick={() => handleSelectRow(time)}>
+                                        {timeIndex % 2 === 0 ? time : ""}
+                                   </TimeCell>
+                                   {currentWeek.map((date) => {
+                                        const cellKey = `${date}-${time}`;
+                                        return (
+                                             <Cell
+                                                  key={cellKey}
+                                                  data-cellkey={cellKey}
+                                                  isSelected={selectedCells.includes(cellKey)}
+                                                  selectedCellColor={selectedCellColor}
+                                                  isDisabled={!dates.includes(date)}
+                                                  isBaned={banedCells.includes(cellKey)}
+                                             />
+                                        );
+                                   })}
+                              </Row>
+                         ))}
+                    </Grid>
+               </GridContainer>
+          </div>
+     );
 }
 
-const GridWrapper = styled.div`
-  ${theme.styles.flexCenterColumn};
-  user-select: none;
-  gap: 30px;
+const waveAnimation = keyframes`0% { transform: scale(0); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; }`;
+const GridHeader = styled.div`
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 12px;
+     padding: 0 4px;
 `;
-
 const MonthDisplay = styled.div`
-  text-align: center;
-  font-family: "Pretendard-Medium";
-  font-size: 23px;
-  margin-bottom: 10px;
-  @media (max-width: 480px) {
-    font-size: 20px;
-  }
+     font-family: "Pretendard-Bold";
+     font-size: 22px;
+     color: ${theme.text.gamma[300]};
+     @media (max-width: 480px) {
+          font-size: 18px;
+     }
 `;
-
 const WeekNavigation = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 80px;
-  gap: 20px;
-  width: 100%;
-
-  @media (max-width: 480px) {
-    padding-right: 0px;
-  }
+     display: flex;
+     gap: 16px;
 `;
-
+const GridContainer = styled.div`
+     position: relative;
+`;
 const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr repeat(${(props) => props.columns - 1}, 1fr);
+     display: grid;
+     grid-template-columns: 55px repeat(7, 1fr);
+     background-color: white;
+     @media (max-width: 480px) {
+          grid-template-columns: 45px repeat(7, 1fr);
+     }
 `;
-
 const HeaderRow = styled.div`
-  display: contents;
+     display: contents;
 `;
-
 const Row = styled.div`
-  font-size: 16px;
-  display: contents;
+     font-size: 16px;
+     display: contents;
 `;
-
 const EmptyCell = styled.div`
-  grid-column: span 1;
+     grid-column: 1 / 2;
+     border-bottom: 1px solid ${theme.text.gamma[900]};
 `;
-
 const HeaderCell = styled.div`
-  grid-column: span 1;
-  width: 60px;
-  font-family: "Pretendard-Regular";
-  font-size: 20px;
-  pointer-events: ${(props) => (props.isDisabled ? "none" : "auto")};
-
-  @media (max-width: 480px) {
-    width: 41px;
-    font-size: 18px;
-  }
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     gap: 4px;
+     padding: 8px 0 12px;
+     color: ${(props) => (props.isDisabled ? theme.text.gamma[800] : "inherit")};
+     background-color: ${(props) => (props.isToday ? `${theme.color.primary}10` : "transparent")};
+     transition: background-color 0.2s ease;
+     cursor: ${(props) => (props.isDisabled ? "not-allowed" : "pointer")};
+     -webkit-tap-highlight-color: transparent;
+     &:active {
+          background-color: ${(props) => !props.isDisabled && `${theme.color.primary}25`};
+     }
+     @media (hover: hover) {
+          &:hover {
+               background-color: ${(props) => !props.isDisabled && `${theme.color.primary}15`};
+          }
+     }
 `;
-
+const WeekdayBox = styled.div`
+     font-family: "Pretendard-Regular";
+     font-size: 13px;
+     color: ${theme.text.gamma[500]};
+`;
+const DayBox = styled.div`
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     font-family: "Pretendard-SemiBold";
+     font-size: 18px;
+     width: 32px;
+     height: 32px;
+     border-radius: 50%;
+     background-color: ${(props) => (props.isToday ? theme.color.primary : "transparent")};
+     color: ${(props) => (props.isToday ? "white" : "inherit")};
+`;
 const TimeCell = styled.div`
-  grid-column: span 1;
-  text-align: right;
-  padding-right: 10px;
-  @media (max-width: 480px) {
-    padding-right: 5px;
-  }
+     position: relative;
+     top: -8px;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     grid-column: 1 / 2;
+     font-size: 12px;
+     font-family: "Pretendard-Medium";
+     color: ${theme.text.gamma[600]};
+     cursor: pointer;
+     border-radius: 4px;
+     transition: background-color 0.2s ease;
+     -webkit-tap-highlight-color: transparent;
+     &:active {
+          background-color: ${theme.text.gamma[800]};
+     }
+     @media (hover: hover) {
+          &:hover {
+               background-color: ${theme.text.gamma[900]};
+          }
+     }
 `;
-
 const Cell = styled.div`
-  width: 60px;
-  height: 30px;
-  grid-column: span 1;
-  border-right: ${(props) => {
-    return props.cellIndex === 6 ? `none` : `1px solid ${theme.text.gamma[800]}`;
-  }};
-  border-top: ${(props) => {
-    if (props.timeIndex === 0) return `2px solid ${theme.text.gamma[800]}`;
-    else if (props.timeIndex % 2 === 0 && !props.isDisabled)
-      return `2px solid ${theme.text.gamma[800]}`;
-    else if (!props.isDisabled) return `1px solid ${theme.text.gamma[800]}`;
-    return `2px solid ${theme.text.gamma[800]}`;
-  }};
-
-  background-color: ${(props) =>
-    props.isSelected
-      ? `${props.selectedCellColor}`
-      : props.isDisabled || props.banedCells.includes(props.cellKey)
-      ? `${theme.text.gamma[800]}`
-      : "white"};
-  cursor: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "not-allowed"
-      : "pointer"};
-
-  pointer-events: ${(props) =>
-    props.isDisabled || props.isViewMode || props.banedCells.includes(props.cellKey)
-      ? "none"
-      : "auto"};
-
-  @media (max-width: 480px) {
-    width: 46px;
-    height: 20px;
-  }
+     position: relative;
+     height: 30px;
+     border-right: 1px solid ${theme.text.gamma[900]};
+     border-bottom: 1px solid ${theme.text.gamma[900]};
+     background-color: ${(props) => (props.isDisabled || props.isBaned) && `${theme.text.gamma[900]}`};
+     cursor: ${(props) => (props.isDisabled || props.isBaned ? "not-allowed" : "pointer")};
+     pointer-events: ${(props) => (props.isDisabled || props.isBaned ? "none" : "auto")};
+     &::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: ${(props) => props.selectedCellColor || theme.color.primary};
+          opacity: ${(props) => (props.isSelected ? 1 : 0)};
+          transform: ${(props) => (props.isSelected ? "scale(1)" : "scale(0)")};
+          transform-origin: center;
+          transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
+          animation: ${(props) => props.isSelected && waveAnimation} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+     }
+     @media (hover: hover) {
+          &:hover::after {
+               background-color: ${(props) => !props.isSelected && `${theme.color.primary}20`};
+               opacity: ${(props) => !props.isSelected && 1};
+               transform: scale(1);
+               animation: none;
+          }
+     }
+     @media (max-width: 480px) {
+          height: 26px;
+     }
 `;
-
-const WeekBox = styled.div`
-  ${theme.styles.flexCenterColumn}
-  width: 60px;
-  height: 40px;
-
-  @media (max-width: 480px) {
-    width: 40px;
-  }
-`;
-
 const ArrowLayout = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-
-  svg {
-    width: ${(props) => (props.width ? `${props.width}px` : "10px")};
-    height: ${(props) => (props.height ? `${props.height}px` : "20px")};
-  }
-
-  @media (max-width: 480px) {
-    svg {
-      width: 7px;
-      height: 14px;
-    }
-  }
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     background: none;
+     border: 1px solid ${theme.text.gamma[800]};
+     border-radius: 50%;
+     width: 32px;
+     height: 32px;
+     cursor: pointer;
+     transition: background-color 0.2s, border-color 0.2s;
+     pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
+     opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+     &:hover {
+          background-color: ${theme.text.gamma[900]};
+          border-color: ${theme.text.gamma[700]};
+     }
+     svg {
+          width: 8px;
+          height: 16px;
+     }
 `;

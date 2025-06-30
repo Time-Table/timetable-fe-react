@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const getAllSchedule = async (tableId) => {
   try {
-    const res = await axios.get("http://localhost:3001/api/users", {
+    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/users`, {
       params: { tableId: tableId },
     });
     return res.data;

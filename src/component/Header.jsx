@@ -2,9 +2,11 @@ import styled from "@emotion/styled/macro";
 import theme from "../theme";
 import Button from "./Button";
 import Swal from "sweetalert2";
-import Help from "../assets/svg/Help";
+import { IoHelpCircleOutline } from "react-icons/io5";
 
 export default function Header() {
+  const email = "timetable2official@gmail.com";
+
   return (
     <HeaderLayout>
       <TitleLayout
@@ -33,7 +35,7 @@ export default function Header() {
               });
             }}
           >
-            <Help />
+            <IoHelpCircleOutline color={theme.text.gamma[800]} />
           </HelpDiv>
         </ButtonDiv>
         <ButtonDiv
@@ -42,14 +44,13 @@ export default function Header() {
               icon: "success",
               iconColor: `${theme.color.primary}`,
               title: "문의하기",
-              html: "사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>jjjangtoy7@gmail.com</strong>",
+              html: `사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>${email}</strong>`,
               confirmButtonText: "메일 복사",
               confirmButtonColor: `${theme.color.button.blue}`,
               showCancelButton: true,
               cancelButtonText: "취소",
               cancelButtonColor: `${theme.text.gamma[800]}`,
               preConfirm: () => {
-                const email = "jjjangtoy7@gmail.com";
                 return navigator.clipboard
                   .writeText(email)
                   .then(() => {
@@ -76,15 +77,15 @@ export default function Header() {
             });
           }}
         >
-          <Button title="FAQ" background="white" color="black" onClick={() => {}} />
+          <Button title="Q&A" background="white" color="black" fontFamily="Pretendard-Medium" />
         </ButtonDiv>
 
         <ButtonDiv
           onClick={() => {
-            window.location.href = "/CreatePage";
+            window.location.href = "/create";
           }}
         >
-          <Button title="새 테이블" />
+          <Button title="새 테이블" fontFamily="Pretendard-SemiBold" />
         </ButtonDiv>
       </div>
     </HeaderLayout>
@@ -94,12 +95,14 @@ const HeaderLayout = styled.div`
   ${theme.styles.flexCenterRow}
   justify-content: space-between;
   font-family: Pretendard-ExtraLight;
-  padding: 11px 60px;
+  padding: 0px 60px;
   height: 70px;
   border-bottom: 1px ${theme.text.gamma[900]} solid;
 
   @media (max-width: 480px) {
     align-items: end;
+    height: auto;
+
     padding: 11px 20px;
   }
 `;
@@ -115,7 +118,8 @@ const TitleLayout = styled.button`
   cursor: pointer;
 
   @media (max-width: 480px) {
-    font-size: 20px;
+    font-size: 24px;
+    margin-bottom: 3px;
   }
 `;
 
@@ -123,16 +127,16 @@ const ButtonDiv = styled.div`
   display: flex;
   justify-content: end;
   width: 106px;
-  height: 52px;
+  height: 46px;
+  text-align: center;
   button {
-    font-size: 20px;
+    font-size: 18px;
   }
   @media (max-width: 480px) {
-    width: 70px;
-    height: 30px;
-
+    width: 83px;
+    height: 38px;
     button {
-      font-size: 12px;
+      font-size: 15px;
     }
   }
 `;
@@ -147,8 +151,8 @@ const HelpDiv = styled.div`
     height: 30px;
 
     @media (max-width: 480px) {
-      width: 20px;
-      height: 20px;
+      width: 23px;
+      height: 23px;
     }
   }
 `;

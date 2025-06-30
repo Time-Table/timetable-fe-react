@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const createTable = async (title, dates, startHour, endHour, banedCells) => {
   try {
-    const res = await axios.post("http://localhost:3001/api/create", {
+    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/create`, {
       title: title,
       dates: dates,
       startHour: startHour,

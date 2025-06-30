@@ -5,12 +5,18 @@ import Preview1 from "../assets/svg/Preview1";
 import Preview2 from "../assets/svg/Preview2";
 import Preview3 from "../assets/svg/Preview3";
 import Talk from "../assets/svg/Talk";
+import Seo from "../Seo";
+import { trackVisit } from "../api/trackVisit";
 
 export default function AboutPage() {
   const sectionsRef = useRef([]);
   const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
+    const getVisitLog = async () => {
+      await trackVisit("about");
+    };
+    getVisitLog();
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -58,11 +64,15 @@ export default function AboutPage() {
   const handleButtonClick = () => {
     localStorage.clear();
     localStorage.setItem("title", inputValue);
-    window.location.href = "/createPage";
+    window.location.href = "/create";
   };
 
   return (
-    <CreatePageDiv>
+    <AboutPageDiv>
+      <Seo
+        description={"타임테이블에 대해 궁금하신가요?"}
+        url={"https://www.timetable2.com/about"}
+      />
       <ContentDiv>
         <div>
           <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
@@ -128,12 +138,10 @@ export default function AboutPage() {
           />
         </InputWrapper>
         <StyledWrapper onClick={handleButtonClick}>
-          <a className="btn" href="#">
-            1분 생성
-          </a>
+          <button className="btn">1분 생성</button>
         </StyledWrapper>
       </ContentDiv>
-    </CreatePageDiv>
+    </AboutPageDiv>
   );
 }
 
@@ -156,7 +164,7 @@ const InputWrapper = styled.div`
   }
 `;
 
-const CreatePageDiv = styled.div`
+const AboutPageDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   width: 100%;
 `;
@@ -164,12 +172,12 @@ const CreatePageDiv = styled.div`
 const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   gap: 40px;
-  padding: 200px 0 350px 0;
+  padding: 200px 0px 350px 0px;
   width: 700px;
 
   @media (max-width: 480px) {
     width: 100%;
-    padding: 200px;
+    padding: 200px 0px 200px 0px;
     svg {
       width: 95%;
     }
