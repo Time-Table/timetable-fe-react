@@ -17,7 +17,7 @@ export default function TimeGridViewMode({
      const [resolvedTimeInfo, setResolvedTimeInfo] = useState([]);
      const [isLoading, setIsLoading] = useState(true);
      const [maxCount, setMaxCount] = useState(1);
-     const [hoveredCell, setHoveredCell] = useState(null);
+     const [selectedCell, setSelectedCell] = useState(null);
      const todayDateString = new Date().toISOString().split("T")[0];
 
      useEffect(() => {
@@ -25,7 +25,20 @@ export default function TimeGridViewMode({
                setIsLoading(true);
                try {
                     const resolved = timeInfo instanceof Promise ? await timeInfo : timeInfo;
-                    const validData = Array.isArray(resolved) ? resolved : [];
+                    let validData = [];
+                    if (Array.isArray(resolved)) {
+                         if (typeof resolved[0] === "string") {
+                              validData = resolved.map((time) => ({
+                                   time,
+                                   count: 1,
+                                   colorNumber: 20,
+                                   members: [],
+                                   _id: `virtual-${time}`,
+                              }));
+                         } else {
+                              validData = resolved;
+                         }
+                    }
                     setResolvedTimeInfo(validData);
                     const max = validData.reduce((acc, cur) => Math.max(acc, cur.count), 1);
                     setMaxCount(max);
@@ -81,14 +94,17 @@ export default function TimeGridViewMode({
           }
           return times;
      };
+
      const timeRange = generateTimeRange(startHour, endHour);
      const currentWeek = weeks[currentWeekIndex] || [];
+
      const nextWeek = () => {
           if (currentWeekIndex < weeks.length - 1) setCurrentWeekIndex((prev) => prev + 1);
      };
      const prevWeek = () => {
           if (currentWeekIndex > 0) setCurrentWeekIndex((prev) => prev - 1);
      };
+
      const formatDate = (dateString) => {
           const date = new Date(dateString + "T00:00:00Z");
           const day = date.getUTCDate();
@@ -96,6 +112,7 @@ export default function TimeGridViewMode({
           const monthYear = date.toLocaleDateString("ko-KR", { month: "long", year: "numeric", timeZone: "UTC" });
           return { day, weekday, monthYear };
      };
+
      const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
      if (isLoading) return <Loader />;
@@ -142,23 +159,27 @@ export default function TimeGridViewMode({
                                    <TimeCell>{timeIndex % 2 === 0 ? time : ""}</TimeCell>
                                    {currentWeek.map((date) => {
                                         const cellKey = `${date}-${time}`;
-                                        const info = resolvedTimeInfo.find((item) => item.time === cellKey);
+                                        const info = resolvedTimeInfo.find(
+                                             (item) => item.time === cellKey || item === cellKey
+                                        );
                                         const count = info?.count || 0;
                                         const opacity = count > 0 ? 0.2 + (count / maxCount) * 0.8 : 0;
+                                        const isSelected = selectedCell?._id === info?._id;
 
                                         return (
                                              <Cell
                                                   key={cellKey}
                                                   isDisabled={!dates.includes(date)}
                                                   isBaned={banedCells.includes(cellKey)}
-                                                  onMouseEnter={() => setHoveredCell(info)}
-                                                  onMouseLeave={() => setHoveredCell(null)}
-                                                  onTouchStart={() => setHoveredCell(info)}
-                                                  onTouchEnd={() => setTimeout(() => setHoveredCell(null), 2000)}
+                                                  onClick={() => {
+                                                       if (!info) return;
+                                                       if (isSelected) setSelectedCell(null);
+                                                       else setSelectedCell(info);
+                                                  }}
                                              >
                                                   <ColoringLayer style={{ opacity }} />
                                                   <AnimatePresence>
-                                                       {hoveredCell === info && info && (
+                                                       {isSelected && info && (
                                                             <Tooltip
                                                                  initial={{ opacity: 0, y: 10 }}
                                                                  animate={{ opacity: 1, y: 0 }}
@@ -166,7 +187,7 @@ export default function TimeGridViewMode({
                                                             >
                                                                  <TooltipContent>
                                                                       <strong>{info.count}명</strong>
-                                                                      <span>{info.members.join(", ")}</span>
+                                                                      <span>{info.members?.join(", ")}</span>
                                                                  </TooltipContent>
                                                             </Tooltip>
                                                        )}
@@ -261,7 +282,6 @@ const TimeCell = styled.div`
      font-family: "Pretendard-Medium";
      color: ${theme.text.gamma[600]};
 `;
-
 const Cell = styled.div`
      position: relative;
      height: 30px;
@@ -273,7 +293,6 @@ const Cell = styled.div`
           height: 26px;
      }
 `;
-
 const ColoringLayer = styled.div`
      position: absolute;
      top: 0;
@@ -283,11 +302,10 @@ const ColoringLayer = styled.div`
      background-color: ${theme.color.primary};
      transition: opacity 0.3s ease;
 `;
-
 const Tooltip = styled(motion.div)`
      position: absolute;
-     bottom: calc(100% + 8px);
-     left: 50%;
+     bottom: calc(100%);
+     left: 60%;
      transform: translateX(-50%);
      padding: 8px 12px;
      background-color: rgba(255, 255, 255, 0.85);
@@ -298,8 +316,15 @@ const Tooltip = styled(motion.div)`
      width: max-content;
      max-width: 200px;
      pointer-events: none;
+     white-space: normal;
+     word-break: break-word;
+     @media (max-width: 480px) {
+          max-width: 100px;
+          font-size: 12px;
+          padding: 6px 8px;
+          transform: translateX(-50%) translateY(-4px);
+     }
 `;
-
 const TooltipContent = styled.div`
      display: flex;
      flex-direction: column;
@@ -308,14 +333,20 @@ const TooltipContent = styled.div`
      strong {
           font-family: "Pretendard-Bold";
           font-size: 14px;
+          @media (max-width: 480px) {
+               font-size: 13px;
+          }
      }
      span {
           font-family: "Pretendard-Regular";
           font-size: 12px;
           white-space: pre-wrap;
+          word-break: break-word;
+          @media (max-width: 480px) {
+               font-size: 11px;
+          }
      }
 `;
-
 const ArrowLayout = styled.button`
      display: flex;
      align-items: center;
