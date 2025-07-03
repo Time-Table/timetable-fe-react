@@ -290,7 +290,7 @@ const Tooltip = styled(motion.div)`
      left: 50%;
      transform: translateX(-50%);
      padding: 8px 12px;
-     background-color: ${theme.text.gamma[100]};
+     background-color: rgba(255, 255, 255, 0.85);
      color: white;
      border-radius: 8px;
      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -298,23 +298,13 @@ const Tooltip = styled(motion.div)`
      width: max-content;
      max-width: 200px;
      pointer-events: none;
-
-     &::after {
-          content: "";
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 6px solid transparent;
-          border-top-color: ${theme.text.gamma[100]};
-     }
 `;
 
 const TooltipContent = styled.div`
      display: flex;
      flex-direction: column;
      gap: 4px;
-
+     color: black;
      strong {
           font-family: "Pretendard-Bold";
           font-size: 14px;
