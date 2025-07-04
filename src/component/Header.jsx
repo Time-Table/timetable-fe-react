@@ -1,158 +1,254 @@
+import { useState, useEffect } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../theme";
-import Button from "./Button";
 import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
-  const email = "timetable2official@gmail.com";
+     const email = "timetable2official@gmail.com";
+     const navigate = useNavigate();
 
-  return (
-    <HeaderLayout>
-      <TitleLayout
-        onClick={() => {
-          window.location.href = "/";
-        }}
-      >
-        <span style={{ color: theme.color.timeGrid.selected }}>Time</span>
-        <span style={{ color: theme.color.timeGrid.select }}>Table</span>
-      </TitleLayout>
-      <div style={{ display: "flex", flexDirection: "row", alignItems: "end" }}>
-        <ButtonDiv>
-          <HelpDiv
-            onClick={() => {
-              Swal.fire({
-                icon: "question",
-                iconColor: `${theme.text.gamma[800]}`,
-                title: "사이트 정보",
-                text: "우리 사이트는 단체나 모임(스터디, 팀플, 회식 등) 행사의 수요 인원과 최적의 시간을 파악할 수 있도록 도와줍니다.",
-                confirmButtonText: "자세히 보기",
-                confirmButtonColor: `${theme.color.primary}`,
-                showCancelButton: true,
-                cancelButtonText: "취소",
-                cancelButtonColor: `${theme.text.gamma[800]}`,
-                preConfirm: () => (window.location.href = "/about"),
-              });
-            }}
-          >
-            <IoHelpCircleOutline color={theme.text.gamma[800]} />
-          </HelpDiv>
-        </ButtonDiv>
-        <ButtonDiv
-          onClick={() => {
-            Swal.fire({
-              icon: "success",
-              iconColor: `${theme.color.primary}`,
-              title: "문의하기",
-              html: `사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>${email}</strong>`,
-              confirmButtonText: "메일 복사",
-              confirmButtonColor: `${theme.color.button.blue}`,
-              showCancelButton: true,
-              cancelButtonText: "취소",
-              cancelButtonColor: `${theme.text.gamma[800]}`,
-              preConfirm: () => {
-                return navigator.clipboard
-                  .writeText(email)
-                  .then(() => {
-                    Swal.fire({
-                      icon: "success",
-                      iconColor: `${theme.color.button.blue}`,
-                      title: "메일 주소 복사됨",
-                      text: "메일 주소가 클립보드에 복사되었습니다.",
-                      showConfirmButton: false,
-                      timer: 1700,
-                    });
-                  })
-                  .catch(() => {
-                    Swal.fire({
-                      icon: "error",
-                      iconColor: `${theme.color.primary}`,
-                      title: "복사 실패",
-                      text: "메일 주소를 복사하는 중 문제가 발생했습니다. 직접 복사해주세요.",
-                      showConfirmButton: false,
-                      timer: 2000,
-                    });
-                  });
-              },
-            });
-          }}
-        >
-          <Button title="Q&A" background="white" color="black" fontFamily="Pretendard-Medium" />
-        </ButtonDiv>
+     const [isScrolled, setIsScrolled] = useState(false);
 
-        <ButtonDiv
-          onClick={() => {
-            window.location.href = "/create";
-          }}
-        >
-          <Button title="새 테이블" fontFamily="Pretendard-SemiBold" />
-        </ButtonDiv>
-      </div>
-    </HeaderLayout>
-  );
+     useEffect(() => {
+          const handleScroll = () => {
+               setIsScrolled(window.scrollY > 10);
+          };
+          window.addEventListener("scroll", handleScroll);
+          return () => {
+               window.removeEventListener("scroll", handleScroll);
+          };
+     }, []);
+
+     const handleLogoClick = () => navigate("/");
+     const handleHelpClick = () => {
+          Swal.fire({
+               icon: "question",
+               iconColor: `${theme.text.gamma[800]}`,
+               title: "사이트 정보",
+               text: "우리 사이트는 단체나 모임(스터디, 팀플, 회식 등) 행사의 수요 인원과 최적의 시간을 파악할 수 있도록 도와줍니다.",
+               confirmButtonText: "자세히 보기",
+               confirmButtonColor: `${theme.color.primary}`,
+               showCancelButton: true,
+               cancelButtonText: "취소",
+               cancelButtonColor: `${theme.text.gamma[800]}`,
+               preConfirm: () => navigate("/about"),
+          });
+     };
+     const handleContactClick = () => {
+          Swal.fire({
+               icon: "success",
+               iconColor: `${theme.color.primary}`,
+               title: "문의하기",
+               html: `사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>${email}</strong>`,
+               confirmButtonText: "메일 복사",
+               confirmButtonColor: `${theme.color.button.blue}`,
+               showCancelButton: true,
+               cancelButtonText: "취소",
+               cancelButtonColor: `${theme.text.gamma[800]}`,
+               preConfirm: () => {
+                    return navigator.clipboard
+                         .writeText(email)
+                         .then(() => {
+                              Swal.fire({
+                                   icon: "success",
+                                   iconColor: `${theme.color.button.blue}`,
+                                   title: "메일 주소 복사됨",
+                                   text: "메일 주소가 클립보드에 복사되었습니다.",
+                                   showConfirmButton: false,
+                                   timer: 1700,
+                              });
+                         })
+                         .catch(() => {
+                              Swal.fire({
+                                   icon: "error",
+                                   iconColor: `${theme.color.primary}`,
+                                   title: "복사 실패",
+                                   text: "메일 주소를 복사하는 중 문제가 발생했습니다. 직접 복사해주세요.",
+                                   showConfirmButton: false,
+                                   timer: 2000,
+                              });
+                         });
+               },
+          });
+     };
+     const handleCreateClick = () => navigate("/create");
+
+     return (
+          <HeaderWrapper scrolled={isScrolled}>
+               <HeaderContainer>
+                    <Logo onClick={handleLogoClick}>
+                         <span className="logo-time">Time</span>
+                         <span className="logo-table">Table</span>
+                    </Logo>
+                    <ActionContainer>
+                         <IconButton onClick={handleHelpClick} aria-label="사이트 정보">
+                              <IoHelpCircleOutline />
+                         </IconButton>
+                         <ContactButton onClick={handleContactClick} />
+                         <PrimaryButton onClick={handleCreateClick}>새 테이블</PrimaryButton>
+                    </ActionContainer>
+               </HeaderContainer>
+          </HeaderWrapper>
+     );
 }
-const HeaderLayout = styled.div`
-  ${theme.styles.flexCenterRow}
-  justify-content: space-between;
-  font-family: Pretendard-ExtraLight;
-  padding: 0px 60px;
-  height: 70px;
-  border-bottom: 1px ${theme.text.gamma[900]} solid;
 
-  @media (max-width: 480px) {
-    align-items: end;
-    height: auto;
+function ContactButton({ onClick }) {
+     return (
+          <ResponsiveButton onClick={onClick}>
+               <span className="button-text">Q&A</span>
+          </ResponsiveButton>
+     );
+}
 
-    padding: 11px 20px;
-  }
+const HeaderWrapper = styled.div`
+     position: sticky;
+     top: 0;
+     width: 100%;
+     height: 72px;
+     z-index: 1000;
+     transition: box-shadow 0.3s ease;
+     background-color: rgba(255, 255, 255, 0.5);
+     backdrop-filter: blur(1px);
+     -webkit-backdrop-filter: blur(1px);
+     box-shadow: ${(props) => (props.scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none")};
 `;
 
-const TitleLayout = styled.button`
-  ${theme.styles.flexCenterRow}
-  font-size: 28px;
-  background: none;
-  border: none;
-  padding: 0;
-  letter-spacing: -0.05em;
-  font-family: Pretendard-ExtraLight;
-  cursor: pointer;
-
-  @media (max-width: 480px) {
-    font-size: 24px;
-    margin-bottom: 3px;
-  }
+const HeaderContainer = styled.div`
+     max-width: 1200px;
+     height: 100%;
+     margin: 0 auto;
+     padding: 0 24px;
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     box-sizing: border-box;
 `;
 
-const ButtonDiv = styled.div`
-  display: flex;
-  justify-content: end;
-  width: 106px;
-  height: 46px;
-  text-align: center;
-  button {
-    font-size: 18px;
-  }
-  @media (max-width: 480px) {
-    width: 83px;
-    height: 38px;
-    button {
-      font-size: 15px;
-    }
-  }
+const Logo = styled.button`
+     background: none;
+     border: none;
+     padding: 0;
+     cursor: pointer;
+     font-family: "Pretendard-ExtraLight", sans-serif;
+     font-size: 28px;
+     letter-spacing: -0.05em;
+     color: ${theme.text.gamma[900]};
+     transition: opacity 0.2s ease;
+
+     .logo-time {
+          color: ${theme.color.timeGrid.selected};
+          font-family: "Pretendard-Regular", sans-serif;
+     }
+     .logo-table {
+          color: ${theme.color.timeGrid.select};
+     }
+     &:hover {
+          opacity: 0.7;
+     }
+     @media (max-width: 480px) {
+          font-size: 24px;
+     }
 `;
 
-const HelpDiv = styled.div`
-  background: none;
-  border: none;
-  ${theme.styles.flexCenterColumn}
+const ActionContainer = styled.div`
+     display: flex;
+     align-items: center;
+     gap: 8px;
+`;
 
-  svg {
-    width: 30px;
-    height: 30px;
+const BaseButton = styled.button`
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+     border: none;
+     cursor: pointer;
+     transition: all 0.2s ease;
+     &:active {
+          transform: scale(0.96);
+     }
+`;
 
-    @media (max-width: 480px) {
-      width: 23px;
-      height: 23px;
-    }
-  }
+const PrimaryButton = styled(BaseButton)`
+     font-family: "Pretendard-SemiBold", sans-serif;
+     height: 42px;
+     padding: 0 24px;
+     border-radius: 999px;
+     font-size: 15px;
+     color: white;
+     background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+     box-shadow: 0 2px 8px rgba(0, 98, 204, 0.2);
+
+     &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(0, 98, 204, 0.3);
+     }
+
+     @media (max-width: 480px) {
+          height: 38px;
+          padding: 0 16px;
+          font-size: 14px;
+     }
+`;
+
+const IconButton = styled(BaseButton)`
+     width: 42px;
+     height: 42px;
+     border-radius: 50%;
+     background-color: transparent;
+     color: ${theme.text.gamma[700]};
+
+     svg {
+          width: 24px;
+          height: 24px;
+     }
+
+     &:hover {
+          background-color: ${theme.text.gamma[100]};
+          color: ${theme.text.gamma[900]};
+     }
+
+     @media (max-width: 480px) {
+          width: 38px;
+          height: 38px;
+          svg {
+               width: 22px;
+               height: 22px;
+          }
+     }
+`;
+
+const ResponsiveButton = styled(BaseButton)`
+     height: 42px;
+     padding: 0 16px;
+     border-radius: 8px;
+     font-family: "Pretendard-Medium", sans-serif;
+     background-color: transparent;
+     color: ${theme.text.gamma[700]};
+
+     &:hover {
+          background-color: ${theme.text.gamma[100]};
+          color: ${theme.text.gamma[900]};
+     }
+
+     @media (max-width: 768px) {
+          width: 42px;
+          padding: 0;
+          border-radius: 50%;
+
+          .button-icon {
+               width: 24px;
+               height: 24px;
+          }
+     }
+
+     @media (max-width: 480px) {
+          width: 38px;
+          height: 38px;
+          .button-icon {
+               width: 22px;
+               height: 22px;
+          }
+     }
 `;

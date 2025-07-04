@@ -299,7 +299,7 @@ const ColoringLayer = styled.div`
      left: 0;
      width: 100%;
      height: 100%;
-     background-color: ${theme.color.primary};
+     background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
      transition: opacity 0.3s ease;
 `;
 const Tooltip = styled(motion.div)`
