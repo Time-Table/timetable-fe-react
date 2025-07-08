@@ -7,11 +7,10 @@ import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
 import { createTable } from "../../api/Create/createTable";
 import { IoHelpCircleOutline } from "react-icons/io5";
-import { useNavigate } from "react-router-dom"; // useNavigate 임포트
-
+import { useNavigate } from "react-router-dom";
 export default function CreatePage3({ startHour, endHour, dates = [], tableTitle, onBack, endTimeClicked }) {
-     const navigate = useNavigate(); // useNavigate 훅 사용
-     const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
+     const navigate = useNavigate();
+     const [isLoading, setIsLoading] = useState(false);
 
      const message = () =>
           Swal.fire({
@@ -124,7 +123,6 @@ export default function CreatePage3({ startHour, endHour, dates = [], tableTitle
      );
 }
 
-// Styled-components (기존 코드와 동일)
 const CreatePageDiv = styled.div`
      ${theme.styles.flexCenterColumn}
      width: 100%;

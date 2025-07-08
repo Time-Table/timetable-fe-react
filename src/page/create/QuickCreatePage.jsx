@@ -44,7 +44,6 @@ export default function QuickCreatePage() {
                return;
           }
           setIsLoading(true);
-          // createTable에 selectedDates를 직접 전달
           const res = await createTable(title, selectedDates, startHour, endHour, banedCells);
           setIsLoading(false);
           if (res.success) {
@@ -237,7 +236,7 @@ export default function QuickCreatePage() {
                                              exit={{ maxHeight: 0, marginTop: 0 }}
                                         >
                                              <TimeGrid
-                                                  dates={selectedDates} // formattedDatesForGrid 대신 selectedDates를 직접 전달
+                                                  dates={selectedDates}
                                                   startHour={startHour}
                                                   endHour={endHour}
                                                   selectedCells={banedCells}
@@ -269,7 +268,6 @@ export default function QuickCreatePage() {
           </>
      );
 }
-// --- Styled Components (변경 없음) ---
 const titleFadeIn = `@keyframes titleFadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`;
 const PageWrapper = styled.div`
      width: 100%;

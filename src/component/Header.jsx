@@ -102,21 +102,21 @@ function ContactButton({ onClick }) {
      );
 }
 
-const HeaderWrapper = styled.div`
+const HeaderWrapper = styled.header`
      position: sticky;
      top: 0;
      width: 100%;
      height: 72px;
      z-index: 1000;
      transition: box-shadow 0.3s ease;
-     background-color: rgba(255, 255, 255, 0.5);
-     backdrop-filter: blur(1px);
-     -webkit-backdrop-filter: blur(1px);
+     background-color: rgba(255, 255, 255, 0.8);
+     backdrop-filter: blur(8px);
+     -webkit-backdrop-filter: blur(8px);
      box-shadow: ${(props) => (props.scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none")};
 `;
 
 const HeaderContainer = styled.div`
-     max-width: 1200px;
+     max-width: 1400px;
      height: 100%;
      margin: 0 auto;
      padding: 0 24px;
@@ -131,21 +131,23 @@ const Logo = styled.button`
      border: none;
      padding: 0;
      cursor: pointer;
-     font-family: "Pretendard-ExtraLight", sans-serif;
+     font-family: "Pretendard-Bold", sans-serif;
      font-size: 28px;
      letter-spacing: -0.05em;
-     color: ${theme.text.gamma[900]};
      transition: opacity 0.2s ease;
 
      .logo-time {
-          color: ${theme.color.timeGrid.selected};
-          font-family: "Pretendard-Regular", sans-serif;
+          font-family: "Pretendard-Bold", sans-serif;
+          background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
      }
      .logo-table {
-          color: ${theme.color.timeGrid.select};
+          color: ${theme.text.gamma[500]};
+          font-family: "Pretendard-Light", sans-serif;
      }
      &:hover {
-          opacity: 0.7;
+          opacity: 0.8;
      }
      @media (max-width: 480px) {
           font-size: 24px;
@@ -236,19 +238,10 @@ const ResponsiveButton = styled(BaseButton)`
           width: 42px;
           padding: 0;
           border-radius: 50%;
-
-          .button-icon {
-               width: 24px;
-               height: 24px;
-          }
      }
 
      @media (max-width: 480px) {
           width: 38px;
           height: 38px;
-          .button-icon {
-               width: 22px;
-               height: 22px;
-          }
      }
 `;

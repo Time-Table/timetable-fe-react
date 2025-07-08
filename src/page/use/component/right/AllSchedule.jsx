@@ -1,35 +1,21 @@
 import styled from "@emotion/styled/macro";
-import Input from "../../../../component/Input";
 import theme from "../../../../theme";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { postChat } from "../../../../api/Use/postChat";
 import { getChating } from "../../../../api/Use/getChating";
 import Swal from "sweetalert2";
-import { MdOutlineModeEdit } from "react-icons/md";
 import { LuRefreshCw } from "react-icons/lu";
 import { keyframes } from "@emotion/react";
-import { BsSend } from "react-icons/bs";
+import { BsSendFill } from "react-icons/bs";
+import Input from "../../../../component/Input";
+import { AnimatePresence, motion } from "framer-motion";
 
-export default function AllSchedule({
-     tableId,
-     name,
-     setRightScreen,
-     setName,
-     selectedName,
-     setSelectedName,
-     usersSchedule,
-     setSelectedToggle,
-     setCurrentSlide,
-}) {
+export default function AllSchedule({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName }) {
      const [message, setMessage] = useState("");
      const [chatLog, setChatLog] = useState([]);
      const chatEndRef = useRef(null);
      const isNameMatching = usersSchedule.some((item) => item.name === name);
      const [isRotating, setIsRotating] = useState(false);
-     const handleClick = () => {
-          setIsRotating(true);
-          setTimeout(() => setIsRotating(false), 1000);
-     };
 
      const Toast = useMemo(
           () =>
@@ -37,48 +23,21 @@ export default function AllSchedule({
                     toast: true,
                     position: "top-end",
                     showConfirmButton: false,
-                    timer: 1200,
+                    timer: 1500,
                     timerProgressBar: true,
-                    didOpen: (toast) => {
-                         toast.onmouseenter = Swal.stopTimer;
-                         toast.onmouseleave = Swal.resumeTimer;
-                    },
                }),
           []
      );
-
-     const names = usersSchedule.map((user) => user.name);
-     const [memberDetails, setMemberDetails] = useState(Array(names.length).fill(false));
-
-     const toggleMemberDetail = (index) => {
-          setMemberDetails((prevDetails) => {
-               const newDetails = Array(prevDetails.length).fill(false);
-               newDetails[index] = !prevDetails[index];
-               return newDetails;
-          });
-
-          if (names[index] === selectedName) {
-               setSelectedName(false);
-          } else {
-               setSelectedName(names[index]);
-               setCurrentSlide(0);
-          }
-     };
-     const cachedChatLog = useMemo(() => chatLog, [chatLog]);
 
      const fetchData = useCallback(async () => {
           const res = await getChating(tableId);
           if (res.status === 200) {
                setChatLog(res.data);
           } else if (res.status === 201) {
-               setChatLog([{ name: "팁", message: "공지사항이나 의견 등을 자유롭게 공유해 보세요." }]);
+               setChatLog([{ name: "안내", message: "공지사항이나 의견을 자유롭게 공유해 보세요." }]);
           } else {
                setChatLog([]);
-               await Toast.fire({
-                    icon: "error",
-                    iconColor: `${theme.color.primary}`,
-                    title: "채팅 데이터를 가져오는 중 오류 발생",
-               });
+               Toast.fire({ icon: "error", title: "채팅을 불러오지 못했습니다." });
           }
      }, [tableId, Toast]);
 
@@ -86,33 +45,36 @@ export default function AllSchedule({
           fetchData();
      }, [fetchData]);
 
+     const handleRefresh = async (isChat = false) => {
+          if (isChat) {
+               setIsRotating(true);
+               setTimeout(() => setIsRotating(false), 700);
+          }
+          await fetchData();
+     };
+
+     const handleUserClick = (userName) => {
+          if (selectedName === userName) {
+               setSelectedName(null);
+          } else {
+               setSelectedName(userName);
+          }
+     };
+
      const updateChatLog = async () => {
           if (!name || !isNameMatching) {
-               setRightScreen("MySchedule");
-               setSelectedToggle("내 일정");
+               setRightScreen("AddUser");
+               Toast.fire({ icon: "warning", title: "먼저 참여해주세요." });
                return;
           }
-          if (message) {
+          if (message.trim()) {
                const res = await postChat(tableId, name, message);
                if (res.success) {
                     setMessage("");
                     await fetchData();
-                    if (chatEndRef.current) {
-                         chatEndRef.current.scrollTop = chatEndRef.current.scrollHeight;
-                    }
                } else {
-                    await Toast.fire({
-                         icon: "error",
-                         iconColor: `${theme.color.primary}`,
-                         title: "채팅 메시지 저장 실패",
-                    });
+                    Toast.fire({ icon: "error", title: "메시지 전송에 실패했습니다." });
                }
-          } else {
-               await Toast.fire({
-                    icon: "error",
-                    iconColor: `${theme.color.primary}`,
-                    title: "메시지를 입력해주세요.",
-               });
           }
      };
 
@@ -123,276 +85,221 @@ export default function AllSchedule({
      }, [chatLog]);
 
      return (
-          <Frame>
-               <MembersLayout>
-                    {names.length === 0 ? <span>참여하기를 클릭해 첫 일정을 등록해주세요.</span> : <></>}
-                    {names.map((name, index) => (
-                         <MemberContainer key={index}>
-                              <MemberDiv
-                                   onClick={() => {
-                                        toggleMemberDetail(index);
-                                   }}
-                                   selected={selectedName === name}
-                              >
-                                   {name}
-                              </MemberDiv>
-                              {memberDetails[index] ? (
-                                   <EditBox
-                                        memberDetails={memberDetails[index]}
-                                        onClick={() => {
-                                             setName(name);
-                                             setRightScreen("AddUser");
-                                             setSelectedToggle("참여하기");
-                                        }}
-                                   >
-                                        {/* <img src={Edit} /> */}
-                                        <MdOutlineModeEdit size={25} color={theme.text.gamma[800]} />
-                                   </EditBox>
-                              ) : null}
-                         </MemberContainer>
-                    ))}
-               </MembersLayout>
+          <AnimatePresence>
+               <Frame initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <MembersSection>
+                         <SectionHeader>
+                              <SectionTitle>참여자 ({usersSchedule.length})</SectionTitle>
+                         </SectionHeader>
+                         <MembersGrid>
+                              {usersSchedule.length === 0 ? (
+                                   <EmptyMessage>첫 참여자가 되어보세요!</EmptyMessage>
+                              ) : (
+                                   usersSchedule.map((user, index) => (
+                                        <MemberChip
+                                             key={index}
+                                             onClick={() => handleUserClick(user.name)}
+                                             isSelected={selectedName === user.name}
+                                        >
+                                             {user.name}
+                                        </MemberChip>
+                                   ))
+                              )}
+                         </MembersGrid>
+                    </MembersSection>
 
-               <ChatLayout>
-                    <div style={{ display: "flex", width: "100%" }}>
-                         <div
-                              style={{
-                                   flex: 1,
-                              }}
-                         />
-                         <div
-                              style={{
-                                   display: "flex",
-                                   alignItems: "center",
-                                   justifyContent: "center",
-                                   width: "90%",
-                                   flex: 1,
-                              }}
-                         >
-                              채팅
-                         </div>
-                         <ButtonBox
-                              className={isRotating ? "rotating" : ""}
-                              onClick={async () => {
-                                   handleClick();
-                                   const res = await getChating(tableId);
-                                   if (res.status === 200) {
-                                        setChatLog(res.data);
-                                   } else if (res.status === 201) {
-                                        setChatLog([{ name: "", message: "첫 댓글을 남겨보세요." }]);
-                                   } else {
-                                        setChatLog([]);
-                                        await Toast.fire({
-                                             icon: "error",
-                                             iconColor: `${theme.color.primary}`,
-                                             title: "채팅 데이터를 가져오는 중 오류 발생",
-                                        });
+                    <ChatSection>
+                         <SectionHeader>
+                              <SectionTitle>채팅</SectionTitle>
+                              <RefreshButton
+                                   className={isRotating ? "rotating" : ""}
+                                   onClick={() => handleRefresh(true)}
+                              >
+                                   <LuRefreshCw size={18} />
+                              </RefreshButton>
+                         </SectionHeader>
+                         <ChatLog ref={chatEndRef}>
+                              {chatLog.map((chat, idx) => (
+                                   <ChatBubble key={idx} isMine={chat.name === name}>
+                                        <ChatName>{chat.name}</ChatName>
+                                        <ChatMessage>{chat.message}</ChatMessage>
+                                   </ChatBubble>
+                              ))}
+                         </ChatLog>
+                         <ChatInputWrapper>
+                              <Input
+                                   placeholder={
+                                        isNameMatching ? "메시지를 입력하세요..." : "참여 후 채팅할 수 있습니다."
                                    }
-                              }}
-                         >
-                              <LuRefreshCw size={25} color={theme.text.gamma[800]} />
-                         </ButtonBox>
-                    </div>
-                    <ChatingDiv ref={chatEndRef}>
-                         {cachedChatLog.map((chat, idx) => (
-                              <ChatDiv key={idx}>
-                                   <NameDiv>{chat.name}:</NameDiv>
-                                   <MessageDiv>{chat.message}</MessageDiv>
-                              </ChatDiv>
-                         ))}
-                    </ChatingDiv>
-                    <InputLayout>
-                         <Input
-                              placeholder={"채팅을 입력하세요."}
-                              maxLength={500}
-                              onChange={(e) => {
-                                   setMessage(e.target.value);
-                                   if (e.target.value.length >= 500) {
-                                        Toast.fire({
-                                             icon: "error",
-                                             iconColor: `${theme.color.primary}`,
-                                             title: "최대 500 자까지 입력 가능합니다.",
-                                        });
-                                   }
-                              }}
-                              value={message}
-                              onKeyDown={(e) => {
-                                   if (e.key === "Enter") {
-                                        updateChatLog();
-                                   }
-                              }}
-                         />
-                         <ButtonBox onClick={updateChatLog}>
-                              <BsSend color={theme.text.gamma[800]} />
-                         </ButtonBox>
-                    </InputLayout>
-               </ChatLayout>
-          </Frame>
+                                   maxLength={500}
+                                   onChange={(e) => setMessage(e.target.value)}
+                                   value={message}
+                                   onKeyDown={(e) => e.key === "Enter" && updateChatLog()}
+                                   disabled={!isNameMatching}
+                              />
+                              <SendButton onClick={updateChatLog} disabled={!isNameMatching || !message.trim()}>
+                                   <BsSendFill />
+                              </SendButton>
+                         </ChatInputWrapper>
+                    </ChatSection>
+               </Frame>
+          </AnimatePresence>
      );
 }
 
-const Frame = styled.div`
+const Frame = styled(motion.div)`
      width: 100%;
      display: flex;
      flex-direction: column;
-     align-items: center;
      gap: 30px;
 `;
 
-const MembersLayout = styled.div`
-     ${theme.styles.flexCenterColumn}
-     justify-content: flex-start;
-     font-family: Pretendard-SemiBold;
+const Section = styled.div`
      width: 100%;
-     gap: 20px;
-     padding-bottom: 30px;
-     border-bottom: 1px solid ${theme.text.gamma[800]};
+     background: white;
+     border-radius: 16px;
+     padding: 24px;
+     box-sizing: border-box;
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+     display: flex;
+     flex-direction: column;
+`;
+
+const MembersSection = styled(Section)``;
+const ChatSection = styled(Section)``;
+
+const SectionHeader = styled.div`
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 20px;
+`;
+
+const SectionTitle = styled.h3`
+     font-family: "Pretendard-Bold";
+     font-size: 20px;
+     color: ${theme.text.gamma[300]};
+     margin: 0;
+`;
+
+const MembersGrid = styled.div`
+     display: flex;
+     flex-wrap: wrap;
+     gap: 12px;
+     max-height: 200px;
+     overflow-y: auto;
+`;
+
+const MemberChip = styled.button`
+     background-color: ${({ isSelected }) => (isSelected ? theme.color.primary : theme.text.gamma[950])};
+     border: 1px solid ${({ isSelected }) => (isSelected ? theme.color.primary : theme.text.gamma[900])};
+     color: ${({ isSelected }) => (isSelected ? "white" : theme.text.gamma[400])};
+     font-family: "Pretendard-Medium";
+     font-size: 15px;
+     padding: 8px 16px;
+     border-radius: 999px;
+     cursor: pointer;
+     transition: all 0.2s ease;
+
+     &:hover {
+          background-color: ${({ isSelected }) => (isSelected ? theme.color.primary : `${theme.color.primary}15`)};
+          color: ${({ isSelected }) => (isSelected ? "white" : theme.color.primary)};
+          border-color: ${({ isSelected }) => (isSelected ? theme.color.primary : `${theme.color.primary}30`)};
+     }
+`;
+
+const EmptyMessage = styled.p`
+     font-family: "Pretendard-Regular";
+     color: ${theme.text.gamma[600]};
+     width: 100%;
+     text-align: center;
+     padding: 20px 0;
+`;
+
+const ChatLog = styled.div`
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
      height: 250px;
      overflow-y: auto;
-     scroll-behavior: smooth;
-
-     ::-webkit-scrollbar {
-          display: none;
-     }
-     -ms-overflow-style: none; //IE and Edge
-     scrollbar-width: none; //Firefox
-
-     @media (max-width: 480px) {
-          height: 300px;
-     }
+     padding: 10px;
+     background-color: ${theme.text.gamma[950]};
+     border-radius: 8px;
 `;
 
-const MemberContainer = styled.div`
-     display: flex;
-     flex-direction: row;
-     gap: 30px;
-     align-items: center;
-`;
-
-const MemberDiv = styled.div`
-     ${theme.styles.flexCenterColumn}
-     font-family: ${(props) => (props.selected ? "Pretendard-SemiBold" : "Pretendard-Light")};
-     font-size: 24px;
-     cursor: pointer;
-
-     @media (max-width: 480px) {
-          font-size: 20px;
-     }
-`;
-
-const ChatLayout = styled.div`
-     ${theme.styles.flexCenterColumn}
-     font-family: Pretendard-SemiBold;
-     width: 100%;
-     gap: 20px;
-     font-size: 25px;
-
-     @media (max-width: 480px) {
-          font-size: 20px;
-     }
-`;
-
-const ChatingDiv = styled.div`
+const ChatBubble = styled.div`
      display: flex;
      flex-direction: column;
-     justify-content: flex-start;
-     align-items: flex-start;
-     width: 423px;
-     gap: 10px;
-     min-height: 105px;
-     max-height: 300px;
-     overflow-y: auto;
-     scroll-behavior: smooth;
-     border-radius: 8px;
-     ::-webkit-scrollbar {
-          display: none;
-     }
-     -ms-overflow-style: none; //IE and Edge
-     scrollbar-width: none; //Firefox
-
-     @media (max-width: 480px) {
-          max-height: 200px;
-          width: 280px;
-     }
+     align-self: ${({ isMine }) => (isMine ? "flex-end" : "flex-start")};
+     max-width: 80%;
 `;
 
-const ChatDiv = styled.div`
-     ${theme.styles.flexCenterColumn}
-     align-items: flex-start;
-     font-family: Pretendard-Light;
-     width: 100%;
-     gap: auto;
-     font-size: 22px;
-
-     @media (max-width: 480px) {
-          font-size: 18px;
-     }
+const ChatName = styled.span`
+     font-family: "Pretendard-SemiBold";
+     font-size: 13px;
+     color: ${theme.text.gamma[500]};
+     margin: 0 8px 4px 8px;
+     text-align: ${({ isMine }) => (isMine ? "right" : "left")};
 `;
 
-const NameDiv = styled.div`
+const ChatMessage = styled.div`
+     font-family: "Pretendard-Regular";
+     font-size: 15px;
+     padding: 10px 14px;
+     border-radius: 18px;
+     background-color: ${({ isMine }) => (isMine ? theme.color.primary : "#EAEAEA")};
+     color: ${({ isMine }) => (isMine ? "white" : "black")};
+     word-wrap: break-word;
+     white-space: pre-wrap;
+`;
+
+const ChatInputWrapper = styled.div`
      display: flex;
-     justify-content: flex-start;
      align-items: center;
-     text-align: start;
-     font-family: Pretendard-Medium;
-     font-size: 22px;
-     width: 100%;
-
-     @media (max-width: 480px) {
-          font-size: 18px;
-          /* width: 20%; */
-     }
+     gap: 10px;
+     margin-top: 16px;
 `;
 
-const MessageDiv = styled.div`
-     height: 100%;
-     width: 100%;
-     font-family: Pretendard-Light;
-     word-wrap: break-word; /* 긴 단어나 텍스트가 넘어갈 경우 자동으로 줄바꿈 */
-     white-space: normal; /* 기본적으로 줄바꿈이 가능하도록 설정 */
-     @media (max-width: 480px) {
-          font-size: 18px;
+const SendButton = styled.button`
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     min-width: 48px;
+     height: 48px;
+     border-radius: 50%;
+     border: none;
+     background-color: ${theme.color.primary};
+     color: white;
+     cursor: pointer;
+     transition: background-color 0.2s;
+
+     &:hover:not(:disabled) {
+          background-color: ${theme.color.primaryTint};
      }
-`;
-
-const InputLayout = styled.div`
-     ${theme.styles.flexCenterRow}
-     width: 423px;
-
-     @media (max-width: 480px) {
-          width: 90%;
-
-          input {
-               font-size: 18px;
-          }
+     &:disabled {
+          background-color: ${theme.text.gamma[800]};
+          cursor: not-allowed;
      }
 `;
 
 const rotate = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(180deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
 `;
 
-const ButtonBox = styled.div`
+const RefreshButton = styled.button`
      ${theme.styles.flexCenterRow}
      background: none;
      border: none;
      cursor: pointer;
-     flex: 1;
-     transition: all 0.3s ease;
+     color: ${theme.text.gamma[600]};
+     padding: 8px;
+     border-radius: 50%;
 
-     &.rotating {
-          animation: ${rotate} 0.5s linear infinite;
+     &:hover {
+          background-color: ${theme.text.gamma[900]};
      }
-`;
-
-const EditBox = styled.button`
-     display: flex;
-     background: none;
-     border: none;
-     cursor: pointer;
+     &.rotating {
+          animation: ${rotate} 0.7s linear;
+     }
 `;

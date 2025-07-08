@@ -2,17 +2,11 @@ import styled from "@emotion/styled/macro";
 import Button from "../../../../component/Button";
 import theme from "../../../../theme";
 import Swal from "sweetalert2";
-import { useEffect } from "react";
-import { keyframes } from "@emotion/react";
-import { MdContentCopy } from "react-icons/md";
 import { GrShareOption } from "react-icons/gr";
+import { AnimatePresence, motion } from "framer-motion";
 
-export default function Invite({ setRightScreen, tableId, title, setSelectedToggle }) {
+export default function Invite({ tableId, title }) {
      const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
-
-     useEffect(() => {
-          setSelectedToggle("초대하기");
-     }, [setSelectedToggle]);
 
      const copyToClipboard = () => {
           navigator.clipboard.writeText(tableUrl).then(() => {
@@ -20,162 +14,87 @@ export default function Invite({ setRightScreen, tableId, title, setSelectedTogg
                     toast: true,
                     position: "top-end",
                     showConfirmButton: false,
-                    timer: 5000,
+                    timer: 3000,
+                    customClass: {
+                         popup: "custom-swal-popup",
+                         title: "custom-swal-title",
+                    },
                });
-
                Toast.fire({
                     icon: "success",
                     iconColor: `${theme.color.button.blue}`,
-                    title: "링크를 복사했습니다.",
+                    title: "링크를 복사했습니다!",
                });
           });
      };
+
      return (
-          <Frame>
-               <Title>
-                    <AnimatedDiv>
-                         <MdContentCopy size={40} />
-                    </AnimatedDiv>
-                    <AnimatedText>초대하기</AnimatedText>
-               </Title>
-               <TitleFrame>
-                    <TitleDiv>{title}</TitleDiv>
-               </TitleFrame>
-               <ContentFrame>
-                    <UrlDiv>
-                         <GrShareOption color={theme.text.gamma[500]} size={30} />
-                         {tableUrl}
-                    </UrlDiv>
-                    <ButtonLayout>
-                         <ButtonDiv>
-                              <Button
-                                   title="링크 복사"
-                                   background={theme.color.button.blue}
-                                   onClick={() => {
-                                        copyToClipboard();
-                                        setRightScreen("MySchedule");
-                                   }}
-                              />
-                         </ButtonDiv>
-                    </ButtonLayout>
-               </ContentFrame>
-          </Frame>
+          <AnimatePresence>
+               <Frame initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Header>
+                         <GrShareOption size={28} color={theme.color.button.blue} />
+                         <HeaderText>친구 초대하기</HeaderText>
+                    </Header>
+                    <TitleDiv>
+                         <span style={{ fontFamily: "Pretendard-Bold" }}>{title}</span>
+                         <span style={{ color: theme.text.gamma[500] }}> 테이블에 친구를 초대하세요.</span>
+                    </TitleDiv>
+                    <UrlDiv>{tableUrl}</UrlDiv>
+                    <Button title="링크 복사" variant="secondary" onClick={copyToClipboard} />
+               </Frame>
+          </AnimatePresence>
      );
 }
 
-const Frame = styled.div`
+const Frame = styled(motion.div)`
      width: 100%;
-     height: 100%;
      display: flex;
-     justify-content: center;
-     align-items: center;
      flex-direction: column;
-     gap: 30px;
-     background-color: #fbfbfb;
-     border-radius: 50px;
-     padding: 40px;
+     gap: 24px;
+     background-color: white;
+     border-radius: 16px;
+     padding: 30px;
      box-sizing: border-box;
-
-     @media (max-width: 480px) {
-          border-radius: 50px 50px 0px 0px;
-          padding: 40px 30px;
-     }
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 `;
 
-const fadeIn = keyframes`
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+const Header = styled.div`
+     display: flex;
+     align-items: center;
+     gap: 12px;
 `;
 
-const AnimatedDiv = styled.div`
-     @media (max-width: 480px) {
-          animation: ${fadeIn} 1s ease-in-out;
-     }
+const HeaderText = styled.h2`
+     font-family: "Pretendard-Bold";
+     font-size: 24px;
+     color: ${theme.text.gamma[200]};
+     margin: 0;
 `;
 
-const AnimatedText = styled.span`
-     @media (max-width: 480px) {
-          animation: ${fadeIn} 1.2s ease-in-out;
-     }
-`;
-
-const TitleFrame = styled.div`
-     ${theme.styles.flexCenterColumn}
-     font-family: Pretendard-SemiBold;
-     width: 90%;
-`;
-
-const ContentFrame = styled.div`
-     ${theme.styles.flexCenterColumn}
-     font-family: Pretendard-SemiBold;
-     width: 100%;
-     gap: 30px;
+const TitleDiv = styled.div`
+     font-size: 18px;
+     font-family: Pretendard-Regular;
+     color: ${theme.text.gamma[200]};
+     text-align: center;
+     word-break: keep-all;
 `;
 
 const UrlDiv = styled.div`
      ${theme.styles.flexCenterRow}
-     background-color:white;
+     background-color: ${theme.text.gamma[950]};
      font-family: Pretendard-Regular;
-     font-size: 20px;
+     font-size: 15px;
+     color: ${theme.text.gamma[400]};
      width: 100%;
      height: 50px;
-     border-radius: 30px;
-     padding: 8px;
-     border: 2px solid ${theme.text.gamma[800]};
-     gap: 5px;
+     border-radius: 10px;
+     padding: 8px 16px;
+     box-sizing: border-box;
+     border: 1px solid ${theme.text.gamma[900]};
+     word-break: break-all;
+     text-align: center;
 
      @media (max-width: 480px) {
-          font-size: 14px;
-          width: 100%;
-          height: 35px;
-          justify-content: space-evenly;
-     }
-`;
-const ButtonLayout = styled.div`
-     ${theme.styles.flexCenterRow}
-     width: 100%;
-
-     @media (max-width: 480px) {
-          width: 140px;
-     }
-`;
-
-const ButtonDiv = styled.div`
-     display: flex;
-     width: 160px;
-     height: 56px;
-     button {
-          font-size: 20px;
-     }
-
-     @media (max-width: 480px) {
-          width: 100%;
-          height: 50px;
-          button {
-               font-size: 16px;
-          }
-     }
-`;
-
-const TitleDiv = styled.div`
-     font-size: 28px;
-     color: ${(props) => props.color};
-     @media (max-width: 480px) {
-          font-size: 25px;
-     }
-`;
-
-const Title = styled.div`
-     ${theme.styles.flexCenterColumn}
-     font-family: Pretendard-SemiBold;
-     width: 100%;
-     font-size: 28px;
-     color: ${theme.color.button.blue};
-     @media (max-width: 480px) {
-          font-size: 24px;
+          font-size: 13px;
      }
 `;

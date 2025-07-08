@@ -51,3 +51,20 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+
+.custom-swal-popup {
+  font-family: 'Pretendard-Regular', sans-serif;
+}
+
+.custom-swal-title {
+  font-family: 'Pretendard-Bold', sans-serif;
+}
+
+.custom-swal-html-container {
+  font-family: 'Pretendard-Regular', sans-serif;
+}
+
+.custom-swal-confirm-button,
+.custom-swal-cancel-button {
+  font-family: 'Pretendard-SemiBold', sans-serif;
+}

@@ -5,58 +5,55 @@ import Invite from "./component/right/Invite";
 import AllSchedule from "./component/right/AllSchedule";
 import MySchedule from "./component/right/MySchedule";
 import AddUser from "./component/right/AddUser";
-import AllTimeGrid from "./component/left/AllTimeGird";
 import Rank from "./component/right/Rank";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/Use/getTableInfo";
 import { getAllSchedule } from "../../api/Use/getAllSchedule";
 import { getSchedule } from "../../api/Use/getSchedule";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import Loader from "./component/Loading";
 import NotFoundTable from "../NotFoundTable";
-import { keyframes } from "@emotion/react";
-import { TbHandFinger } from "react-icons/tb";
 import Seo from "../../Seo";
 import { trackVisit } from "../../api/trackVisit";
+import FloatingActionButton from "./component/right/FloatingActionButton";
+import TimeGridModal from "./component/right/TimeGridModal";
+import { AnimatePresence } from "framer-motion";
+import Swal from "sweetalert2";
+import { FiUserPlus, FiShare2 } from "react-icons/fi";
 
 export default function UsePage() {
      const { tableId } = useParams();
-     const [tableInfo, setTableInfo] = useState();
+     const [tableInfo, setTableInfo] = useState(null);
      const [usersScheduleList, setUsersScheduleList] = useState([]);
-     const { startHour, endHour, dates } = tableInfo || {};
+     const { startHour, endHour, dates, title, banedCells } = tableInfo || {};
      const [saveButtonState, setSaveButtonState] = useState(true);
      const [timeInfo, setTimeInfo] = useState([]);
-     const title = tableInfo ? tableInfo.title : "";
-     const leftScreen = "AllTimeGrid";
      const [rightScreen, setRightScreen] = useState("AllSchedule");
      const [selectedToggle, setSelectedToggle] = useState("인원");
-     const [selectedName, setSelectedName] = useState(false);
+     const [selectedName, setSelectedName] = useState(null);
      const [name, setName] = useState("");
-     const banedCells = tableInfo ? tableInfo.banedCells : [];
-     const [currentSlide, setCurrentSlide] = useState(0);
-     const [showIntro, setShowIntro] = useState(true);
-     const closeIntro = () => setShowIntro(false);
      const [isValidTableId, setIsValidTableId] = useState(null);
+     const [isGridModalOpen, setIsGridModalOpen] = useState(false);
+
+     const fetchAllData = useCallback(async () => {
+          const tableData = await getTableInfo(tableId);
+          if (tableData.status === 404) {
+               setIsValidTableId(false);
+               return;
+          }
+          setTableInfo(tableData);
+          setIsValidTableId(true);
+
+          const membersSchedule = await getAllSchedule(tableId);
+          if (membersSchedule.code === 200) {
+               setUsersScheduleList(membersSchedule.data);
+          }
+          const timeData = await getSchedule(tableId);
+          setTimeInfo(timeData);
+     }, [tableId]);
 
      useEffect(() => {
           trackVisit("table");
-     }, []);
-     useEffect(() => {
-          const fetchTableInfo = async () => {
-               const tableData = await getTableInfo(tableId);
-               if (tableData.status === 404) {
-                    setIsValidTableId(false);
-                    return;
-               }
-               setTableInfo(tableData);
-               setIsValidTableId(true);
-          };
-          fetchTableInfo();
-     }, [tableId]);
-     useEffect(() => {
           const storedName = localStorage.getItem("name");
           if (tableId !== localStorage.getItem("tableId")) {
                localStorage.clear();
@@ -65,31 +62,50 @@ export default function UsePage() {
           if (storedName) {
                setName(storedName);
           }
-          const fetchData = async () => {
-               const membersSchedule = await getAllSchedule(tableId);
-               if (membersSchedule.code === 200) {
-                    setUsersScheduleList(membersSchedule.data);
-               }
-               const timeData = await getSchedule(tableId);
-               setTimeInfo(timeData);
-          };
-          if (tableId && isValidTableId) {
-               fetchData();
-          }
-     }, [saveButtonState, tableId, isValidTableId]);
+          fetchAllData();
+     }, [tableId, saveButtonState, fetchAllData]);
 
-     const datesInfo = async () => {
+     const datesInfo = useCallback(() => {
           if (selectedName) {
                const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
                return scheduleOfSelectedName ? scheduleOfSelectedName.availableTimes : [];
           }
           return [];
+     }, [selectedName, usersScheduleList]);
+
+     const handleToggleClick = (screen, toggle) => {
+          const storedName = localStorage.getItem("name");
+
+          if (screen === "MySchedule" && !storedName) {
+               Swal.fire({
+                    title: "로그인이 필요합니다",
+                    text: "일정을 등록하거나 수정하려면 먼저 참여해주세요.",
+                    icon: "warning",
+                    iconColor: theme.color.primary,
+                    confirmButtonText: "참여하러 가기",
+                    confirmButtonColor: theme.color.primary,
+                    customClass: {
+                         popup: "custom-swal-popup",
+                         title: "custom-swal-title",
+                         htmlContainer: "custom-swal-html-container",
+                         confirmButton: "custom-swal-confirm-button",
+                    },
+               }).then((result) => {
+                    if (result.isConfirmed) {
+                         setRightScreen("AddUser");
+                         setSelectedToggle(null);
+                    }
+               });
+               return;
+          }
+
+          setRightScreen(screen);
+          setSelectedToggle(toggle);
+          setSelectedName(null);
      };
-     const handleToggle = (button) => {
-          setSelectedToggle(button);
-     };
-     const showScreen = (Screen) => {
-          switch (Screen) {
+
+     const renderContent = () => {
+          switch (rightScreen) {
                case "AddUser":
                     return (
                          <AddUser
@@ -101,45 +117,16 @@ export default function UsePage() {
                          />
                     );
                case "Invite":
-                    return tableInfo ? (
-                         <Invite
-                              setRightScreen={setRightScreen}
-                              tableId={tableId}
-                              title={title}
-                              setSelectedToggle={setSelectedToggle}
-                         />
-                    ) : (
-                         <Loader />
-                    );
-               case "AllTimeGrid":
-                    return tableInfo ? (
-                         <AllTimeGrid
-                              dates={dates}
-                              startHour={startHour}
-                              endHour={endHour}
-                              timeInfo={selectedName ? datesInfo() : timeInfo}
-                              selectedName={selectedName}
-                              setSelectedName={setSelectedName}
-                              title={title}
-                              banedCells={banedCells}
-                              setTableInfo={setTableInfo}
-                              tableId={tableId}
-                         />
-                    ) : (
-                         <Loader />
-                    );
+                    return <Invite tableId={tableId} title={title} />;
                case "AllSchedule":
                     return (
                          <AllSchedule
                               setRightScreen={setRightScreen}
-                              setName={setName}
                               selectedName={selectedName}
                               setSelectedName={setSelectedName}
                               usersSchedule={usersScheduleList}
                               name={name}
                               tableId={tableId}
-                              setSelectedToggle={setSelectedToggle}
-                              setCurrentSlide={setCurrentSlide}
                          />
                     );
                case "MySchedule":
@@ -154,8 +141,6 @@ export default function UsePage() {
                               setSaveButtonState={setSaveButtonState}
                               usersScheduleList={usersScheduleList}
                               banedCells={banedCells}
-                              setSelectedToggle={setSelectedToggle}
-                              timeInfo={timeInfo}
                          />
                     ) : (
                          <Loader />
@@ -167,452 +152,232 @@ export default function UsePage() {
                               timeInfo={timeInfo}
                               selectedName={selectedName}
                               setSelectedName={setSelectedName}
-                              setSelectedToggle={setSelectedToggle}
-                              setCurrentSlide={setCurrentSlide}
                          />
                     );
                default:
-                    return "예상치 못한 에러입니다. 다시 시도해주세요.";
+                    return (
+                         <AllSchedule
+                              usersSchedule={usersScheduleList}
+                              tableId={tableId}
+                              setSelectedName={setSelectedName}
+                         />
+                    );
           }
-     };
-     const sliderSettings = {
-          dots: true,
-          infinite: false,
-          speed: 800,
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-          adaptiveHeight: true,
-          dotsClass: "slick-dots custom-dots",
-          initialSlide: currentSlide,
-          beforeChange: (_, next) => setCurrentSlide(next),
      };
 
      if (isValidTableId === null) {
           return (
                <LoaderLayout>
                     <Loader />
-                    <h1>테이블을 찾고 있습니다.</h1>
-                    <p>*만약 로딩 시간이 길어진다면 네트워크 연결 상태를 확인해주세요.</p>
+                    <h1>테이블 정보를 불러오는 중입니다...</h1>
+                    <p>연결 상태에 따라 시간이 걸릴 수 있습니다.</p>
                </LoaderLayout>
           );
      }
+
      return isValidTableId ? (
-          <Frame>
+          <PageWrapper>
                <Seo
-                    title={`${title}`}
+                    title={`${title || "테이블"}`}
                     description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
                     url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
                />
-               <DesktopView>
-                    <LeftArea>{showScreen(leftScreen)}</LeftArea>
-                    <RightArea>
-                         <ButtonLayout>
-                              <ButtonDiv>
-                                   <Button
-                                        background={theme.color.button.blue}
-                                        title="초대하기"
-                                        onClick={() => {
-                                             setRightScreen("Invite");
-                                             setCurrentSlide(1);
-                                        }}
-                                   />
-                              </ButtonDiv>
-                              <ButtonDiv>
-                                   <Button
-                                        background={theme.color.primary}
-                                        title="참여하기"
-                                        onClick={() => {
-                                             setRightScreen("AddUser");
-                                        }}
-                                   />
-                              </ButtonDiv>
-                         </ButtonLayout>
-                         <ToggleLayout>
-                              <ToggleButtonDiv>
-                                   <Button
-                                        fontFamily={
-                                             selectedToggle === "인원" ? "Pretendard-Bold" : "Pretendard-Regular"
-                                        }
-                                        title={`인원(${usersScheduleList.length})`}
-                                        background="none"
-                                        color={selectedToggle === "인원" ? theme.color.primary : "black"}
-                                        onClick={() => {
-                                             setRightScreen("AllSchedule");
-                                             handleToggle("인원");
-                                             setSelectedName(false);
-                                        }}
-                                   />
-                              </ToggleButtonDiv>
-                              <ToggleButtonDiv>
-                                   <Button
-                                        fontFamily={
-                                             selectedToggle === "내 일정" ? "Pretendard-Bold" : "Pretendard-Regular"
-                                        }
-                                        title="내 일정"
-                                        background="none"
-                                        color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
-                                        onClick={() => {
-                                             setRightScreen("MySchedule");
-                                             handleToggle("내 일정");
-                                        }}
-                                   />
-                              </ToggleButtonDiv>
-                              <ToggleButtonDiv>
-                                   <Button
-                                        fontFamily={
-                                             selectedToggle === "순위" ? "Pretendard-Bold" : "Pretendard-Regular"
-                                        }
-                                        title="순위"
-                                        background="none"
-                                        color={selectedToggle === "순위" ? theme.color.primary : "black"}
-                                        onClick={() => {
-                                             setRightScreen("Rank");
-                                             handleToggle("순위");
-                                             setSelectedName(false);
-                                        }}
-                                   />
-                              </ToggleButtonDiv>
-                         </ToggleLayout>
-                         {showScreen(rightScreen)}
-                    </RightArea>
-               </DesktopView>
-               <MobileView>
-                    <SliderWrapper>
-                         <Slider {...sliderSettings}>
-                              <LeftArea>
-                                   {showIntro && (
-                                        <IntroOverlay>
-                                             <IntroContent>
-                                                  <span>환영합니다!</span>
-                                                  <span>
-                                                       현재 페이지는{" "}
-                                                       <span
-                                                            style={{
-                                                                 fontFamily: "Pretendard-semiBold",
-                                                                 fontSize: "19px",
-                                                            }}
-                                                       >
-                                                            '전체 일정'
-                                                       </span>
-                                                       입니다. <br />
-                                                       참여하시거나 초대하시려면 <br />
-                                                       오른쪽으로
-                                                       <span
-                                                            style={{
-                                                                 color: theme.color.primary,
-                                                                 fontFamily: "Pretendard-semiBold",
-                                                            }}
-                                                       >
-                                                            {" "}
-                                                            슬라이드
-                                                       </span>
-                                                       해주세요.
-                                                  </span>
-                                                  <IconDiv>
-                                                       <TbHandFinger color={theme.color.primary} />
-                                                  </IconDiv>
-                                                  <ButtonDiv>
-                                                       <Button
-                                                            background={theme.color.button.primary}
-                                                            title="확인"
-                                                            onClick={closeIntro}
-                                                       />
-                                                  </ButtonDiv>
-                                             </IntroContent>
-                                        </IntroOverlay>
-                                   )}
-                                   {showScreen(leftScreen)}
-                              </LeftArea>
-                              <RightArea>
-                                   <ButtonLayout>
-                                        <ButtonDiv>
-                                             <Button
-                                                  background={theme.color.button.blue}
-                                                  title="초대하기"
-                                                  onClick={() => setRightScreen("Invite")}
-                                             />
-                                        </ButtonDiv>
-                                        <ButtonDiv>
-                                             <Button
-                                                  background={theme.color.primary}
-                                                  title="참여하기"
-                                                  onClick={() => {
-                                                       setRightScreen("AddUser");
-                                                  }}
-                                             />
-                                        </ButtonDiv>
-                                   </ButtonLayout>
-                                   <ToggleLayout>
-                                        <ToggleButtonDiv>
-                                             <Button
-                                                  fontFamily={
-                                                       selectedToggle === "인원"
-                                                            ? "Pretendard-Bold"
-                                                            : "Pretendard-Regular"
-                                                  }
-                                                  title={`인원(${usersScheduleList.length})`}
-                                                  background="none"
-                                                  color={selectedToggle === "인원" ? theme.color.primary : "black"}
-                                                  onClick={() => {
-                                                       setRightScreen("AllSchedule");
-                                                       handleToggle("인원");
-                                                       setSelectedName(false);
-                                                  }}
-                                             />
-                                        </ToggleButtonDiv>
-                                        <ToggleButtonDiv>
-                                             <Button
-                                                  fontFamily={
-                                                       selectedToggle === "내 일정"
-                                                            ? "Pretendard-Bold"
-                                                            : "Pretendard-Regular"
-                                                  }
-                                                  title="내 일정"
-                                                  background="none"
-                                                  color={selectedToggle === "내 일정" ? theme.color.primary : "black"}
-                                                  onClick={() => {
-                                                       setRightScreen("MySchedule");
-                                                       handleToggle("내 일정");
-                                                  }}
-                                             />
-                                        </ToggleButtonDiv>
-                                        <ToggleButtonDiv>
-                                             <Button
-                                                  fontFamily={
-                                                       selectedToggle === "순위"
-                                                            ? "Pretendard-Bold"
-                                                            : "Pretendard-Regular"
-                                                  }
-                                                  title="순위"
-                                                  background="none"
-                                                  color={selectedToggle === "순위" ? theme.color.primary : "black"}
-                                                  onClick={() => {
-                                                       setRightScreen("Rank");
-                                                       handleToggle("순위");
-                                                       setSelectedName(false);
-                                                  }}
-                                             />
-                                        </ToggleButtonDiv>
-                                   </ToggleLayout>
-                                   {showScreen(rightScreen)}
-                              </RightArea>
-                         </Slider>
-                    </SliderWrapper>
-               </MobileView>
-          </Frame>
+               <MainContent>
+                    <HeaderSection>
+                         <Title>{title}</Title>
+                         <Description>
+                              아래에서 참여하고 내 일정을 등록하거나, 링크를 공유해 친구를 초대할 수 있어요.
+                         </Description>
+                         <ActionButtons>
+                              <PrimaryActionButton
+                                   onClick={() => {
+                                        setRightScreen("AddUser");
+                                        setSelectedToggle(null);
+                                   }}
+                              >
+                                   <FiUserPlus />
+                                   <span>내 일정 등록</span>
+                              </PrimaryActionButton>
+                              <SecondaryActionButton
+                                   onClick={() => {
+                                        setRightScreen("Invite");
+                                        setSelectedToggle(null);
+                                   }}
+                              >
+                                   <FiShare2 />
+                                   <span>초대</span>
+                              </SecondaryActionButton>
+                         </ActionButtons>
+                    </HeaderSection>
+
+                    <ToggleBar>
+                         <Button
+                              title={`인원 (${usersScheduleList.length})`}
+                              variant="text"
+                              onClick={() => handleToggleClick("AllSchedule", "인원")}
+                              className={selectedToggle === "인원" ? "active" : ""}
+                         />
+                         <Button
+                              title="내 일정"
+                              variant="text"
+                              onClick={() => handleToggleClick("MySchedule", "내 일정")}
+                              className={selectedToggle === "내 일정" ? "active" : ""}
+                         />
+                         <Button
+                              title="순위"
+                              variant="text"
+                              onClick={() => handleToggleClick("Rank", "순위")}
+                              className={selectedToggle === "순위" ? "active" : ""}
+                         />
+                    </ToggleBar>
+
+                    <ContentPanel>
+                         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+                    </ContentPanel>
+               </MainContent>
+
+               <FloatingActionButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
+               {tableInfo && (
+                    <TimeGridModal
+                         isOpen={isGridModalOpen}
+                         onClose={() => setIsGridModalOpen(false)}
+                         banedCells={banedCells}
+                         title={title}
+                         dates={dates}
+                         startHour={startHour}
+                         endHour={endHour}
+                         timeInfo={selectedName ? datesInfo() : timeInfo}
+                         selectedName={selectedName}
+                         setSelectedName={setSelectedName}
+                         setTableInfo={setTableInfo}
+                         tableId={tableId}
+                         usersSchedule={usersScheduleList}
+                    />
+               )}
+          </PageWrapper>
      ) : (
           <NotFoundTable />
      );
 }
 
-const Frame = styled.div`
+const PageWrapper = styled.div`
      width: 100%;
-     max-width: 1600px;
+     padding: 40px 24px 80px;
+     box-sizing: border-box;
+     background-color: #f8f9fa;
+     min-height: calc(100vh - 72px);
+`;
+
+const MainContent = styled.div`
+     max-width: 800px;
      margin: 0 auto;
-     margin-bottom: 50px;
-`;
-
-const DesktopView = styled.div`
-     display: grid;
-     grid-template-columns: 1fr 1fr;
-     gap: 3rem;
-     width: 100%;
-     padding: 0 2rem;
-     box-sizing: border-box;
-     align-items: start;
-
-     @media (max-width: 1024px) {
-          grid-template-columns: 1fr;
-          gap: 0;
-     }
-     @media (max-width: 480px) {
-          display: none;
-     }
-`;
-
-const LeftArea = styled.div`
      display: flex;
      flex-direction: column;
-     align-items: center;
      gap: 30px;
-     padding-top: 60px;
-     width: 100%;
-     min-width: 0;
-
-     @media (max-width: 1024px) {
-          padding-top: 30px;
-     }
 `;
 
-const RightArea = styled.div`
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: 30px;
-     padding-top: 60px;
-     width: 100%;
-     min-width: 0;
-
-     @media (max-width: 1024px) {
-          padding-top: 30px;
-     }
-     @media (max-width: 480px) {
-          display: flex;
-          width: 90%;
-     }
-     .slick-slide & {
-          display: flex !important;
-     }
-`;
-
-const slideAnimation = keyframes`0% { transform: translateX(80px); } 100% { transform: translateX(-80px); }`;
-const fadeIn = keyframes`0% { opacity: 0; } 100% { opacity: 1; }`;
-const MobileView = styled.div`
-     display: none;
-     @media (max-width: 480px) {
-          display: block;
-          width: 100%;
-          height: auto;
-     }
-     .slick-slider {
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-     }
-     .slick-slide {
-          display: flex !important;
-          justify-content: center;
-          align-items: center;
-          height: auto;
-     }
-`;
-const SliderWrapper = styled.div`
-     position: relative;
-     .custom-dots {
-          position: fixed;
-          bottom: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex !important;
-          justify-content: center;
-          align-items: center;
-          li {
-               width: 8.5px;
-               height: 8.5px;
-               margin: 0 5px;
-               border-radius: 50%;
-               background: ${theme.text.gamma[300]};
-               transition: background 0.3s ease;
-               &.slick-active {
-                    background: ${theme.color.primary};
-               }
-               &:not(.slick-active) {
-                    background: ${theme.color.timeGrid[40]};
-               }
-          }
-          button {
-               display: none;
-          }
-     }
-`;
-const IntroOverlay = styled.div`
-     position: fixed;
-     top: 0;
-     left: 0;
-     width: 100vw;
-     height: 100%;
-     background-color: rgba(0, 0, 0, 0.8);
-     display: flex;
-     justify-content: center;
-     align-items: flex-start;
-     padding-top: 130px;
-     z-index: 1000;
-     margin-bottom: 1000px;
-     animation: ${fadeIn} 1s ease-in-out forwards;
-`;
-const IntroContent = styled.div`
-     display: flex;
-     flex-direction: column;
-     background-color: white;
-     padding: 20px 20px 50px 20px;
-     border-radius: 25px;
+const HeaderSection = styled.header`
      text-align: center;
-     width: 85%;
-     gap: 40px;
-     box-sizing: border-box;
-     font-family: Pretendard-Regular;
-     font-size: 19px;
-     margin-top: 50px;
-     span:first-of-type {
-          font-size: 21px;
-          font-family: Pretendard-Medium;
-     }
-`;
-const IconDiv = styled.div`
-     font-size: 40px;
-     animation: ${slideAnimation} 3s infinite;
-`;
-const ButtonLayout = styled.div`
-     ${theme.styles.flexCenterRow} justify-content: flex-end;
-     width: 100%;
-     max-width: 490px;
-     gap: 12px;
-     @media (max-width: 1024px) {
-          width: 100%;
-          justify-content: center;
-          max-width: 500px;
-     }
-     @media (max-width: 480px) {
-          width: 320px;
-     }
-`;
-const ButtonDiv = styled.div`
      display: flex;
-     width: 160px;
-     height: 56px;
-     button {
-          font-size: 20px;
-     }
+     flex-direction: column;
+     align-items: center;
+     gap: 16px;
+`;
+
+const Title = styled.h1`
+     font-family: "Pretendard-Bold";
+     font-size: 36px;
+     color: ${theme.text.gamma[100]};
+     margin: 0;
      @media (max-width: 480px) {
-          width: 100%;
-          height: 50px;
-          button {
-               font-size: 16px;
-          }
+          font-size: 28px;
      }
 `;
-const ToggleLayout = styled.div`
+
+const Description = styled.p`
+     font-family: "Pretendard-Regular";
+     font-size: 18px;
+     color: ${theme.text.gamma[500]};
+     margin: 0;
+     text-align: center;
+     line-height: 1.6;
+     @media (max-width: 480px) {
+          font-size: 16px;
+     }
+`;
+
+const ActionButtons = styled.div`
      display: flex;
-     flex-direction: row;
+     gap: 16px;
+     margin-top: 20px;
+`;
+
+const CustomActionButton = styled.button`
+     font-family: "Pretendard-SemiBold";
+     height: 52px;
+     padding: 0 28px;
+     border-radius: 12px;
+     font-size: 17px;
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     cursor: pointer;
+     border: none;
+     transition: all 0.2s ease;
+
+     &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+     }
+`;
+
+const PrimaryActionButton = styled(CustomActionButton)`
+     background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+     color: white;
+`;
+
+const SecondaryActionButton = styled(CustomActionButton)`
+     background: ${theme.color.button.blue};
+     color: white;
+`;
+
+const ToggleBar = styled.div`
+     display: flex;
      justify-content: center;
      align-items: center;
-     width: 100%;
-     max-width: 490px;
-     height: 30px;
-     @media (max-width: 480px) {
-          width: 85%;
-     }
-`;
-const ToggleButtonDiv = styled.div`
-     display: flex;
-     flex: 1;
+     background-color: white;
+     border-radius: 12px;
+     padding: 8px;
+     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+
      button {
-          font-size: 25px;
-     }
-     @media (max-width: 480px) {
-          button {
-               font-size: 19px;
-          }
+          flex: 1;
+          font-size: 16px;
+          height: 42px;
      }
 `;
+
+const ContentPanel = styled.main`
+     width: 100%;
+`;
+
 const LoaderLayout = styled.div`
      display: flex;
      justify-content: center;
      align-items: center;
      flex-direction: column;
-     margin: 150px 50px 0px 50px;
-     @media (max-width: 480px) {
-          margin: 200px 40px 0px 40px;
+     gap: 20px;
+     height: calc(100vh - 150px);
+     text-align: center;
+
+     h1 {
+          font-family: "Pretendard-Bold";
+          font-size: 24px;
+     }
+     p {
+          font-family: "Pretendard-Regular";
+          font-size: 16px;
+          color: ${theme.text.gamma[600]};
      }
 `;
