@@ -18,7 +18,6 @@ import { trackVisit } from "../../api/trackVisit";
 import FloatingActionButton from "./component/right/FloatingActionButton";
 import TimeGridModal from "./component/right/TimeGridModal";
 import { AnimatePresence } from "framer-motion";
-import Swal from "sweetalert2";
 import { FiUserPlus, FiShare2 } from "react-icons/fi";
 
 export default function UsePage() {
@@ -77,25 +76,25 @@ export default function UsePage() {
           const storedName = localStorage.getItem("name");
 
           if (screen === "MySchedule" && !storedName) {
-               Swal.fire({
-                    title: "로그인이 필요합니다",
-                    text: "일정을 등록하거나 수정하려면 먼저 참여해주세요.",
-                    icon: "warning",
-                    iconColor: theme.color.primary,
-                    confirmButtonText: "참여하러 가기",
-                    confirmButtonColor: theme.color.primary,
-                    customClass: {
-                         popup: "custom-swal-popup",
-                         title: "custom-swal-title",
-                         htmlContainer: "custom-swal-html-container",
-                         confirmButton: "custom-swal-confirm-button",
-                    },
-               }).then((result) => {
-                    if (result.isConfirmed) {
-                         setRightScreen("AddUser");
-                         setSelectedToggle(null);
-                    }
-               });
+               // Swal.fire({
+               //      title: "로그인이 필요합니다",
+               //      text: "일정을 등록하거나 수정하려면 먼저 참여해주세요.",
+               //      icon: "warning",
+               //      iconColor: theme.color.primary,
+               //      confirmButtonText: "참여하러 가기",
+               //      confirmButtonColor: theme.color.primary,
+               //      customClass: {
+               //           popup: "custom-swal-popup",
+               //           title: "custom-swal-title",
+               //           htmlContainer: "custom-swal-html-container",
+               //           confirmButton: "custom-swal-confirm-button",
+               //      },
+               // }).then((result) => {
+               //      if (result.isConfirmed) {
+               setRightScreen("AddUser");
+               setSelectedToggle(null);
+               // }
+               // });
                return;
           }
 
@@ -196,7 +195,7 @@ export default function UsePage() {
                                    }}
                               >
                                    <FiUserPlus />
-                                   <span>내 일정 등록</span>
+                                   <span>빠른 참여</span>
                               </PrimaryActionButton>
                               <SecondaryActionButton
                                    onClick={() => {
@@ -265,7 +264,7 @@ const PageWrapper = styled.div`
      padding: 40px 24px 80px;
      box-sizing: border-box;
      background-color: #f8f9fa;
-     min-height: calc(100vh - 72px);
+     min-height: calc(100vh - 72px); // Header height
 `;
 
 const MainContent = styled.div`

@@ -248,7 +248,7 @@ const TermsPrivacyContainer = styled.div`
      gap: 10px;
      margin-top: 10px;
      font-size: 13px;
-     color: ${theme.text.gamma[700]};
+     color: ${theme.text.gamma[500]};
 `;
 
 const TermsPrivacyText = styled.span`

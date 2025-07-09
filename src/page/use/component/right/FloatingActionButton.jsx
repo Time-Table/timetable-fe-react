@@ -72,7 +72,7 @@ const FloatingActionButton = ({ onClick, selectedName }) => {
                               transition={textAnimation.transition}
                               style={{ display: "inline-block", transformOrigin: "center" }}
                          >
-                              {isUserView ? `${selectedName} 시간표` : "시간표 보기"}
+                              {isUserView ? `${selectedName} 시간표` : "전체 시간표 보기"}
                          </motion.span>
                     </AnimatePresence>
                </LabelWrapper>

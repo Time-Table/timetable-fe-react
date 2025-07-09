@@ -49,7 +49,7 @@ export default function AllTimeGrid({
                </TitleFrame>
 
                <NoteHeader>
-                    <NoteText>{selectedName ? `${selectedName} 님의` : "전체"} 테이블</NoteText>
+                    <NoteText>{selectedName ? `${selectedName} 님의` : "전체"} 시간표</NoteText>
                     <ButtonBox
                          className={isRotating ? "rotating" : ""}
                          onClick={async () => {
@@ -212,6 +212,7 @@ const DropdownButton = styled.button`
      cursor: pointer;
      transition: all 0.2s ease;
      width: 100%;
+     box-sizing: border-box;
 
      &:hover {
           background-color: ${theme.color.primary}15;
@@ -232,6 +233,7 @@ const DropdownContent = styled.div`
      display: flex;
      flex-wrap: wrap;
      gap: 8px;
+     box-sizing: border-box;
 `;
 
 const DropdownItem = styled.div`
