@@ -175,7 +175,11 @@ const HelpContainer = styled.div`
      color: ${theme.text.gamma[500]};
      font-family: "Pretendard-Regular";
      font-size: 16px;
+     text-align: center;
      &:hover {
           color: ${theme.color.primary};
+     }
+     @media (max-width: 480px) {
+          font-size: 14px;
      }
 `;
