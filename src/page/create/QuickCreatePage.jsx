@@ -12,6 +12,7 @@ import TimeGrid from "../../component/TimeGrid";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackVisit } from "../../api/trackVisit.jsx";
 
 export default function QuickCreatePage() {
      const navigate = useNavigate();
@@ -27,6 +28,13 @@ export default function QuickCreatePage() {
      const startDropdownRef = useRef(null);
      const endDropdownRef = useRef(null);
      const isPrerequisitesMet = title.trim() !== "" && selectedDates.length > 0;
+
+     useEffect(() => {
+          const getVisitLog = async () => {
+               await trackVisit("create");
+          };
+          getVisitLog();
+     }, []);
 
      useEffect(() => {
           function handleClickOutside(event) {
