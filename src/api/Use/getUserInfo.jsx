@@ -2,12 +2,10 @@ import axios from "axios";
 
 export const getUserInfo = async (tableId, name, password) => {
   try {
-    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/userInfo`, {
-      params: {
-        tableId: tableId,
-        name: name,
-        password: password,
-      },
+    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/users/verify`, {
+      tableId: tableId,
+      name: name,
+      password: password,
     });
     return res.data;
   } catch (error) {

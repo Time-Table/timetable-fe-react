@@ -2,7 +2,7 @@ import { instance } from "./interseptors/intex";
 
 export const trackVisit = async (page) => {
   try {
-    const res = await instance.post(`${process.env.REACT_APP_SERVER_URL}/api/trackVisit`, {
+    const res = await instance.post(`${process.env.REACT_APP_SERVER_URL}/api/visits`, {
       page: page,
     });
     return res;
