@@ -191,8 +191,9 @@ const SelectionContainer = styled.div`
 
 const SelectionBox = styled.div`
   ${theme.styles.flexCenterColumn}
-  width: 220px;
-  height: 220px;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1;
   border: 1px solid ${theme.text.gamma[800]};
   border-radius: 20px;
   cursor: pointer;
@@ -208,9 +209,6 @@ const SelectionBox = styled.div`
 
   @media (max-width: 480px) {
     flex: 1;
-    width: auto;
-    height: auto;
-    aspect-ratio: 1 / 1;
     padding: 15px;
     justify-content: center;
   }
@@ -291,7 +289,8 @@ const ContentDiv = styled.div`
   ${theme.styles.flexCenterColumn}
   gap: 40px;
   padding: 200px 0px 350px 0px;
-  width: 700px;
+  width: 100%;
+  max-width: 700px;
 
   @media (max-width: 480px) {
     width: 100%;

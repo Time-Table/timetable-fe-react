@@ -18,7 +18,10 @@ const NotFoundTable = () => {
 
 const CreatePageDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  margin: 50px;
+  width: 100%;
+  padding: 50px 20px;
+  box-sizing: border-box;
+  text-align: center;
 `;
 
 export default NotFoundTable;

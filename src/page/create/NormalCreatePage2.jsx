@@ -235,10 +235,10 @@ const ContentDiv = styled.div`
      gap: 40px;
      padding-top: 30px;
      padding-bottom: 65px;
-     width: 360px;
+     width: 100%;
+     max-width: 360px;
      @media (max-width: 480px) {
           width: 90%;
-
           padding: 30px 0px;
      }
 `;
@@ -251,7 +251,6 @@ const ButtonLayout = styled.div`
      align-items: center;
      @media (max-width: 480px) {
           justify-content: center;
-          width: 80%;
      }
 `;
 

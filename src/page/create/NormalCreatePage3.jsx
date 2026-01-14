@@ -138,7 +138,8 @@ const ContentDiv = styled.div`
      gap: 30px;
      padding-top: 30px;
      padding-bottom: 10px;
-     width: 486px;
+     width: 100%;
+     max-width: 486px;
      opacity: 0;
      transform: translateY(-30px);
      animation: fadeIn 1.2s ease-in-out forwards;
@@ -151,7 +152,7 @@ const ContentDiv = styled.div`
      }
 
      @media (max-width: 480px) {
-          width: 380px;
+          width: 90%;
      }
 `;
 
@@ -162,7 +163,6 @@ const ButtonLayout = styled.div`
      align-items: center;
      @media (max-width: 480px) {
           justify-content: center;
-          width: 85%;
      }
 `;
 

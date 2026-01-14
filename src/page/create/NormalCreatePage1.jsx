@@ -78,7 +78,8 @@ const ContentDiv = styled.div`
      gap: 30px;
      margin: 30px 0;
      /* padding-bottom: 25px; */
-     width: 510px;
+     width: 100%;
+     max-width: 510px;
      opacity: 0;
      transform: translateY(-30px);
      animation: fadeIn 1.2s ease-in-out forwards;
@@ -104,13 +105,12 @@ const CalendarLayout = styled.div`
 `;
 
 const ButtonLayout = styled.div`
-     width: 75%;
+     width: 100%;
      display: flex;
      justify-content: end;
      align-items: center;
      @media (max-width: 480px) {
           justify-content: center;
-          width: 90%;
      }
 `;
 
