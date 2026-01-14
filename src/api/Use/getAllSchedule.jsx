@@ -1,13 +1,14 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const getAllSchedule = async (tableId) => {
   try {
-    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/users`, {
+    const res = await axios.get("/api/users", {
       params: { tableId: tableId },
     });
-    return res.data;
+    return res;
   } catch (error) {
     console.error("getAllSchedule: ", error.response);
     return error.response?.data;
   }
 };
+

@@ -1,17 +1,18 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const createTable = async (title, dates, startHour, endHour, banedCells) => {
   try {
-    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/tables`, {
+    const res = await axios.post("/api/tables", {
       title: title,
       dates: dates,
       startHour: startHour,
       endHour: endHour,
       banedCells: banedCells,
     });
-    return res.data;
+    return res;
   } catch (error) {
-    console.error("createTable: ", error.response.data);
-    return error.response.data;
+    console.error("createTable: ", error.response?.data || error.message);
+    return error.response?.data;
   }
 };
+

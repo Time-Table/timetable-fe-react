@@ -1,13 +1,14 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const generateSchedule = async (tableId) => {
   try {
-    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/schedules/generation`, {
+    const res = await axios.post("/api/schedules/generation", {
       tableId,
     });
-    return res.data;
+    return res;
   } catch (error) {
-    console.error("getAllSchedule: ", error.response);
+    console.error("generateSchedule: ", error.response);
     return error.response?.data;
   }
 };
+

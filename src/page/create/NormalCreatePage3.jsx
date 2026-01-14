@@ -65,7 +65,7 @@ export default function CreatePage3({ startHour, endHour, dates = [], tableTitle
                     }
                });
           } else {
-               Swal.fire("생성 실패", "테이블 생성 중 오류가 발생했습니다.", "error");
+               Swal.fire("생성 실패", res.message || "테이블 생성 중 오류가 발생했습니다.", "error");
           }
      };
 

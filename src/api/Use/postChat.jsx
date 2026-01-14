@@ -1,15 +1,16 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const postChat = async (tableId, name, message) => {
   try {
-    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/chats`, {
+    const res = await axios.post("/api/chats", {
       tableId,
       name,
       message,
     });
-    return res.data;
+    return res;
   } catch (error) {
     console.error("postChat: ", error.response);
     return error.response?.data;
   }
 };
+

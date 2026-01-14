@@ -1,17 +1,18 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const getUserInfo = async (tableId, name, password) => {
   try {
-    const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/api/users/verify`, {
+    const res = await axios.post("/api/users/verify", {
       tableId: tableId,
       name: name,
       password: password,
     });
-    return res.data;
+    return res;
   } catch (error) {
-    if (error.response.status === 401) {
+    if (error.response?.status === 401) {
       return error.response?.data;
     }
     return error.response?.data;
   }
 };
+

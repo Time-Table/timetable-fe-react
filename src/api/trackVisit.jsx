@@ -1,8 +1,8 @@
-import { instance } from "./interseptors/intex";
+import { instance as axios } from "./interceptors";
 
 export const trackVisit = async (page) => {
   try {
-    const res = await instance.post(`${process.env.REACT_APP_SERVER_URL}/api/visits`, {
+    const res = await axios.post("/api/visits", {
       page: page,
     });
     return res;
@@ -11,3 +11,4 @@ export const trackVisit = async (page) => {
     return error.message;
   }
 };
+

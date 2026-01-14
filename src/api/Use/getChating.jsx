@@ -1,15 +1,11 @@
-import axios from "axios";
+import { instance as axios } from "../interceptors";
 
 export const getChating = async (tableId) => {
   try {
-    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/chats`, {
+    const res = await axios.get("/api/chats", {
       params: { tableId },
     });
-    if (res.status === 201) {
-      return res;
-    }
-
-    return res.data;
+    return res;
   } catch (error) {
     console.error("getChating: ", error.response);
     return error.response?.data;
