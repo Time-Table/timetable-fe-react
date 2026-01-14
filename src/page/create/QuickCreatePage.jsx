@@ -5,14 +5,14 @@ import theme from "../../theme";
 import Seo from "../../Seo";
 import Button from "../../component/Button.jsx";
 import Calendar from "../../component/Calendar.jsx";
-import Arrow from "../../assets/svg/Arrow";
-import { createTable } from "../../api/Create/createTable";
-import Swal from "sweetalert2";
 import TimeGrid from "../../component/TimeGrid";
+import Arrow from "../../assets/svg/Arrow";
+import { createTable } from "../../api/table";
+import { trackVisit } from "../../api/visit";
+import Swal from "sweetalert2";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
-import { trackVisit } from "../../api/trackVisit.jsx";
 
 export default function QuickCreatePage() {
      const navigate = useNavigate();

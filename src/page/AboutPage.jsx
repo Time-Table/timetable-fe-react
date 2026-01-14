@@ -6,7 +6,7 @@ import Preview2 from "../assets/svg/Preview2";
 import Preview3 from "../assets/svg/Preview3";
 import Talk from "../assets/svg/Talk";
 import Seo from "../Seo";
-import { trackVisit } from "../api/trackVisit";
+import { trackVisit } from "../api/visit";
 import { useNavigate } from "react-router-dom";
 import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
 import { css } from "@emotion/react";

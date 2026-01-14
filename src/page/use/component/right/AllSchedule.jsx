@@ -1,8 +1,7 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../../../theme";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { postChat } from "../../../../api/Use/postChat";
-import { getChating } from "../../../../api/Use/getChating";
+import { postChat, getChating } from "../../../../api/chat";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { keyframes } from "@emotion/react";

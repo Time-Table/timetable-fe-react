@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import styled from "@emotion/styled";
 import image from "../assets/ogImage.png";
-import { getTrackVisit } from "../api/getTrackVisit";
+import { getTrackVisit } from "../api/visit";
 
 export default function ManagerPage() {
   const [data, setData] = useState([]);

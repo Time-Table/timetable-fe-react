@@ -5,7 +5,7 @@ import Button from "../../component/Button";
 import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
-import { createTable } from "../../api/Create/createTable";
+import { createTable } from "../../api/table";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 export default function CreatePage3({ startHour, endHour, dates = [], tableTitle, onBack, endTimeClicked }) {

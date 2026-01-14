@@ -4,7 +4,7 @@ import theme from "../../theme";
 import Calendar from "../../component/Calendar";
 import Button from "../../component/Button";
 import Swal from "sweetalert2";
-import { trackVisit } from "../../api/trackVisit";
+import { trackVisit } from "../../api/visit";
 
 export default function CreatePage1({ onNext, dates }) {
      useEffect(() => {

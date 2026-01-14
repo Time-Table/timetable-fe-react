@@ -1,7 +1,7 @@
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
 import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
-import { getTableInfo } from "../../../../api/Use/getTableInfo";
+import { getTableInfo } from "../../../../api/table";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { IoPeople, IoArrowBackCircle } from "react-icons/io5";

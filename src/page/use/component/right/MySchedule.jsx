@@ -4,7 +4,7 @@ import theme from "../../../../theme";
 import Button from "../../../../component/Button";
 import TimeGrid from "../../../../component/TimeGrid";
 import Swal from "sweetalert2";
-import { addSchedule } from "../../../../api/Use/addSchedule";
+import { addSchedule } from "../../../../api/schedule";
 import Loader from "../Loading";
 import { AnimatePresence, motion } from "framer-motion";
 
