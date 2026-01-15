@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
 import { BsFillGrid3X3GapFill } from "react-icons/bs";
 import { FaUserCircle } from "react-icons/fa";
-import theme from "../../../../theme";
+import theme from "../../../theme";
 import { motion, AnimatePresence } from "framer-motion";
 
-const FloatingActionButton = ({ onClick, selectedName }) => {
+const FloatingButton = ({ onClick, selectedName }) => {
      const isUserView = !!selectedName;
      const [isHighlighted, setIsHighlighted] = useState(false);
 
@@ -130,4 +130,4 @@ const LabelWrapper = styled.div`
      }
 `;
 
-export default FloatingActionButton;
+export default FloatingButton;

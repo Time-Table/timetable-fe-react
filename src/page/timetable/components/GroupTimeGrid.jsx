@@ -1,14 +1,14 @@
-import theme from "../../../../theme";
+import theme from "../../../theme";
 import styled from "@emotion/styled/macro";
-import TimeGrid from "../../../../component/TimeGrid";
-import { getTableInfo } from "../../../../api/table";
+import TimeGrid from "../../../component/TimeGrid";
+import { getTableInfo } from "../../../api/table";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { IoPeople, IoArrowBackCircle } from "react-icons/io5";
 import { keyframes } from "@emotion/react";
 import { useState } from "react";
 
-export default function AllTimeGrid({
+export default function GroupTimeGrid({
      banedCells,
      title,
      dates,

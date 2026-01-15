@@ -1,7 +1,7 @@
 import React from "react";
 import theme from "../theme";
 import styled from "@emotion/styled";
-import Loader from "./use/component/Loading";
+import Loader from "./timetable/components/Loading";
 
 const NotFoundTable = () => {
   return (

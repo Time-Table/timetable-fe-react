@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { keyframes, css } from "@emotion/react";
 import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
-import Loader from "../page/use/component/Loading";
+import Loader from "../page/timetable/components/Loading";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function TimeGrid({

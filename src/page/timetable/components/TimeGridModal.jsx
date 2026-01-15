@@ -2,8 +2,8 @@ import React from "react";
 import styled from "@emotion/styled";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiLogIn } from "react-icons/fi";
-import AllTimeGrid from "../left/AllTimeGrid";
-import theme from "../../../../theme";
+import GroupTimeGrid from "./GroupTimeGrid";
+import theme from "../../../theme";
 
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
@@ -54,7 +54,7 @@ const TimeGridModal = ({
           </CloseButton>
 
           <ModalContainer variants={modalVariants} onClick={(e) => e.stopPropagation()}>
-            <AllTimeGrid
+            <GroupTimeGrid
               banedCells={banedCells}
               title={title}
               dates={dates}
