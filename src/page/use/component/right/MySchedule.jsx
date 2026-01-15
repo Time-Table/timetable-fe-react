@@ -96,7 +96,6 @@ export default function MySchedule({
                          selectedCells={selectedCells}
                          selectedCellColor={theme.color.primaryTint}
                          setSelectedCells={setSelectedCells}
-                         isViewMode={false}
                          banedCells={banedCells}
                     />
                     <SaveButton

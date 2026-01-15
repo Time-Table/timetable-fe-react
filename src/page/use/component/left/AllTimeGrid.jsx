@@ -1,6 +1,6 @@
 import theme from "../../../../theme";
 import styled from "@emotion/styled/macro";
-import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
+import TimeGrid from "../../../../component/TimeGrid";
 import { getTableInfo } from "../../../../api/table";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
@@ -103,13 +103,12 @@ export default function AllTimeGrid({
                     )}
                </DropdownContainer>
 
-               <TimeGridViewMode
+               <TimeGrid
                     dates={dates}
                     startHour={startHour}
                     endHour={endHour}
-                    isViewMode={true}
+                    readOnly={true}
                     timeInfo={timeInfo}
-                    selectedName={selectedName}
                     banedCells={banedCells}
                />
 
