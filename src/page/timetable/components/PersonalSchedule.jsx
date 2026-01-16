@@ -68,8 +68,12 @@ export default function PersonalSchedule({
      if (!name) {
           return (
                <EmptyState>
-                    <p>일정을 수정하려면 먼저 참여해주세요.</p>
-                    <Button title="참여하러 가기" onClick={() => setRightScreen("JoinForm")} width="200px" />
+                    <p>일정을 등록하려면 먼저 참여 정보가 필요합니다.</p>
+                    <Button
+                         title="참여 정보 입력하기"
+                         onClick={() => setRightScreen("JoinForm")}
+                         width="200px"
+                    />
                </EmptyState>
           );
      }

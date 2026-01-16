@@ -14,6 +14,7 @@ export default function JoinForm({
   tableId,
   setSelectedToggle,
   setName: setAfterName,
+  refreshData,
 }) {
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
   const [name, setName] = useState(beforeName ? beforeName : "");
@@ -40,6 +41,19 @@ export default function JoinForm({
       });
       return;
     }
+
+    const result = await Swal.fire({
+      title: "정말 삭제하시겠습니까?",
+      text: "일정은 모두 삭제 되지만 메시지 기록은 남습니다.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "삭제",
+      cancelButtonText: "취소",
+      confirmButtonColor: theme.color.primary,
+    });
+
+    if (!result.isConfirmed) return;
+
     const user = await getUserInfo(tableId, name, password);
     if (user.code !== 200) {
       Toast.fire({
@@ -68,7 +82,10 @@ export default function JoinForm({
     }
   };
 
-  const handleSuccess = (userName) => {
+  const handleSuccess = async (userName) => {
+    if (refreshData) {
+      await refreshData();
+    }
     localStorage.setItem("name", userName);
     setAfterName(userName);
     setRightScreen("PersonalSchedule");
@@ -181,7 +198,7 @@ export default function JoinForm({
             width="65%"
           />
           <Button
-            title="나가기"
+            title="삭제"
             variant="secondary"
             onClick={() => deleteMember(name, password)}
             disabled={!name || !password}

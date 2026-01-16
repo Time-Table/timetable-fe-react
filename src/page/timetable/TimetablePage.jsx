@@ -17,8 +17,8 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
 import FloatingButton from "./components/FloatingButton";
 import TimeGridModal from "./components/TimeGridModal";
-import { AnimatePresence } from "framer-motion";
-import { FiUserPlus, FiShare2 } from "react-icons/fi";
+import { AnimatePresence, motion } from "framer-motion";
+import { FiUserPlus, FiShare2, FiCalendar } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 
@@ -98,9 +98,9 @@ export default function TimetablePage() {
           setSelectedName(null);
      };
 
-     const handleUserClickWrapper = (newName) => {
+     const handleUserClickWrapper = (newName, forceOpen = false) => {
           setSelectedName(newName);
-          if (newName && !isDesktop) {
+          if (!isDesktop && (newName || forceOpen)) {
                setIsGridModalOpen(true);
           }
      };
@@ -115,6 +115,7 @@ export default function TimetablePage() {
                               name={name}
                               tableId={tableId}
                               setSelectedToggle={setSelectedToggle}
+                              refreshData={fetchAllData}
                          />
                     );
                case "InviteSection":
@@ -153,6 +154,7 @@ export default function TimetablePage() {
                               timeInfo={timeInfo}
                               selectedName={selectedName}
                               setSelectedName={handleUserClickWrapper}
+                              usersCount={usersScheduleList.length}
                          />
                     );
                default:
@@ -168,9 +170,21 @@ export default function TimetablePage() {
 
      const HeaderContent = () => (
           <HeaderSection>
+               {dates && dates.length > 0 && (
+                    <DateBadge>
+                         <FiCalendar />
+                         <span>
+                              {`${dates[0].split("-")[1]}.${dates[0].split("-")[2]} - ${
+                                   dates[dates.length - 1].split("-")[1]
+                              }.${dates[dates.length - 1].split("-")[2]}`}
+                         </span>
+                    </DateBadge>
+               )}
                <Title>{title}</Title>
                <Description>
-                    아래에서 참여하고 내 일정을 등록하거나, 링크를 공유해 친구를 초대할 수 있어요.
+                    일정을 등록하고 링크를 공유해
+                    <br />
+                    친구를 초대해보세요.
                </Description>
                <ActionButtons>
                     <PrimaryActionButton
@@ -341,10 +355,23 @@ const RightPanel = styled.div`
      flex: 1;
      display: flex;
      flex-direction: column;
-     gap: 30px;
+     gap: 20px;
      width: 100%;
      max-width: 450px;
      flex-shrink: 0;
+`;
+
+const DateBadge = styled.div`
+     display: flex;
+     align-items: center;
+     gap: 6px;
+     background-color: ${theme.color.primary}12;
+     color: ${theme.color.primary};
+     padding: 6px 14px;
+     border-radius: 99px;
+     font-family: "Pretendard-Bold";
+     font-size: 13px;
+     margin-bottom: 8px;
 `;
 
 const HeaderSection = styled.header`
@@ -352,7 +379,7 @@ const HeaderSection = styled.header`
      display: flex;
      flex-direction: column;
      align-items: center;
-     gap: 16px;
+     gap: 12px;
 `;
 
 const Title = styled.h1`

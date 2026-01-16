@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "@emotion/styled";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiLogIn } from "react-icons/fi";
+import { FiLogIn, FiChevronLeft } from "react-icons/fi";
 import GroupTimeGrid from "./GroupTimeGrid";
 import theme from "../../../theme";
 
@@ -42,7 +42,6 @@ const TimeGridModal = ({
           exit="exit"
           onClick={onClose}
         >
-          {/* 버튼의 아이콘을 FiLogIn으로 변경 */}
           <CloseButton
             onClick={onClose}
             initial={{ opacity: 0, scale: 0.5 }}
@@ -54,6 +53,9 @@ const TimeGridModal = ({
           </CloseButton>
 
           <ModalContainer variants={modalVariants} onClick={(e) => e.stopPropagation()}>
+            <HeaderBackButton onClick={onClose} aria-label="Close modal">
+              <FiChevronLeft size={28} />
+            </HeaderBackButton>
             <GroupTimeGrid
               banedCells={banedCells}
               title={title}
@@ -105,6 +107,28 @@ const ModalContainer = styled(motion.div)`
   }
   @media (max-width: 480px) {
     padding: 20px;
+  }
+`;
+
+const HeaderBackButton = styled.button`
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${theme.text.gamma[500]};
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${theme.text.gamma[900]};
+    color: ${theme.text.gamma[800]};
   }
 `;
 

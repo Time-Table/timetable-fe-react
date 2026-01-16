@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { keyframes } from "@emotion/react";
 import { BsSendFill } from "react-icons/bs";
+import { FiUserPlus } from "react-icons/fi";
 import Input from "../../../component/Input";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -91,8 +92,22 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                               <SectionTitle>참여자 ({usersSchedule.length})</SectionTitle>
                          </SectionHeader>
                          <MembersGrid>
+                              {usersSchedule.length > 0 && (
+                                   <MemberChip
+                                        onClick={() => setSelectedName(null, true)}
+                                        isSelected={selectedName === null}
+                                   >
+                                        전체
+                                   </MemberChip>
+                              )}
                               {usersSchedule.length === 0 ? (
-                                   <EmptyMessage>첫 참여자가 되어보세요!</EmptyMessage>
+                                   <StyledEmptyState onClick={() => setRightScreen("JoinForm")}>
+                                        <FiUserPlus size={28} color={theme.text.gamma[800]} />
+                                        <MessageContainer>
+                                             <EmptyMessage>아직 참여자가 없습니다.</EmptyMessage>
+                                             <SubMessage>첫 번째로 참여해보세요!</SubMessage>
+                                        </MessageContainer>
+                                   </StyledEmptyState>
                               ) : (
                                    usersSchedule.map((user, index) => (
                                         <MemberChip
@@ -150,14 +165,14 @@ const Frame = styled(motion.div)`
      width: 100%;
      display: flex;
      flex-direction: column;
-     gap: 30px;
+     gap: 20px;
 `;
 
 const Section = styled.div`
      width: 100%;
      background: white;
      border-radius: 16px;
-     padding: 24px;
+     padding: 18px;
      box-sizing: border-box;
      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
      display: flex;
@@ -171,7 +186,7 @@ const SectionHeader = styled.div`
      display: flex;
      justify-content: space-between;
      align-items: center;
-     margin-bottom: 20px;
+     margin-bottom: 12px;
 `;
 
 const SectionTitle = styled.h3`
@@ -207,19 +222,58 @@ const MemberChip = styled.button`
      }
 `;
 
-const EmptyMessage = styled.p`
-     font-family: "Pretendard-Regular";
-     color: ${theme.text.gamma[600]};
+const StyledEmptyState = styled.div`
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     gap: 12px;
+     padding: 32px 16px;
+     margin: 8px 0;
      width: 100%;
+     background-color: ${theme.text.gamma[950]};
+     border-radius: 12px;
+     border: 2px dashed ${theme.text.gamma[800]};
+     box-sizing: border-box;
+     cursor: pointer;
+     transition: all 0.2s ease;
+
+     &:hover {
+          background-color: ${theme.text.gamma[900]};
+          border-color: ${theme.color.primary};
+     }
+     &:active {
+          transform: scale(0.98);
+     }
+`;
+
+const MessageContainer = styled.div`
+     display: flex;
+     flex-direction: column;
+     gap: 2px;
      text-align: center;
-     padding: 20px 0;
+`;
+
+const EmptyMessage = styled.p`
+     font-family: "Pretendard-Bold";
+     font-size: 14px;
+     color: ${theme.text.gamma[300]};
+     margin: 0;
+`;
+
+const SubMessage = styled.p`
+     font-family: "Pretendard-Regular";
+     font-size: 12px;
+     color: ${theme.text.gamma[500]};
+     margin: 0;
+     line-height: 1.4;
 `;
 
 const ChatLog = styled.div`
      display: flex;
      flex-direction: column;
      gap: 12px;
-     height: 250px;
+     height: 200px;
      overflow-y: auto;
      padding: 10px;
      background-color: ${theme.text.gamma[950]};
