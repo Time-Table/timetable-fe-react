@@ -98,6 +98,13 @@ export default function TimetablePage() {
           setSelectedName(null);
      };
 
+     const handleUserClickWrapper = (newName) => {
+          setSelectedName(newName);
+          if (newName && !isDesktop) {
+               setIsGridModalOpen(true);
+          }
+     };
+
      const renderContent = () => {
           switch (rightScreen) {
                case "JoinForm":
@@ -117,7 +124,7 @@ export default function TimetablePage() {
                          <DashboardPanel
                               setRightScreen={setRightScreen}
                               selectedName={selectedName}
-                              setSelectedName={setSelectedName}
+                              setSelectedName={handleUserClickWrapper}
                               usersSchedule={usersScheduleList}
                               name={name}
                               tableId={tableId}
@@ -145,7 +152,7 @@ export default function TimetablePage() {
                               setRightScreen={setRightScreen}
                               timeInfo={timeInfo}
                               selectedName={selectedName}
-                              setSelectedName={setSelectedName}
+                              setSelectedName={handleUserClickWrapper}
                          />
                     );
                default:
@@ -153,7 +160,7 @@ export default function TimetablePage() {
                          <DashboardPanel
                               usersSchedule={usersScheduleList}
                               tableId={tableId}
-                              setSelectedName={setSelectedName}
+                              setSelectedName={handleUserClickWrapper}
                          />
                     );
           }
@@ -264,24 +271,24 @@ export default function TimetablePage() {
                               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
                          </ContentPanel>
                          <FloatingButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
-                         {tableInfo && (
-                              <TimeGridModal
-                                   isOpen={isGridModalOpen}
-                                   onClose={() => setIsGridModalOpen(false)}
-                                   banedCells={banedCells}
-                                   title={title}
-                                   dates={dates}
-                                   startHour={startHour}
-                                   endHour={endHour}
-                                   timeInfo={selectedName ? datesInfo() : timeInfo}
-                                   selectedName={selectedName}
-                                   setSelectedName={setSelectedName}
-                                   setTableInfo={setTableInfo}
-                                   tableId={tableId}
-                                   usersSchedule={usersScheduleList}
-                              />
-                         )}
                     </MainContent>
+               )}
+               {tableInfo && !isDesktop && (
+                    <TimeGridModal
+                         isOpen={isGridModalOpen}
+                         onClose={() => setIsGridModalOpen(false)}
+                         banedCells={banedCells}
+                         title={title}
+                         dates={dates}
+                         startHour={startHour}
+                         endHour={endHour}
+                         timeInfo={selectedName ? datesInfo() : timeInfo}
+                         selectedName={selectedName}
+                         setSelectedName={setSelectedName}
+                         setTableInfo={setTableInfo}
+                         tableId={tableId}
+                         usersSchedule={usersScheduleList}
+                    />
                )}
           </PageWrapper>
      ) : (
