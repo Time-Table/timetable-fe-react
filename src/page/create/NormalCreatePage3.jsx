@@ -44,6 +44,8 @@ export default function CreatePage3({ startHour, endHour, dates = [], tableTitle
           const res = await createTable(tableTitle, formattedDates(), startHour, endHour, selectedCells);
           setIsLoading(false);
 
+          if (res.isRateLimit) return;
+
           if (res.success) {
                localStorage.setItem("title", tableTitle);
                const newTableId = res.data.tableId;

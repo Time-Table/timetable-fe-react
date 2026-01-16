@@ -12,6 +12,9 @@ export const createTable = async (title, dates, startHour, endHour, banedCells) 
     return res;
   } catch (error) {
     console.error("createTable error: ", error.response?.data || error.message);
+    if (error.response?.status === 429) {
+      return { isRateLimit: true };
+    }
     return error.response?.data;
   }
 };

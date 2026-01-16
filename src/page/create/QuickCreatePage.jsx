@@ -54,6 +54,7 @@ export default function QuickCreatePage() {
           setIsLoading(true);
           const res = await createTable(title, selectedDates, startHour, endHour, banedCells);
           setIsLoading(false);
+          if (res.isRateLimit) return;
           if (res.success) {
                localStorage.setItem("title", title);
                const newTableId = res.data.tableId;
