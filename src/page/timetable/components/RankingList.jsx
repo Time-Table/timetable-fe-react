@@ -1,9 +1,11 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
-import { useEffect, useState, useMemo } from "react";
-import Swal from "sweetalert2";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaCrown } from "react-icons/fa";
+import Button from "../../../component/Button";
+
+import { FiInfo } from "react-icons/fi";
 
 const getRankGradient = (ranking) => {
   if (ranking === 1) {
@@ -17,6 +19,7 @@ export default function RankingList({
   timeInfo = [],
   selectedName,
   setSelectedName,
+  usersCount = 0,
 }) {
   const isValidArray = Array.isArray(timeInfo) && timeInfo.length > 0;
 
@@ -40,20 +43,6 @@ export default function RankingList({
 
   const [expandedRankIndex, setExpandedRankIndex] = useState(null);
 
-  useEffect(() => {
-    if (!isValidArray) {
-      Swal.fire({
-        title: "순위 정보가 없습니다",
-        text: "참여자가 일정을 등록하면 순위가 집계됩니다.",
-        icon: "info",
-        confirmButtonText: "확인",
-        confirmButtonColor: `${theme.color.primary}`,
-      }).then(() => {
-        setRightScreen("PersonalSchedule");
-      });
-    }
-  }, [isValidArray, setRightScreen]);
-
   function formatDate(input) {
     const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
     const [year, month, day, hour, minute] = input.split(/[-:]/);
@@ -71,7 +60,32 @@ export default function RankingList({
   };
 
   if (!isValidArray) {
-    return <EmptyMessage>참여자가 일정을 등록하면 순위가 표시됩니다.</EmptyMessage>;
+    return (
+      <StyledEmptyState>
+        <FiInfo size={32} color={theme.text.gamma[800]} />
+        <MessageContainer>
+          {usersCount === 0 ? (
+            <>
+              <EmptyMessage>아직 등록된 일정이 없습니다.</EmptyMessage>
+              <SubMessage>일정을 등록하고 순위를 확인해보세요!</SubMessage>
+            </>
+          ) : (
+            <>
+              <EmptyMessage>순위 정보가 없습니다.</EmptyMessage>
+              <SubMessage>참여자들이 시간을 선택하면 순위가 나타납니다.</SubMessage>
+            </>
+          )}
+        </MessageContainer>
+
+        {usersCount === 0 && (
+          <Button
+            title="일정 등록하러 가기"
+            width="200px"
+            onClick={() => setRightScreen("JoinForm")}
+          />
+        )}
+      </StyledEmptyState>
+    );
   }
 
   return (
@@ -282,10 +296,38 @@ const MemberChip = styled.button`
   }
 `;
 
-const EmptyMessage = styled.p`
-  font-family: "Pretendard-Regular";
-  color: ${theme.text.gamma[600]};
+const StyledEmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 16px;
   width: 100%;
+  background-color: ${theme.text.gamma[950]};
+  border-radius: 16px;
+  border: 2px dashed ${theme.text.gamma[800]};
+  box-sizing: border-box;
+`;
+
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   text-align: center;
-  padding: 40px 0;
+`;
+
+const EmptyMessage = styled.p`
+  font-family: "Pretendard-Bold";
+  font-size: 16px;
+  color: ${theme.text.gamma[300]};
+  margin: 0;
+`;
+
+const SubMessage = styled.p`
+  font-family: "Pretendard-Regular";
+  font-size: 14px;
+  color: ${theme.text.gamma[500]};
+  margin: 0;
+  line-height: 1.5;
 `;
