@@ -6,7 +6,7 @@ import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import JoinForm from "./components/JoinForm";
 import RankingList from "./components/RankingList";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/table";
 import { getAllSchedule } from "../../api/user";
@@ -35,6 +35,8 @@ export default function TimetablePage() {
      const [name, setName] = useState("");
      const [isValidTableId, setIsValidTableId] = useState(null);
      const [isGridModalOpen, setIsGridModalOpen] = useState(false);
+     
+     const hasTrackedVisit = useRef(false);
 
      const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -56,7 +58,13 @@ export default function TimetablePage() {
      }, [tableId]);
 
      useEffect(() => {
-          trackVisit("table");
+          if (!hasTrackedVisit.current) {
+               trackVisit("table");
+               hasTrackedVisit.current = true;
+          }
+     }, [tableId]);
+
+     useEffect(() => {
           const storedName = localStorage.getItem("name");
           if (tableId !== localStorage.getItem("tableId")) {
                localStorage.clear();

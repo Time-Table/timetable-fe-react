@@ -10,13 +10,18 @@ export default function ManagerPage() {
   useEffect(() => {
     const fetchData = async () => {
       const trackVisitData = await getTrackVisit();
-      const cleanedData = trackVisitData.data.map(({ _id, __v, ...rest }) => rest);
-      setData(cleanedData);
+      
+      if (trackVisitData?.data && Array.isArray(trackVisitData.data)) {
+        const cleanedData = trackVisitData.data.map(({ _id, __v, ...rest }) => rest);
+        setData(cleanedData);
 
-      if (cleanedData.length > 0) {
-        const today = new Date().toISOString().split("T")[0];
-        const todayData = cleanedData.find((entry) => entry.date === today);
-        setSelectedDate(todayData ? today : cleanedData[0].date);
+        if (cleanedData.length > 0) {
+          const today = new Date().toISOString().split("T")[0];
+          const todayData = cleanedData.find((entry) => entry.date === today);
+          setSelectedDate(todayData ? today : cleanedData[0].date);
+        }
+      } else {
+        setData([]);
       }
     };
     fetchData();
@@ -33,9 +38,9 @@ export default function ManagerPage() {
     totalVisitAboutPage: "🔵 누적 어바웃 페이지 방문자 수",
     totalVisitUsePage: "🟠 누적 테이블 페이지 방문자 수",
     todaySignUp: "🟣 오늘 가입자 수",
-    todayLogin: "🟡 오늘 로그인 수",
+    todayLogin: "🟡 오늘 접속 유저 수",
     totalSignUp: "🟣 누적 가입자 수",
-    totalLogin: "🟡 누적 로그인 수",
+    totalLogin: "🟡 누적 접속 유저 수",
     todayTableCreateCount: "🔴 오늘 생성된 테이블 수",
     totalTableCreateCount: "🔴 누적 생성된 테이블 수",
   };

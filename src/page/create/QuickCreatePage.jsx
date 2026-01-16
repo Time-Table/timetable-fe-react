@@ -28,10 +28,14 @@ export default function QuickCreatePage() {
      const startDropdownRef = useRef(null);
      const endDropdownRef = useRef(null);
      const isPrerequisitesMet = title.trim() !== "" && selectedDates.length > 0;
+     const hasTrackedVisit = useRef(false);
 
      useEffect(() => {
           const getVisitLog = async () => {
-               await trackVisit("create");
+               if (!hasTrackedVisit.current) {
+                    await trackVisit("create");
+                    hasTrackedVisit.current = true;
+               }
           };
           getVisitLog();
      }, []);

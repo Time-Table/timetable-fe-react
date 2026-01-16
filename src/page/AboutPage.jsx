@@ -16,10 +16,14 @@ import { IoHelpCircleOutline } from "react-icons/io5";
 export default function AboutPage() {
   const sectionsRef = useRef([]);
   const navigate = useNavigate();
+  const hasTrackedVisit = useRef(false);
 
   useEffect(() => {
     const getVisitLog = async () => {
-      await trackVisit("about");
+      if (!hasTrackedVisit.current) {
+        await trackVisit("about");
+        hasTrackedVisit.current = true;
+      }
     };
     getVisitLog();
     const observer = new IntersectionObserver(
