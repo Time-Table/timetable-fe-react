@@ -1,7 +1,6 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
-import { useEffect, useState, useMemo } from "react";
-import Swal from "sweetalert2";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaCrown } from "react-icons/fa";
 import Button from "../../../component/Button";
