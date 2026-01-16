@@ -1,16 +1,15 @@
 import styled from "@emotion/styled/macro";
-import theme from "../../../../theme";
+import theme from "../../../theme";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { postChat } from "../../../../api/Use/postChat";
-import { getChating } from "../../../../api/Use/getChating";
+import { postChat, getChating } from "../../../api/chat";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { keyframes } from "@emotion/react";
 import { BsSendFill } from "react-icons/bs";
-import Input from "../../../../component/Input";
+import Input from "../../../component/Input";
 import { AnimatePresence, motion } from "framer-motion";
 
-export default function AllSchedule({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName }) {
+export default function DashboardPanel({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName }) {
      const [message, setMessage] = useState("");
      const [chatLog, setChatLog] = useState([]);
      const chatEndRef = useRef(null);
@@ -63,7 +62,7 @@ export default function AllSchedule({ tableId, name, setRightScreen, setSelected
 
      const updateChatLog = async () => {
           if (!name || !isNameMatching) {
-               setRightScreen("AddUser");
+               setRightScreen("JoinForm");
                Toast.fire({ icon: "warning", title: "먼저 참여해주세요." });
                return;
           }

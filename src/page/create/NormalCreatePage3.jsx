@@ -5,7 +5,7 @@ import Button from "../../component/Button";
 import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import Swal from "sweetalert2";
-import { createTable } from "../../api/Create/createTable";
+import { createTable } from "../../api/table";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 export default function CreatePage3({ startHour, endHour, dates = [], tableTitle, onBack, endTimeClicked }) {
@@ -44,6 +44,8 @@ export default function CreatePage3({ startHour, endHour, dates = [], tableTitle
           const res = await createTable(tableTitle, formattedDates(), startHour, endHour, selectedCells);
           setIsLoading(false);
 
+          if (res.isRateLimit) return;
+
           if (res.success) {
                localStorage.setItem("title", tableTitle);
                const newTableId = res.data.tableId;
@@ -65,7 +67,7 @@ export default function CreatePage3({ startHour, endHour, dates = [], tableTitle
                     }
                });
           } else {
-               Swal.fire("생성 실패", "테이블 생성 중 오류가 발생했습니다.", "error");
+               Swal.fire("생성 실패", res.message || "테이블 생성 중 오류가 발생했습니다.", "error");
           }
      };
 
@@ -138,7 +140,8 @@ const ContentDiv = styled.div`
      gap: 30px;
      padding-top: 30px;
      padding-bottom: 10px;
-     width: 486px;
+     width: 100%;
+     max-width: 486px;
      opacity: 0;
      transform: translateY(-30px);
      animation: fadeIn 1.2s ease-in-out forwards;
@@ -151,7 +154,7 @@ const ContentDiv = styled.div`
      }
 
      @media (max-width: 480px) {
-          width: 380px;
+          width: 90%;
      }
 `;
 
@@ -162,7 +165,6 @@ const ButtonLayout = styled.div`
      align-items: center;
      @media (max-width: 480px) {
           justify-content: center;
-          width: 85%;
      }
 `;
 

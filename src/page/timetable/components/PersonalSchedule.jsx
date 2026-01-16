@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import styled from "@emotion/styled/macro";
-import theme from "../../../../theme";
-import Button from "../../../../component/Button";
-import TimeGrid from "../../../../component/TimeGrid";
+import theme from "../../../theme";
+import Button from "../../../component/Button";
+import TimeGrid from "../../../component/TimeGrid";
 import Swal from "sweetalert2";
-import { addSchedule } from "../../../../api/Use/addSchedule";
-import Loader from "../Loading";
+import { addSchedule } from "../../../api/schedule";
+import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
 
-export default function MySchedule({
+export default function PersonalSchedule({
      setSaveButtonState,
      saveButtonState,
      dates,
@@ -69,7 +69,7 @@ export default function MySchedule({
           return (
                <EmptyState>
                     <p>일정을 수정하려면 먼저 참여해주세요.</p>
-                    <Button title="참여하러 가기" onClick={() => setRightScreen("AddUser")} width="200px" />
+                    <Button title="참여하러 가기" onClick={() => setRightScreen("JoinForm")} width="200px" />
                </EmptyState>
           );
      }
@@ -96,7 +96,6 @@ export default function MySchedule({
                          selectedCells={selectedCells}
                          selectedCellColor={theme.color.primaryTint}
                          setSelectedCells={setSelectedCells}
-                         isViewMode={false}
                          banedCells={banedCells}
                     />
                     <SaveButton

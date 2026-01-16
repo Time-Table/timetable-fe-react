@@ -1,14 +1,14 @@
-import theme from "../../../../theme";
+import theme from "../../../theme";
 import styled from "@emotion/styled/macro";
-import TimeGridViewMode from "../../../../component/TimeGridViewMode ";
-import { getTableInfo } from "../../../../api/Use/getTableInfo";
+import TimeGrid from "../../../component/TimeGrid";
+import { getTableInfo } from "../../../api/table";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { IoPeople, IoArrowBackCircle } from "react-icons/io5";
 import { keyframes } from "@emotion/react";
 import { useState } from "react";
 
-export default function AllTimeGrid({
+export default function GroupTimeGrid({
      banedCells,
      title,
      dates,
@@ -103,13 +103,12 @@ export default function AllTimeGrid({
                     )}
                </DropdownContainer>
 
-               <TimeGridViewMode
+               <TimeGrid
                     dates={dates}
                     startHour={startHour}
                     endHour={endHour}
-                    isViewMode={true}
+                    readOnly={true}
                     timeInfo={timeInfo}
-                    selectedName={selectedName}
                     banedCells={banedCells}
                />
 

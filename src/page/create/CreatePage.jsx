@@ -8,12 +8,12 @@ import { IoHelpCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
 
 export default function CreatePage() {
-     const navigate = useNavigate();
+  const navigate = useNavigate();
 
-     const handleHelpClick = () => {
-          Swal.fire({
-               title: "생성 방식 안내",
-               html: `
+  const handleHelpClick = () => {
+    Swal.fire({
+      title: "생성 방식 안내",
+      html: `
         <div style="text-align: left; padding: 0 1rem;">
           <h4 style="color: ${theme.color.button.blue}; margin-bottom: 5px;">빠른 생성</h4>
           <p style="margin-top: 0; font-size: 15px;">
@@ -27,75 +27,77 @@ export default function CreatePage() {
           </p>
         </div>
       `,
-               confirmButtonText: "확인",
-               confirmButtonColor: `${theme.color.primary}`,
-          });
-     };
+      confirmButtonText: "확인",
+      confirmButtonColor: `${theme.color.primary}`,
+    });
+  };
 
-     return (
-          <>
-               <Seo title="타임테이블 - 생성" description="새로운 약속을 만들어보세요." />
-               <PageWrapper>
-                    <Title>어떤 방식으로 생성할까요?</Title>
-                    <SelectionContainer>
-                         <SelectionBox onClick={() => navigate("/quick-create")}>
-                              <IconWrapper color={theme.color.primary}>
-                                   <BsLightningChargeFill size={40} />
-                              </IconWrapper>
-                              <BoxTitle>빠른 생성</BoxTitle>
-                              <BoxDescription>필수 정보만으로 신속하게</BoxDescription>
-                         </SelectionBox>
-                         <SelectionBox disabled>
-                              <IconWrapper color={theme.color.button.blue}>
-                                   <BsCalendarDate size={40} />
-                              </IconWrapper>
-                              <BoxTitle>일반 생성</BoxTitle>
-                              <BoxDescription>{"세부 설정으로 정교하게"}</BoxDescription>
-                              <BoxDescription>{"(준비중)"}</BoxDescription>
-                         </SelectionBox>
-                    </SelectionContainer>
-                    <HelpContainer onClick={handleHelpClick}>
-                         <IoHelpCircleOutline size={24} color={theme.text.gamma[500]} />
-                         <span>각 생성 방식이 궁금하신가요?</span>
-                    </HelpContainer>
-               </PageWrapper>
-          </>
-     );
+  return (
+    <>
+      <Seo title="타임테이블 - 생성" description="새로운 약속을 만들어보세요." />
+      <PageWrapper>
+        <Title>어떤 방식으로 생성할까요?</Title>
+        <SelectionContainer>
+          <SelectionBox onClick={() => navigate("/quick-create")}>
+            <IconWrapper color={theme.color.primary}>
+              <BsLightningChargeFill size={40} />
+            </IconWrapper>
+            <BoxTitle>빠른 생성</BoxTitle>
+            <BoxDescription>필수 정보만으로</BoxDescription>
+            <BoxDescription>신속하게</BoxDescription>
+          </SelectionBox>
+          <SelectionBox disabled>
+            <IconWrapper color={theme.color.button.blue}>
+              <BsCalendarDate size={40} />
+            </IconWrapper>
+            <BoxTitle>일반 생성</BoxTitle>
+            <BoxDescription>{"세부 설정으로 정교하게"}</BoxDescription>
+            <BoxDescription>{"(준비중)"}</BoxDescription>
+          </SelectionBox>
+        </SelectionContainer>
+        <HelpContainer onClick={handleHelpClick}>
+          <IoHelpCircleOutline size={24} color={theme.text.gamma[500]} />
+          <span>각 생성 방식이 궁금하신가요?</span>
+        </HelpContainer>
+      </PageWrapper>
+    </>
+  );
 }
 
 const PageWrapper = styled.div`
-     ${theme.styles.flexCenterColumn}
-     width: 100%;
-     height: calc(100vh - 71px);
-     padding: 20px;
-     box-sizing: border-box;
+  ${theme.styles.flexCenterColumn}
+  width: 100%;
+  height: calc(100vh - 71px);
+  padding: 20px;
+  box-sizing: border-box;
 `;
 
 const Title = styled.h1`
-     font-family: "Pretendard-SemiBold";
-     font-size: 28px;
-     margin-bottom: 40px;
-     @media (max-width: 480px) {
-          font-size: 24px;
-          text-align: center;
-     }
+  font-family: "Pretendard-SemiBold";
+  font-size: 28px;
+  margin-bottom: 40px;
+  @media (max-width: 480px) {
+    font-size: 24px;
+    text-align: center;
+  }
 `;
 
 const SelectionContainer = styled.div`
-     display: flex;
-     justify-content: center;
-     gap: 30px;
-     @media (max-width: 480px) {
-          flex-direction: row;
-          width: 100%;
-          gap: 15px;
-     }
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  @media (max-width: 480px) {
+    flex-direction: row;
+    width: 100%;
+    gap: 15px;
+  }
 `;
 
 const SelectionBox = styled.div`
      ${theme.styles.flexCenterColumn}
-     width: 220px;
-     height: 220px;
+     width: 100%;
+     max-width: 220px;
+     aspect-ratio: 1 / 1;
      border: 1px solid ${theme.text.gamma[800]};
      border-radius: 20px;
      cursor: pointer;
@@ -111,75 +113,71 @@ const SelectionBox = styled.div`
 
      @media (max-width: 480px) {
           flex: 1;
-          width: auto;
-          height: auto;
-          aspect-ratio: 1 / 1;
           padding: 15px;
           justify-content: center;
      }
+  ${(props) =>
+    props.disabled &&
+    css`
+      filter: grayscale(100%);
+      opacity: 0.6;
+      cursor: not-allowed;
 
-     ${(props) =>
-          props.disabled &&
-          css`
-               filter: grayscale(100%);
-               opacity: 0.6;
-               cursor: not-allowed;
-
-               &:hover {
-                    transform: none;
-                    box-shadow: none;
-               }
-          `}
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    `}
 `;
 
 const IconWrapper = styled.div`
-     color: ${(props) => props.color};
-     margin-bottom: 15px;
-     @media (max-width: 480px) {
-          margin-bottom: 10px;
-          svg {
-               width: 28px;
-               height: 28px;
-          }
-     }
+  color: ${(props) => props.color};
+  margin-bottom: 15px;
+  @media (max-width: 480px) {
+    margin-bottom: 10px;
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
 `;
 
 const BoxTitle = styled.h2`
-     font-family: "Pretendard-Bold";
-     font-size: 22px;
-     margin: 0 0 10px 0;
-     text-align: center;
-     @media (max-width: 480px) {
-          font-size: 16px;
-          margin-bottom: 5px;
-     }
+  font-family: "Pretendard-Bold";
+  font-size: 22px;
+  margin: 0 0 10px 0;
+  text-align: center;
+  @media (max-width: 480px) {
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
 `;
 
 const BoxDescription = styled.p`
-     font-family: "Pretendard-Regular";
-     font-size: 16px;
-     color: ${theme.text.gamma[500]};
-     margin: 0;
-     text-align: center;
-     @media (max-width: 480px) {
-          font-size: 12px;
-          line-height: 1.3;
-     }
+  font-family: "Pretendard-Regular";
+  font-size: 16px;
+  color: ${theme.text.gamma[500]};
+  margin: 0;
+  text-align: center;
+  @media (max-width: 480px) {
+    font-size: 12px;
+    line-height: 1.3;
+  }
 `;
 
 const HelpContainer = styled.div`
-     ${theme.styles.flexCenterRow}
-     margin-top: 40px;
-     gap: 8px;
-     cursor: pointer;
-     color: ${theme.text.gamma[500]};
-     font-family: "Pretendard-Regular";
-     font-size: 16px;
-     text-align: center;
-     &:hover {
-          color: ${theme.color.primary};
-     }
-     @media (max-width: 480px) {
-          font-size: 14px;
-     }
+  ${theme.styles.flexCenterRow}
+  margin-top: 40px;
+  gap: 8px;
+  cursor: pointer;
+  color: ${theme.text.gamma[500]};
+  font-family: "Pretendard-Regular";
+  font-size: 16px;
+  text-align: center;
+  &:hover {
+    color: ${theme.color.primary};
+  }
+  @media (max-width: 480px) {
+    font-size: 14px;
+  }
 `;

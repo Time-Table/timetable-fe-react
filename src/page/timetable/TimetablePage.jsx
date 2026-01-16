@@ -1,38 +1,42 @@
 import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Button from "../../component/Button";
-import Invite from "./component/right/Invite";
-import AllSchedule from "./component/right/AllSchedule";
-import MySchedule from "./component/right/MySchedule";
-import AddUser from "./component/right/AddUser";
-import Rank from "./component/right/Rank";
+import InviteSection from "./components/InviteSection";
+import DashboardPanel from "./components/DashboardPanel";
+import PersonalSchedule from "./components/PersonalSchedule";
+import JoinForm from "./components/JoinForm";
+import RankingList from "./components/RankingList";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { getTableInfo } from "../../api/Use/getTableInfo";
-import { getAllSchedule } from "../../api/Use/getAllSchedule";
-import { getSchedule } from "../../api/Use/getSchedule";
-import Loader from "./component/Loading";
+import { getTableInfo } from "../../api/table";
+import { getAllSchedule } from "../../api/user";
+import { getSchedule } from "../../api/schedule";
+import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
-import { trackVisit } from "../../api/trackVisit";
-import FloatingActionButton from "./component/right/FloatingActionButton";
-import TimeGridModal from "./component/right/TimeGridModal";
+import { trackVisit } from "../../api/visit";
+import FloatingButton from "./components/FloatingButton";
+import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence } from "framer-motion";
 import { FiUserPlus, FiShare2 } from "react-icons/fi";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import GroupTimeGrid from "./components/GroupTimeGrid";
 
-export default function UsePage() {
+export default function TimetablePage() {
      const { tableId } = useParams();
      const [tableInfo, setTableInfo] = useState(null);
      const [usersScheduleList, setUsersScheduleList] = useState([]);
      const { startHour, endHour, dates, title, banedCells } = tableInfo || {};
      const [saveButtonState, setSaveButtonState] = useState(true);
      const [timeInfo, setTimeInfo] = useState([]);
-     const [rightScreen, setRightScreen] = useState("AllSchedule");
+     const [rightScreen, setRightScreen] = useState("DashboardPanel");
      const [selectedToggle, setSelectedToggle] = useState("인원");
      const [selectedName, setSelectedName] = useState(null);
      const [name, setName] = useState("");
      const [isValidTableId, setIsValidTableId] = useState(null);
      const [isGridModalOpen, setIsGridModalOpen] = useState(false);
+
+     const isDesktop = useMediaQuery("(min-width: 1024px)");
 
      const fetchAllData = useCallback(async () => {
           const tableData = await getTableInfo(tableId);
@@ -75,26 +79,9 @@ export default function UsePage() {
      const handleToggleClick = (screen, toggle) => {
           const storedName = localStorage.getItem("name");
 
-          if (screen === "MySchedule" && !storedName) {
-               // Swal.fire({
-               //      title: "로그인이 필요합니다",
-               //      text: "일정을 등록하거나 수정하려면 먼저 참여해주세요.",
-               //      icon: "warning",
-               //      iconColor: theme.color.primary,
-               //      confirmButtonText: "참여하러 가기",
-               //      confirmButtonColor: theme.color.primary,
-               //      customClass: {
-               //           popup: "custom-swal-popup",
-               //           title: "custom-swal-title",
-               //           htmlContainer: "custom-swal-html-container",
-               //           confirmButton: "custom-swal-confirm-button",
-               //      },
-               // }).then((result) => {
-               //      if (result.isConfirmed) {
-               setRightScreen("AddUser");
+          if (screen === "PersonalSchedule" && !storedName) {
+               setRightScreen("JoinForm");
                setSelectedToggle(null);
-               // }
-               // });
                return;
           }
 
@@ -105,9 +92,9 @@ export default function UsePage() {
 
      const renderContent = () => {
           switch (rightScreen) {
-               case "AddUser":
+               case "JoinForm":
                     return (
-                         <AddUser
+                         <JoinForm
                               setRightScreen={setRightScreen}
                               setName={setName}
                               name={name}
@@ -115,11 +102,11 @@ export default function UsePage() {
                               setSelectedToggle={setSelectedToggle}
                          />
                     );
-               case "Invite":
-                    return <Invite tableId={tableId} title={title} />;
-               case "AllSchedule":
+               case "InviteSection":
+                    return <InviteSection tableId={tableId} title={title} />;
+               case "DashboardPanel":
                     return (
-                         <AllSchedule
+                         <DashboardPanel
                               setRightScreen={setRightScreen}
                               selectedName={selectedName}
                               setSelectedName={setSelectedName}
@@ -128,9 +115,9 @@ export default function UsePage() {
                               tableId={tableId}
                          />
                     );
-               case "MySchedule":
+               case "PersonalSchedule":
                     return tableInfo ? (
-                         <MySchedule
+                         <PersonalSchedule
                               dates={dates}
                               startHour={startHour}
                               endHour={endHour}
@@ -144,9 +131,9 @@ export default function UsePage() {
                     ) : (
                          <Loader />
                     );
-               case "Rank":
+               case "RankingList":
                     return (
-                         <Rank
+                         <RankingList
                               setRightScreen={setRightScreen}
                               timeInfo={timeInfo}
                               selectedName={selectedName}
@@ -155,7 +142,7 @@ export default function UsePage() {
                     );
                default:
                     return (
-                         <AllSchedule
+                         <DashboardPanel
                               usersSchedule={usersScheduleList}
                               tableId={tableId}
                               setSelectedName={setSelectedName}
@@ -163,6 +150,58 @@ export default function UsePage() {
                     );
           }
      };
+
+     const HeaderContent = () => (
+          <HeaderSection>
+               <Title>{title}</Title>
+               <Description>
+                    아래에서 참여하고 내 일정을 등록하거나, 링크를 공유해 친구를 초대할 수 있어요.
+               </Description>
+               <ActionButtons>
+                    <PrimaryActionButton
+                         onClick={() => {
+                              setRightScreen("JoinForm");
+                              setSelectedToggle(null);
+                         }}
+                    >
+                         <FiUserPlus />
+                         <span>빠른 참여</span>
+                    </PrimaryActionButton>
+                    <SecondaryActionButton
+                         onClick={() => {
+                              setRightScreen("InviteSection");
+                              setSelectedToggle(null);
+                         }}
+                    >
+                         <FiShare2 />
+                         <span>초대</span>
+                    </SecondaryActionButton>
+               </ActionButtons>
+          </HeaderSection>
+     );
+
+     const ToggleButtons = () => (
+          <ToggleBar>
+               <Button
+                    title={`인원 (${usersScheduleList.length})`}
+                    variant="text"
+                    onClick={() => handleToggleClick("DashboardPanel", "인원")}
+                    className={selectedToggle === "인원" ? "active" : ""}
+               />
+               <Button
+                    title="내 일정"
+                    variant="text"
+                    onClick={() => handleToggleClick("PersonalSchedule", "내 일정")}
+                    className={selectedToggle === "내 일정" ? "active" : ""}
+               />
+               <Button
+                    title="순위"
+                    variant="text"
+                    onClick={() => handleToggleClick("RankingList", "순위")}
+                    className={selectedToggle === "순위" ? "active" : ""}
+               />
+          </ToggleBar>
+     );
 
      if (isValidTableId === null) {
           return (
@@ -181,77 +220,60 @@ export default function UsePage() {
                     description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
                     url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
                />
-               <MainContent>
-                    <HeaderSection>
-                         <Title>{title}</Title>
-                         <Description>
-                              아래에서 참여하고 내 일정을 등록하거나, 링크를 공유해 친구를 초대할 수 있어요.
-                         </Description>
-                         <ActionButtons>
-                              <PrimaryActionButton
-                                   onClick={() => {
-                                        setRightScreen("AddUser");
-                                        setSelectedToggle(null);
-                                   }}
-                              >
-                                   <FiUserPlus />
-                                   <span>빠른 참여</span>
-                              </PrimaryActionButton>
-                              <SecondaryActionButton
-                                   onClick={() => {
-                                        setRightScreen("Invite");
-                                        setSelectedToggle(null);
-                                   }}
-                              >
-                                   <FiShare2 />
-                                   <span>초대</span>
-                              </SecondaryActionButton>
-                         </ActionButtons>
-                    </HeaderSection>
 
-                    <ToggleBar>
-                         <Button
-                              title={`인원 (${usersScheduleList.length})`}
-                              variant="text"
-                              onClick={() => handleToggleClick("AllSchedule", "인원")}
-                              className={selectedToggle === "인원" ? "active" : ""}
-                         />
-                         <Button
-                              title="내 일정"
-                              variant="text"
-                              onClick={() => handleToggleClick("MySchedule", "내 일정")}
-                              className={selectedToggle === "내 일정" ? "active" : ""}
-                         />
-                         <Button
-                              title="순위"
-                              variant="text"
-                              onClick={() => handleToggleClick("Rank", "순위")}
-                              className={selectedToggle === "순위" ? "active" : ""}
-                         />
-                    </ToggleBar>
-
-                    <ContentPanel>
-                         <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
-                    </ContentPanel>
-               </MainContent>
-
-               <FloatingActionButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
-               {tableInfo && (
-                    <TimeGridModal
-                         isOpen={isGridModalOpen}
-                         onClose={() => setIsGridModalOpen(false)}
-                         banedCells={banedCells}
-                         title={title}
-                         dates={dates}
-                         startHour={startHour}
-                         endHour={endHour}
-                         timeInfo={selectedName ? datesInfo() : timeInfo}
-                         selectedName={selectedName}
-                         setSelectedName={setSelectedName}
-                         setTableInfo={setTableInfo}
-                         tableId={tableId}
-                         usersSchedule={usersScheduleList}
-                    />
+               {isDesktop ? (
+                    <DesktopContainer>
+                         <LeftPanel>
+                              {tableInfo && (
+                                   <GroupTimeGrid
+                                        banedCells={banedCells}
+                                        title={title}
+                                        dates={dates}
+                                        startHour={startHour}
+                                        endHour={endHour}
+                                        timeInfo={selectedName ? datesInfo() : timeInfo}
+                                        selectedName={selectedName}
+                                        setSelectedName={setSelectedName}
+                                        setTableInfo={setTableInfo}
+                                        tableId={tableId}
+                                        usersSchedule={usersScheduleList}
+                                   />
+                              )}
+                         </LeftPanel>
+                         <RightPanel>
+                              <HeaderContent />
+                              <ToggleButtons />
+                              <ContentPanel>
+                                   <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+                              </ContentPanel>
+                         </RightPanel>
+                    </DesktopContainer>
+               ) : (
+                    <MainContent>
+                         <HeaderContent />
+                         <ToggleButtons />
+                         <ContentPanel>
+                              <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+                         </ContentPanel>
+                         <FloatingButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
+                         {tableInfo && (
+                              <TimeGridModal
+                                   isOpen={isGridModalOpen}
+                                   onClose={() => setIsGridModalOpen(false)}
+                                   banedCells={banedCells}
+                                   title={title}
+                                   dates={dates}
+                                   startHour={startHour}
+                                   endHour={endHour}
+                                   timeInfo={selectedName ? datesInfo() : timeInfo}
+                                   selectedName={selectedName}
+                                   setSelectedName={setSelectedName}
+                                   setTableInfo={setTableInfo}
+                                   tableId={tableId}
+                                   usersSchedule={usersScheduleList}
+                              />
+                         )}
+                    </MainContent>
                )}
           </PageWrapper>
      ) : (
@@ -273,6 +295,41 @@ const MainContent = styled.div`
      display: flex;
      flex-direction: column;
      gap: 30px;
+`;
+
+const DesktopContainer = styled.div`
+     display: flex;
+     gap: 40px;
+     width: 100%;
+     max-width: 1200px;
+     margin: 0 auto;
+     align-items: flex-start;
+     @media (max-width: 1024px) {
+          flex-direction: column;
+          align-items: center;
+     }
+`;
+
+const LeftPanel = styled.div`
+     flex: 1.4;
+     background: white;
+     padding: 24px;
+     border-radius: 16px;
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+     position: sticky;
+     top: 24px;
+     width: 100%;
+     box-sizing: border-box;
+`;
+
+const RightPanel = styled.div`
+     flex: 1;
+     display: flex;
+     flex-direction: column;
+     gap: 30px;
+     width: 100%;
+     max-width: 450px;
+     flex-shrink: 0;
 `;
 
 const HeaderSection = styled.header`

@@ -1,11 +1,11 @@
 import styled from "@emotion/styled/macro";
-import Button from "../../../../component/Button";
-import theme from "../../../../theme";
+import Button from "../../../component/Button";
+import theme from "../../../theme";
 import Swal from "sweetalert2";
 import { GrShareOption } from "react-icons/gr";
 import { AnimatePresence, motion } from "framer-motion";
 
-export default function Invite({ tableId, title }) {
+export default function InviteSection({ tableId, title }) {
      const tableUrl = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
 
      const copyToClipboard = () => {

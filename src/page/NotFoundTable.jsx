@@ -1,7 +1,7 @@
 import React from "react";
 import theme from "../theme";
 import styled from "@emotion/styled";
-import Loader from "./use/component/Loading";
+import Loader from "./timetable/components/Loading";
 
 const NotFoundTable = () => {
   return (
@@ -18,7 +18,10 @@ const NotFoundTable = () => {
 
 const CreatePageDiv = styled.div`
   ${theme.styles.flexCenterColumn}
-  margin: 50px;
+  width: 100%;
+  padding: 50px 20px;
+  box-sizing: border-box;
+  text-align: center;
 `;
 
 export default NotFoundTable;

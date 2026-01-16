@@ -1,6 +1,6 @@
 import "./App.css";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import UsePage from "./page/use/UsePage";
+import TimetablePage from "./page/timetable/TimetablePage";
 import Header from "./component/Header";
 import CreatePage from "./page/create/CreatePage.jsx";
 import NormalCreatePage from "./page/create/NormalCreatePage.jsx";
@@ -25,7 +25,7 @@ function App() {
                          <Route path="/create/normal" element={<NormalCreatePage />}></Route>
                          <Route path="/quick-create" element={<QuickCreatePage />}></Route>
                          <Route path="/managerPage" element={<ManagerPage />}></Route>
-                         <Route path="/table/:tableId" element={<UsePage />}></Route>
+                         <Route path="/table/:tableId" element={<TimetablePage />}></Route>
                          <Route path="/about" element={<AboutPage />}></Route>
                          <Route path="/terms" element={<TermsPage />}></Route>
                          <Route path="/privacy" element={<PrivacyPage />}></Route>
