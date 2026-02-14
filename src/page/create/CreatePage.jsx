@@ -6,6 +6,7 @@ import Seo from "../../Seo";
 import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
+import AdSense from "../../component/AdSense";
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -94,28 +95,32 @@ const SelectionContainer = styled.div`
 `;
 
 const SelectionBox = styled.div`
-     ${theme.styles.flexCenterColumn}
-     width: 100%;
-     max-width: 220px;
-     aspect-ratio: 1 / 1;
-     border: 1px solid ${theme.text.gamma[800]};
-     border-radius: 20px;
-     cursor: pointer;
-     transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.3s ease, opacity 0.3s ease;
-     background-color: white;
-     padding: 20px;
-     box-sizing: border-box;
+  ${theme.styles.flexCenterColumn}
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1;
+  border: 1px solid ${theme.text.gamma[800]};
+  border-radius: 20px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.3s ease,
+    opacity 0.3s ease;
+  background-color: white;
+  padding: 20px;
+  box-sizing: border-box;
 
-     &:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-     }
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  }
 
-     @media (max-width: 480px) {
-          flex: 1;
-          padding: 15px;
-          justify-content: center;
-     }
+  @media (max-width: 480px) {
+    flex: 1;
+    padding: 15px;
+    justify-content: center;
+  }
   ${(props) =>
     props.disabled &&
     css`

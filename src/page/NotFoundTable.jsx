@@ -2,16 +2,19 @@ import React from "react";
 import theme from "../theme";
 import styled from "@emotion/styled";
 import Loader from "./timetable/components/Loading";
+import AdSense from "../component/AdSense";
 
 const NotFoundTable = () => {
   return (
     <CreatePageDiv>
+      <AdSense />
       <h1>404 Error</h1>
       <h1>Table-Not Found</h1>
       <Loader />
       <h1>열심히 찾으러 다녔지만 테이블을 발견하지 못했습니다.</h1>
 
       <p>*요청하신 페이지는 존재하지 않거나 장기간 접근이 없어 지워졌을 수 있습니다.</p>
+      <AdSense />
     </CreatePageDiv>
   );
 };

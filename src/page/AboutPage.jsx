@@ -12,6 +12,7 @@ import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
 import { css } from "@emotion/react";
 import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
+import AdSense from "../component/AdSense";
 
 export default function AboutPage() {
   const sectionsRef = useRef([]);
@@ -48,7 +49,7 @@ export default function AboutPage() {
       },
       {
         threshold: 0.2,
-      }
+      },
     );
 
     sectionsRef.current.forEach((section) => {
@@ -170,6 +171,7 @@ export default function AboutPage() {
             <span>각 생성 방식이 궁금하신가요?</span>
           </HelpContainer>
         </PageWrapper>
+        <AdSense />
       </ContentDiv>
     </AboutPageDiv>
   );
@@ -201,7 +203,11 @@ const SelectionBox = styled.div`
   border: 1px solid ${theme.text.gamma[800]};
   border-radius: 20px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.3s ease,
+    opacity 0.3s ease;
   background-color: white;
   padding: 20px;
   box-sizing: border-box;
@@ -313,7 +319,9 @@ const RedBackgroundDiv = styled.div`
   padding: 10px;
   opacity: 0;
   transform: translateX(-20px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transition:
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
   & > * {
     opacity: 1;
@@ -329,7 +337,9 @@ const AnimatedText = styled.h1`
   text-align: center;
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transition:
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
   @media (max-width: 480px) {
     font-size: 20px;
@@ -344,7 +354,9 @@ const AnimatedSubtitle = styled.h2`
   text-align: center;
   opacity: 0;
   transform: translateX(-20px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transition:
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
   @media (max-width: 480px) {
     font-size: 16px;
@@ -358,7 +370,9 @@ const AnimatedNotes = styled.span`
   text-align: center;
   opacity: 0;
   transform: translateX(-20px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transition:
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
   @media (max-width: 480px) {
     font-size: 16px;
@@ -368,7 +382,9 @@ const AnimatedNotes = styled.span`
 const AnimatedSVG = styled.div`
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 1s ease-out, transform 1s ease-out;
+  transition:
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
   svg {
     width: 100%;

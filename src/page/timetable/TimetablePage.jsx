@@ -21,6 +21,7 @@ import { AnimatePresence } from "framer-motion";
 import { FiUserPlus, FiShare2, FiCalendar } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
+import AdSense from "../../component/AdSense";
 
 export default function TimetablePage() {
   const { tableId } = useParams();
@@ -275,6 +276,7 @@ export default function TimetablePage() {
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
             </ContentPanel>
+            <AdSense slot="7512892307" layout="in-article" format="fluid" />
           </RightPanel>
         </DesktopContainer>
       ) : (
@@ -284,6 +286,7 @@ export default function TimetablePage() {
           <ContentPanel>
             <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
           </ContentPanel>
+          <AdSense slot="7512892307" layout="in-article" format="fluid" />
           <FloatingButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
         </MainContent>
       )}
