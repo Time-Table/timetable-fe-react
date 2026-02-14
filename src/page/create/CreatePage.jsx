@@ -60,6 +60,7 @@ export default function CreatePage() {
           <IoHelpCircleOutline size={24} color={theme.text.gamma[500]} />
           <span>각 생성 방식이 궁금하신가요?</span>
         </HelpContainer>
+        <AdSense />
       </PageWrapper>
     </>
   );
