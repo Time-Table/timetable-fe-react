@@ -1,4 +1,6 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow: /table/
+Allow: /
 Disallow: /managerpage
+
+Sitemap: https://www.timetable2.com/sitemap.xml
