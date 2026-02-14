@@ -42,11 +42,13 @@ export default function TimetablePage() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const fetchAllData = useCallback(async () => {
-    const tableData = await getTableInfo(tableId);
-    if (tableData.status === 404) {
+    const res = await getTableInfo(tableId);
+    if (res.status === 404) {
       setIsValidTableId(false);
       return;
     }
+
+    const tableData = res.data || res;
     setTableInfo(tableData);
     setIsValidTableId(true);
 
@@ -171,7 +173,7 @@ export default function TimetablePage() {
 
   const HeaderContent = () => (
     <HeaderSection>
-      {dates && dates.length > 0 && (
+      {dates && dates.length > 0 && dates[0] && dates[0].includes("-") && (
         <DateBadge>
           <FiCalendar />
           <span>

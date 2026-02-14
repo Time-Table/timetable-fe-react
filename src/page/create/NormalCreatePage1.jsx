@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../../theme";
 import Calendar from "../../component/Calendar";
@@ -7,9 +7,14 @@ import Swal from "sweetalert2";
 import { trackVisit } from "../../api/visit";
 
 export default function CreatePage1({ onNext, dates }) {
+     const hasTrackedVisit = useRef(false);
+
      useEffect(() => {
           const getVisitLog = async () => {
-               await trackVisit("create");
+               if (!hasTrackedVisit.current) {
+                    await trackVisit("create");
+                    hasTrackedVisit.current = true;
+               }
           };
           getVisitLog();
           if (dates) {

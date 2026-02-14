@@ -7,9 +7,19 @@ import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
 import AdSense from "../../component/AdSense";
+import { useEffect, useRef } from "react";
+import { trackVisit } from "../../api/visit";
 
 export default function CreatePage() {
   const navigate = useNavigate();
+  const hasTrackedVisit = useRef(false);
+
+  useEffect(() => {
+    if (!hasTrackedVisit.current) {
+      trackVisit("landing");
+      hasTrackedVisit.current = true;
+    }
+  }, []);
 
   const handleHelpClick = () => {
     Swal.fire({

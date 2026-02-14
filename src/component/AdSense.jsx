@@ -15,17 +15,33 @@ const AdSense = ({
   layout = "",
 }) => {
   useEffect(() => {
-    try {
-      if (window.adsbygoogle) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
+    let timer = setTimeout(() => {
+      try {
+        if (window.adsbygoogle) {
+          const ads = document.querySelectorAll(".adsbygoogle:not([data-adsbygoogle-status])");
+          if (ads.length > 0) {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          }
+        }
+      } catch (e) {
+        console.error("AdSense error:", e);
       }
-    } catch (e) {
-      console.error("AdSense error:", e);
-    }
-  }, [slot]); // slot이 바뀌면 재로드 시도 (컴포넌트 재사용 대응)
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [slot]);
 
   return (
-    <div style={{ margin: "20px 0", textAlign: "center", overflow: "hidden", minHeight: "90px" }}>
+    <div
+      style={{
+        margin: "30px 0",
+        textAlign: "center",
+        overflow: "hidden",
+        minHeight: "100px",
+        background: "rgba(0,0,0,0.01)",
+        borderRadius: "8px",
+      }}
+    >
       <ins
         className="adsbygoogle"
         style={style}
