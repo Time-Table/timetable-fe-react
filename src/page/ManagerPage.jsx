@@ -19,6 +19,14 @@ import { getTrackVisit } from "../api/visit";
 import { getAllTables, updateTable, deleteTable } from "../api/table";
 import Swal from "sweetalert2";
 
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 2500,
+  timerProgressBar: true,
+});
+
 const ManagerPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -27,7 +35,6 @@ const ManagerPage = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 초기 상태에서 즉시 로컬스토리지 확인 (딜레이 방지)
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("admin_auth") === "verified";
   });
@@ -36,24 +43,15 @@ const ManagerPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
 
-  const Toast = Swal.mixin({
-    toast: true,
-    position: "top-end",
-    showConfirmButton: false,
-    timer: 2500,
-    timerProgressBar: true,
-  });
-
   // 관리자 인증 로직
   const checkAuth = useCallback(async () => {
-    // 이미 인증된 상태라면 실행하지 않음
     if (isAuthenticated || isChecking.current) return;
 
     isChecking.current = true;
     const { value: password, isDismissed } = await Swal.fire({
       title: "관리자 인증",
       input: "password",
-      inputLabel: "비밀번호를 입력하세요 (기본: 관리자 생일)",
+      inputLabel: "비밀번호를 입력하세요 (힌트: 관리자 생일)",
       inputPlaceholder: "Password",
       allowOutsideClick: false,
       showCancelButton: true,
