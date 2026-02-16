@@ -8,10 +8,9 @@ import Talk from "../assets/svg/Talk";
 import Seo from "../Seo";
 import { trackVisit } from "../api/visit";
 import { useNavigate } from "react-router-dom";
-import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
+import { BsLightningChargeFill } from "react-icons/bs";
 import { css } from "@emotion/react";
 import Swal from "sweetalert2";
-import { IoHelpCircleOutline } from "react-icons/io5";
 import AdSense from "../component/AdSense";
 
 export default function AboutPage() {
@@ -65,28 +64,6 @@ export default function AboutPage() {
     if (el && !sectionsRef.current.includes(el)) {
       sectionsRef.current.push(el);
     }
-  };
-
-  const handleHelpClick = () => {
-    Swal.fire({
-      title: "생성 방식 안내",
-      html: `
-        <div style="text-align: left; padding: 0 1rem;">
-          <h4 style="color: ${theme.color.button.blue}; margin-bottom: 5px;">빠른 생성</h4>
-          <p style="margin-top: 0; font-size: 15px;">
-            모임 이름, 날짜, 시간만 빠르게 입력하여<br>
-            신속하게 타임테이블을 생성할 수 있습니다.
-          </p>
-          <h4 style="color: ${theme.text.gamma[600]}; margin-bottom: 5px;">일반 생성 (준비중)</h4>
-          <p style="margin-top: 0; font-size: 15px;">
-            날짜, 시간, 공통 불가 시간 등을 세부적으로 설정하여<br>
-            정교한 타임테이블을 만들 수 있습니다.
-          </p>
-        </div>
-      `,
-      confirmButtonText: "확인",
-      confirmButtonColor: `${theme.color.primary}`,
-    });
   };
 
   return (

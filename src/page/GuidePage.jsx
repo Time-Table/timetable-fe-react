@@ -2,7 +2,6 @@ import React from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
 import Seo from "../Seo";
-import AdSense from "../component/AdSense";
 
 const GuidePage = () => {
   return (
@@ -19,8 +18,6 @@ const GuidePage = () => {
             참여자들이 선택할 수 있는 시간 범위를 설정하면 즉시 고유한 링크가 생성됩니다.
           </p>
         </Section>
-
-        <AdSense isReady={true} />
 
         <Section>
           <h3>2. 링크 공유 및 초대</h3>
@@ -61,7 +58,6 @@ const GuidePage = () => {
             <p>A. 참여 시 입력했던 이름을 다시 입력하여 접속하면 언제든지 자신의 시간표를 수정할 수 있습니다.</p>
           </FaqItem>
         </Section>
-        <AdSense isReady={true} />
       </Content>
     </PageWrapper>
   );
