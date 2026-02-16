@@ -1,14 +1,11 @@
 import styled from "@emotion/styled";
-import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme";
 import Seo from "../../Seo";
-import { BsCalendarDate, BsLightningChargeFill } from "react-icons/bs";
-import { IoHelpCircleOutline } from "react-icons/io5";
-import Swal from "sweetalert2";
-import AdSense from "../../component/AdSense";
+import { BsLightningChargeFill } from "react-icons/bs";
 import { useEffect, useRef } from "react";
 import { trackVisit } from "../../api/visit";
+import { motion } from "framer-motion";
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -21,179 +18,211 @@ export default function CreatePage() {
     }
   }, []);
 
-  const handleHelpClick = () => {
-    Swal.fire({
-      title: "생성 방식 안내",
-      html: `
-        <div style="text-align: left; padding: 0 1rem;">
-          <h4 style="color: ${theme.color.button.blue}; margin-bottom: 5px;">빠른 생성</h4>
-          <p style="margin-top: 0; font-size: 15px;">
-            모임 이름, 날짜, 시간만 빠르게 입력하여<br>
-            신속하게 타임테이블을 생성할 수 있습니다.
-          </p>
-          <h4 style="color: ${theme.text.gamma[600]}; margin-bottom: 5px;">일반 생성 (준비중)</h4>
-          <p style="margin-top: 0; font-size: 15px;">
-            날짜, 시간, 공통 불가 시간 등을 세부적으로 설정하여<br>
-            정교한 타임테이블을 만들 수 있습니다.
-          </p>
-        </div>
-      `,
-      confirmButtonText: "확인",
-      confirmButtonColor: `${theme.color.primary}`,
-    });
-  };
-
   return (
     <>
-      <Seo title="타임테이블 - 생성" description="새로운 약속을 만들어보세요." />
+      <Seo title="타임테이블 - 시작하기" description="가장 빠른 일정 조율, 링크 하나로 시작하세요." />
       <PageWrapper>
-        <Title>어떤 방식으로 생성할까요?</Title>
-        <SelectionContainer>
-          <SelectionBox onClick={() => navigate("/quick-create")}>
-            <IconWrapper color={theme.color.primary}>
-              <BsLightningChargeFill size={40} />
-            </IconWrapper>
-            <BoxTitle>빠른 생성</BoxTitle>
-            <BoxDescription>필수 정보만으로</BoxDescription>
-            <BoxDescription>신속하게</BoxDescription>
-          </SelectionBox>
-          <SelectionBox disabled>
-            <IconWrapper color={theme.color.button.blue}>
-              <BsCalendarDate size={40} />
-            </IconWrapper>
-            <BoxTitle>일반 생성</BoxTitle>
-            <BoxDescription>{"세부 설정으로 정교하게"}</BoxDescription>
-            <BoxDescription>{"(준비중)"}</BoxDescription>
-          </SelectionBox>
-        </SelectionContainer>
-        <HelpContainer onClick={handleHelpClick}>
-          <IoHelpCircleOutline size={24} color={theme.text.gamma[500]} />
-          <span>각 생성 방식이 궁금하신가요?</span>
-        </HelpContainer>
-        <AdSense />
+        <ContentContainer>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Badge>No Login, No Stress</Badge>
+            <MainTitle>
+              도대체 다들,<br />
+              <span>언제 시간되세요?</span>
+            </MainTitle>
+            <SubTitle>
+              번거로운 회원가입 없이 30초 만에 테이블을 생성하고<br />
+              팀원들과 최적의 약속 시간을 찾아보세요.
+            </SubTitle>
+            
+            <CTASection>
+              <PrimaryButton onClick={() => navigate("/quick-create")}>
+                <BsLightningChargeFill size={20} />
+                로그인 없이 생성하기
+              </PrimaryButton>
+              <SecondaryButton onClick={() => navigate("/about")}>
+                서비스 소개 보기
+              </SecondaryButton>
+            </CTASection>
+          </motion.div>
+
+          <FeatureGrid>
+            <FeatureCard>
+              <div className="icon">🚀</div>
+              <h3>초고속 생성</h3>
+              <p>필수 정보만 입력하면<br/>즉시 링크가 생성됩니다.</p>
+            </FeatureCard>
+            <FeatureCard>
+              <div className="icon">📊</div>
+              <h3>실시간 통계</h3>
+              <p>누가 언제 가능한지<br/>한눈에 확인하세요.</p>
+            </FeatureCard>
+            <FeatureCard>
+              <div className="icon">📱</div>
+              <h3>멀티 디바이스</h3>
+              <p>모바일과 PC 어디서든<br/>편리하게 이용하세요.</p>
+            </FeatureCard>
+          </FeatureGrid>
+        </ContentContainer>
       </PageWrapper>
     </>
   );
 }
 
 const PageWrapper = styled.div`
-  ${theme.styles.flexCenterColumn}
   width: 100%;
-  height: calc(100vh - 71px);
-  padding: 20px;
-  box-sizing: border-box;
-`;
-
-const Title = styled.h1`
-  font-family: "Pretendard-SemiBold";
-  font-size: 28px;
-  margin-bottom: 40px;
-  @media (max-width: 480px) {
-    font-size: 24px;
-    text-align: center;
-  }
-`;
-
-const SelectionContainer = styled.div`
+  min-height: calc(100vh - 72px);
+  background: radial-gradient(circle at top right, ${theme.color.primary}08, transparent),
+              radial-gradient(circle at bottom left, ${theme.color.button.blue}08, transparent);
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 30px;
-  @media (max-width: 480px) {
-    flex-direction: row;
-    width: 100%;
-    gap: 15px;
+  padding: 40px 20px;
+  box-sizing: border-box;
+`;
+
+const ContentContainer = styled.div`
+  max-width: 1000px;
+  width: 100%;
+  text-align: center;
+`;
+
+const Badge = styled.span`
+  display: inline-block;
+  padding: 6px 16px;
+  background-color: ${theme.color.primary}15;
+  color: ${theme.color.primary};
+  border-radius: 99px;
+  font-family: "Pretendard-Bold";
+  font-size: 14px;
+  margin-bottom: 24px;
+`;
+
+const MainTitle = styled.h1`
+  font-family: "Pretendard-Black";
+  font-size: 64px;
+  line-height: 1.2;
+  color: ${theme.text.gamma[100]};
+  margin-bottom: 24px;
+
+  span {
+    background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 42px;
   }
 `;
 
-const SelectionBox = styled.div`
-  ${theme.styles.flexCenterColumn}
-  width: 100%;
-  max-width: 220px;
-  aspect-ratio: 1 / 1;
-  border: 1px solid ${theme.text.gamma[800]};
-  border-radius: 20px;
+const SubTitle = styled.p`
+  font-family: "Pretendard-Regular";
+  font-size: 20px;
+  color: ${theme.text.gamma[500]};
+  line-height: 1.6;
+  margin-bottom: 48px;
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+`;
+
+const CTASection = styled.div`
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 80px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: center;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+  color: white;
+  border: none;
+  padding: 18px 36px;
+  border-radius: 16px;
+  font-family: "Pretendard-Bold";
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    filter 0.3s ease,
-    opacity 0.3s ease;
-  background-color: white;
-  padding: 20px;
-  box-sizing: border-box;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px ${theme.color.primary}30;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px ${theme.color.primary}40;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  background: white;
+  color: ${theme.text.gamma[200]};
+  border: 1px solid ${theme.text.gamma[800]};
+  padding: 18px 36px;
+  border-radius: 16px;
+  font-family: "Pretendard-Bold";
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: ${theme.text.gamma[950]};
+    border-color: ${theme.text.gamma[700]};
+  }
+`;
+
+const FeatureGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FeatureCard = styled.div`
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  border: 1px solid ${theme.text.gamma[900]};
+  text-align: left;
+  transition: all 0.3s ease;
+
+  .icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-family: "Pretendard-Bold";
+    font-size: 20px;
+    margin-bottom: 12px;
+    color: ${theme.text.gamma[100]};
+  }
+
+  p {
+    font-family: "Pretendard-Regular";
+    font-size: 15px;
+    color: ${theme.text.gamma[500]};
+    line-height: 1.5;
+  }
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-  }
-
-  @media (max-width: 480px) {
-    flex: 1;
-    padding: 15px;
-    justify-content: center;
-  }
-  ${(props) =>
-    props.disabled &&
-    css`
-      filter: grayscale(100%);
-      opacity: 0.6;
-      cursor: not-allowed;
-
-      &:hover {
-        transform: none;
-        box-shadow: none;
-      }
-    `}
-`;
-
-const IconWrapper = styled.div`
-  color: ${(props) => props.color};
-  margin-bottom: 15px;
-  @media (max-width: 480px) {
-    margin-bottom: 10px;
-    svg {
-      width: 28px;
-      height: 28px;
-    }
-  }
-`;
-
-const BoxTitle = styled.h2`
-  font-family: "Pretendard-Bold";
-  font-size: 22px;
-  margin: 0 0 10px 0;
-  text-align: center;
-  @media (max-width: 480px) {
-    font-size: 16px;
-    margin-bottom: 5px;
-  }
-`;
-
-const BoxDescription = styled.p`
-  font-family: "Pretendard-Regular";
-  font-size: 16px;
-  color: ${theme.text.gamma[500]};
-  margin: 0;
-  text-align: center;
-  @media (max-width: 480px) {
-    font-size: 12px;
-    line-height: 1.3;
-  }
-`;
-
-const HelpContainer = styled.div`
-  ${theme.styles.flexCenterRow}
-  margin-top: 40px;
-  gap: 8px;
-  cursor: pointer;
-  color: ${theme.text.gamma[500]};
-  font-family: "Pretendard-Regular";
-  font-size: 16px;
-  text-align: center;
-  &:hover {
-    color: ${theme.color.primary};
-  }
-  @media (max-width: 480px) {
-    font-size: 14px;
+    border-color: ${theme.color.primary}40;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
   }
 `;

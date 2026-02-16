@@ -101,19 +101,19 @@ export default function RankingList({
             >
               <RankButton onClick={() => handleRankClick(index)}>
                 <RankNumber
-                  ranking={rank.displayRank}
-                  count={rank.count}
-                  minCount={minCount}
-                  maxCount={maxCount}
+                  $ranking={rank.displayRank}
+                  $count={rank.count}
+                  $minCount={minCount}
+                  $maxCount={maxCount}
                 >
                   {rank.displayRank === 1 ? <FaCrown /> : rank.displayRank}
                 </RankNumber>
                 <BarContainer>
                   <Bar
-                    ranking={rank.displayRank}
-                    count={rank.count}
-                    minCount={minCount}
-                    maxCount={maxCount}
+                    $ranking={rank.displayRank}
+                    $count={rank.count}
+                    $minCount={minCount}
+                    $maxCount={maxCount}
                     style={{ width: `${(rank.count / maxCount) * 100}%` }}
                   />
                   <RankInfo>
@@ -134,7 +134,7 @@ export default function RankingList({
                       <MemberChip
                         key={memberIndex}
                         onClick={() => handleMemberClick(member)}
-                        isSelected={selectedName === member}
+                        $isSelected={selectedName === member}
                       >
                         {member}
                       </MemberChip>
@@ -191,11 +191,14 @@ const RankButton = styled.button`
   text-align: left;
 `;
 
-const RankNumber = styled.div`
+const RankNumber = styled("div", {
+  shouldForwardProp: (prop) =>
+    !["$ranking", "$count", "$minCount", "$maxCount"].includes(prop),
+})`
   font-family: "Pretendard-Bold";
   font-size: 16px;
-  background: ${({ ranking }) => getRankGradient(ranking)};
-  color: ${({ ranking }) => (ranking === 1 ? "#D97706" : "white")}; // 1등 왕관 색, 나머지는 흰색
+  background: ${({ $ranking }) => getRankGradient($ranking)};
+  color: ${({ $ranking }) => ($ranking === 1 ? "#D97706" : "white")}; // 1등 왕관 색, 나머지는 흰색
   min-width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -207,13 +210,13 @@ const RankNumber = styled.div`
   transition: opacity 0.5s ease-out;
 
   // 배경색의 불투명도를 조절
-  opacity: ${({ ranking, count, minCount, maxCount }) => {
-    if (ranking === 1) return 1;
-    if (maxCount === minCount) return 0.8;
+  opacity: ${({ $ranking, $count, $minCount, $maxCount }) => {
+    if ($ranking === 1) return 1;
+    if ($maxCount === $minCount) return 0.8;
 
     const minOpacity = 0.5; // 최소 불투명도
     const maxOpacity = 1.0;
-    const percentage = (count - minCount) / (maxCount - minCount || 1);
+    const percentage = ($count - $minCount) / ($maxCount - $minCount || 1);
     return minOpacity + percentage * (maxOpacity - minOpacity);
   }};
 `;
@@ -227,21 +230,24 @@ const BarContainer = styled.div`
   overflow: hidden;
 `;
 
-const Bar = styled.div`
+const Bar = styled("div", {
+  shouldForwardProp: (prop) =>
+    !["$ranking", "$count", "$minCount", "$maxCount"].includes(prop),
+})`
   position: absolute;
   height: 100%;
-  background: ${({ ranking }) => getRankGradient(ranking)};
+  background: ${({ $ranking }) => getRankGradient($ranking)};
   border-radius: 8px;
   transition: width 0.5s ease-out, opacity 0.5s ease-out;
 
   // Bar의 불투명도 조절
-  opacity: ${({ ranking, count, minCount, maxCount }) => {
-    if (ranking === 1) return 1;
-    if (maxCount === minCount) return 0.7;
+  opacity: ${({ $ranking, $count, $minCount, $maxCount }) => {
+    if ($ranking === 1) return 1;
+    if ($maxCount === $minCount) return 0.7;
 
     const minOpacity = 0.4;
     const maxOpacity = 1.0;
-    const percentage = (count - minCount) / (maxCount - minCount || 1);
+    const percentage = ($count - $minCount) / ($maxCount - $minCount || 1);
     return minOpacity + percentage * (maxOpacity - minOpacity);
   }};
 `;
@@ -279,11 +285,13 @@ const MembersContainer = styled(motion.div)`
   gap: 8px;
 `;
 
-const MemberChip = styled.button`
-  background-color: ${({ isSelected }) =>
-    isSelected ? theme.color.primary : theme.text.gamma[900]};
+const MemberChip = styled("button", {
+  shouldForwardProp: (prop) => prop !== "$isSelected",
+})`
+  background-color: ${({ $isSelected }) =>
+    $isSelected ? theme.color.primary : theme.text.gamma[900]};
   border: none;
-  color: ${({ isSelected }) => (isSelected ? "white" : theme.text.gamma[500])};
+  color: ${({ $isSelected }) => ($isSelected ? "white" : theme.text.gamma[500])};
   font-family: "Pretendard-Medium";
   font-size: 14px;
   padding: 6px 12px;

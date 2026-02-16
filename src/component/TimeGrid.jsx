@@ -284,7 +284,7 @@ export default function TimeGrid({
       <GridHeader>
         <MonthDisplay>{monthYear}</MonthDisplay>
         <WeekNavigation>
-          <ArrowLayout disabled={currentWeekIndex === 0} onClick={prevWeek}>
+          <ArrowLayout $disabled={currentWeekIndex === 0} onClick={prevWeek}>
             <Arrow
               width={10}
               height={20}
@@ -292,7 +292,7 @@ export default function TimeGrid({
               angle={180}
             />
           </ArrowLayout>
-          <ArrowLayout disabled={currentWeekIndex >= weeks.length - 1} onClick={nextWeek}>
+          <ArrowLayout $disabled={currentWeekIndex >= weeks.length - 1} onClick={nextWeek}>
             <Arrow
               width={10}
               height={20}
@@ -311,20 +311,20 @@ export default function TimeGrid({
               return (
                 <HeaderCell
                   key={date}
-                  isDisabled={!dates.includes(date)}
-                  isToday={isToday}
+                  $isDisabled={!dates.includes(date)}
+                  $isToday={isToday}
                   onClick={() => handleSelectColumn(date)}
-                  readOnly={readOnly}
+                  $readOnly={readOnly}
                 >
                   <WeekdayBox>{weekday}</WeekdayBox>
-                  <DayBox isToday={isToday}>{day}</DayBox>
+                  <DayBox $isToday={isToday}>{day}</DayBox>
                 </HeaderCell>
               );
             })}
           </HeaderRow>
           {timeRange.map((time, timeIndex) => (
             <Row key={timeIndex}>
-              <TimeCell onClick={() => handleSelectRow(time)} readOnly={readOnly}>
+              <TimeCell onClick={() => handleSelectRow(time)} $readOnly={readOnly}>
                 {timeIndex % 2 === 0 ? time : ""}
               </TimeCell>
               {currentWeek.map((date) => {
@@ -349,11 +349,11 @@ export default function TimeGrid({
                   <Cell
                     key={cellKey}
                     data-cellkey={!readOnly ? cellKey : undefined}
-                    isSelected={isSelected}
-                    selectedCellColor={selectedCellColor}
-                    isDisabled={!dates.includes(date)}
-                    isBaned={banedCells.includes(cellKey)}
-                    readOnly={readOnly}
+                    $isSelected={isSelected}
+                    $selectedCellColor={selectedCellColor}
+                    $isDisabled={!dates.includes(date)}
+                    $isBaned={banedCells.includes(cellKey)}
+                    $readOnly={readOnly}
                                                                       onClick={() => {
                                                                            if (readOnly) {
                                                                                 if (!viewInfo) {
@@ -445,26 +445,26 @@ const HeaderCell = styled.div`
   align-items: center;
   gap: 4px;
   padding: 8px 0 12px;
-  color: ${(props) => (props.isDisabled ? theme.text.gamma[800] : "inherit")};
-  background-color: ${(props) => (props.isToday ? `${theme.color.primary}10` : "transparent")};
+  color: ${(props) => (props.$isDisabled ? theme.text.gamma[800] : "inherit")};
+  background-color: ${(props) => (props.$isToday ? `${theme.color.primary}10` : "transparent")};
   transition: background-color 0.2s ease;
   cursor: ${(props) =>
-    props.isDisabled || props.readOnly
-      ? props.isDisabled
+    props.$isDisabled || props.$readOnly
+      ? props.$isDisabled
         ? "not-allowed"
         : "default"
       : "pointer"};
   -webkit-tap-highlight-color: transparent;
 
   ${(props) =>
-    !props.readOnly &&
+    !props.$readOnly &&
     `
         &:active {
-             background-color: ${!props.isDisabled && `${theme.color.primary}25`};
+             background-color: ${!props.$isDisabled && `${theme.color.primary}25`};
         }
         @media (hover: hover) {
              &:hover {
-                  background-color: ${!props.isDisabled && `${theme.color.primary}15`};
+                  background-color: ${!props.$isDisabled && `${theme.color.primary}15`};
              }
         }
      `}
@@ -483,8 +483,8 @@ const DayBox = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: ${(props) => (props.isToday ? theme.color.primary : "transparent")};
-  color: ${(props) => (props.isToday ? "white" : "inherit")};
+  background-color: ${(props) => (props.$isToday ? theme.color.primary : "transparent")};
+  color: ${(props) => (props.$isToday ? "white" : "inherit")};
 `;
 const TimeCell = styled.div`
   position: relative;
@@ -496,13 +496,13 @@ const TimeCell = styled.div`
   font-size: 12px;
   font-family: "Pretendard-Medium";
   color: ${theme.text.gamma[600]};
-  cursor: ${(props) => (props.readOnly ? "default" : "pointer")};
+  cursor: ${(props) => (props.$readOnly ? "default" : "pointer")};
   border-radius: 4px;
   transition: background-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 
   ${(props) =>
-    !props.readOnly &&
+    !props.$readOnly &&
     `
         &:active {
              background-color: ${theme.text.gamma[800]};
@@ -519,14 +519,14 @@ const Cell = styled.div`
   height: 30px;
   border-right: 1px solid ${theme.text.gamma[900]};
   border-bottom: 1px solid ${theme.text.gamma[900]};
-  background-color: ${(props) => (props.isDisabled || props.isBaned) && `${theme.text.gamma[900]}`};
+  background-color: ${(props) => (props.$isDisabled || props.$isBaned) && `${theme.text.gamma[900]}`};
   cursor: ${(props) =>
-    props.isDisabled || props.isBaned ? "not-allowed" : props.readOnly ? "pointer" : "pointer"};
-  pointer-events: ${(props) => (props.isDisabled || props.isBaned ? "none" : "auto")};
+    props.$isDisabled || props.$isBaned ? "not-allowed" : props.$readOnly ? "pointer" : "pointer"};
+  pointer-events: ${(props) => (props.$isDisabled || props.$isBaned ? "none" : "auto")};
 
   /* Input Mode Animation */
   ${(props) =>
-    !props.readOnly &&
+    !props.$readOnly &&
     css`
          &::after {
               content: "";
@@ -535,19 +535,19 @@ const Cell = styled.div`
               left: 0;
               width: 100%;
               height: 100%;
-              background-color: ${props.selectedCellColor || theme.color.primary};
-              opacity: ${props.isSelected ? 1 : 0};
-              transform: ${props.isSelected ? "scale(1)" : "scale(0)"};
+              background-color: ${props.$selectedCellColor || theme.color.primary};
+              opacity: ${props.$isSelected ? 1 : 0};
+              transform: ${props.$isSelected ? "scale(1)" : "scale(0)"};
               transform-origin: center;
               transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
               animation: ${
-                props.isSelected ? css`${waveAnimation} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)` : "none"
+                props.$isSelected ? css`${waveAnimation} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)` : "none"
               };
          }
          @media (hover: hover) {
               &:hover::after {
-                   background-color: ${!props.isSelected && `${theme.color.primary}20`};
-                   opacity: ${!props.isSelected && 1};
+                   background-color: ${!props.$isSelected && `${theme.color.primary}20`};
+                   opacity: ${!props.$isSelected && 1};
                    transform: scale(1);
                    animation: none;
               }
@@ -623,8 +623,8 @@ const ArrowLayout = styled.button`
   height: 32px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
-  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-  opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+  pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
+  opacity: ${(props) => (props.$disabled ? 0.4 : 1)};
   &:hover {
     background-color: ${theme.text.gamma[900]};
     border-color: ${theme.text.gamma[700]};

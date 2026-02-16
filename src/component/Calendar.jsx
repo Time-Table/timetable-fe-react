@@ -107,7 +107,7 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
 
           return (
                <MonthControl>
-                    <ArrowLayout disabled={prevMonthDisabled} onClick={prevMonthDisabled ? null : prevMonth}>
+                    <ArrowLayout $disabled={prevMonthDisabled} onClick={prevMonthDisabled ? null : prevMonth}>
                          {" "}
                          <Arrow
                               width={10}
@@ -117,7 +117,7 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
                          />{" "}
                     </ArrowLayout>
                     <Month>{monthLabel}</Month>
-                    <ArrowLayout disabled={nextMonthDisabled} onClick={nextMonthDisabled ? null : nextMonth}>
+                    <ArrowLayout $disabled={nextMonthDisabled} onClick={nextMonthDisabled ? null : nextMonth}>
                          {" "}
                          <Arrow
                               width={10}
@@ -177,9 +177,9 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
                                    )}
                               </AnimatePresence>
                               <DateNumber
-                                   isSelected={isSelected}
-                                   disabled={isPastDate}
-                                   isDifferentMonth={isDifferentMonth}
+                                   $isSelected={isSelected}
+                                   $disabled={isPastDate}
+                                   $isDifferentMonth={isDifferentMonth}
                               >
                                    {startDate.getDate()}
                               </DateNumber>
@@ -335,11 +335,11 @@ const DateNumber = styled.span`
      font-family: Pretendard-Medium;
      font-size: 16px;
      color: ${(props) =>
-          props.isSelected
+          props.$isSelected
                ? "white"
-               : props.disabled
+               : props.$disabled
                ? theme.text.gamma[900]
-               : props.isDifferentMonth
+               : props.$isDifferentMonth
                ? theme.text.gamma[700]
                : "black"};
      transition: color 0.2s ease-in-out;
@@ -361,8 +361,8 @@ const ArrowLayout = styled.button`
      background: none;
      border: none;
      cursor: pointer;
-     pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
-     opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+     pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
+     opacity: ${(props) => (props.$disabled ? 0.4 : 1)};
      svg {
           width: 8px;
           height: 16px;

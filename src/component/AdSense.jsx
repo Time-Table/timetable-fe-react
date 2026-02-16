@@ -13,8 +13,11 @@ const AdSense = ({
   format = "auto",
   responsive = "true",
   layout = "",
+  isReady = true, // 콘텐츠 준비 여부 확인용 추가
 }) => {
   useEffect(() => {
+    if (!isReady) return;
+
     let timer = setTimeout(() => {
       try {
         if (window.adsbygoogle) {
@@ -24,22 +27,26 @@ const AdSense = ({
           }
         }
       } catch (e) {
-        console.error("AdSense error:", e);
+        // console.error("AdSense error:", e);
       }
-    }, 200);
+    }, 500); // 딜레이를 약간 늘려 콘텐츠 로드 후 노출 유도
 
     return () => clearTimeout(timer);
-  }, [slot]);
+  }, [slot, isReady]);
+
+  if (!isReady) return null;
 
   return (
     <div
+      className="adsense-container"
       style={{
-        margin: "30px 0",
+        margin: "40px 0",
         textAlign: "center",
         overflow: "hidden",
         minHeight: "100px",
-        background: "rgba(0,0,0,0.01)",
-        borderRadius: "8px",
+        background: "rgba(0,0,0,0.02)",
+        borderRadius: "12px",
+        clear: "both",
       }}
     >
       <ins

@@ -140,14 +140,14 @@ export default function QuickCreatePage() {
           <StepCard
             variants={itemVariants}
             layout
-            isOpen={isStartDropdownOpen || isEndDropdownOpen}
+            $isOpen={isStartDropdownOpen || isEndDropdownOpen}
           >
             <StepTitle>3. 시간 범위 설정</StepTitle>
             <StepDescription>가능한 시간 범위를 설정해주세요.</StepDescription>
             <TimeSelection>
               <DropdownContainer ref={startDropdownRef}>
                 <CustomSelectButton onClick={() => setStartDropdownOpen(!isStartDropdownOpen)}>
-                  <span>{startHour}</span> <DropdownArrow isOpen={isStartDropdownOpen} />
+                  <span>{startHour}</span> <DropdownArrow $isOpen={isStartDropdownOpen} />
                 </CustomSelectButton>
                 <AnimatePresence>
                   {isStartDropdownOpen && (
@@ -159,7 +159,7 @@ export default function QuickCreatePage() {
                       {generateTimes(0, 24).map((time) => (
                         <TimeOption
                           key={`start-${time}`}
-                          isSelected={time === startHour}
+                          $isSelected={time === startHour}
                           onClick={() => {
                             setStartHour(time);
                             if (time >= endHour)
@@ -179,7 +179,7 @@ export default function QuickCreatePage() {
               <TimeSeparator>부터</TimeSeparator>
               <DropdownContainer ref={endDropdownRef}>
                 <CustomSelectButton onClick={() => setEndDropdownOpen(!isEndDropdownOpen)}>
-                  <span>{endHour}</span> <DropdownArrow isOpen={isEndDropdownOpen} />
+                  <span>{endHour}</span> <DropdownArrow $isOpen={isEndDropdownOpen} />
                 </CustomSelectButton>
                 <AnimatePresence>
                   {isEndDropdownOpen && (
@@ -191,7 +191,7 @@ export default function QuickCreatePage() {
                       {generateTimes(1, 25).map((time) => (
                         <TimeOption
                           key={`end-${time}`}
-                          isSelected={time === endHour}
+                          $isSelected={time === endHour}
                           onClick={() => {
                             setEndHour(time);
                             if (time <= startHour)
@@ -218,7 +218,7 @@ export default function QuickCreatePage() {
                 onClick={
                   isPrerequisitesMet ? () => setIsAccordionOpen(!isAccordionOpen) : undefined
                 }
-                disabled={!isPrerequisitesMet}
+                $disabled={!isPrerequisitesMet}
               >
                 <div>
                   <StepTitle style={{ color: theme.text.gamma[500] }}>
@@ -278,7 +278,6 @@ export default function QuickCreatePage() {
               StyleDiv={{ marginTop: "30px" }}
             />
           </motion.div>
-          <AdSense />
         </Content>
       </PageWrapper>
     </>
@@ -326,9 +325,11 @@ const Content = styled(motion.div)`
   display: flex;
   flex-direction: column;
 `;
-const StepCard = styled(motion.div)`
+const StepCard = styled(motion.div, {
+  shouldForwardProp: (prop) => prop !== "$isOpen" && prop !== "layout",
+})`
   position: relative;
-  z-index: ${(props) => (props.layout ? (props.isOpen ? 2 : 1) : 1)};
+  z-index: ${(props) => (props.layout ? (props.$isOpen ? 2 : 1) : 1)};
   background: white;
   border: 1px solid ${theme.text.gamma[900]};
   border-radius: 16px;
@@ -341,19 +342,21 @@ const StepCard = styled(motion.div)`
     padding: 1.5rem;
   }
 `;
-const AccordionHeader = styled.div`
+const AccordionHeader = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$disabled",
+})`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
   transition: color 0.3s ease;
-  color: ${(props) => (props.disabled ? theme.text.gamma[700] : "inherit")};
+  color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")};
   & > div > * {
     transition: color 0.3s ease;
-    color: ${(props) => (props.disabled ? theme.text.gamma[700] : "inherit")} !important;
+    color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")} !important;
   }
   & > div > h2 {
-    color: ${(props) => (props.disabled ? theme.text.gamma[700] : theme.color.primary)} !important;
+    color: ${(props) => (props.$disabled ? theme.text.gamma[700] : theme.color.primary)} !important;
   }
 `;
 const CustomInput = styled.input`
@@ -446,12 +449,15 @@ const CustomSelectButton = styled(motion.button)`
   cursor: pointer;
   text-align: left;
 `;
-const DropdownArrow = styled(motion.div)`
+const DropdownArrow = styled(motion.div, {
+  shouldForwardProp: (prop) => prop !== "$isOpen",
+})`
   width: 8px;
   height: 8px;
   border-left: 2px solid ${theme.text.gamma[500]};
   border-bottom: 2px solid ${theme.text.gamma[500]};
-  transform: rotate(-45deg);
+  transform: ${(props) => (props.$isOpen ? "rotate(135deg)" : "rotate(-45deg)")};
+  transition: transform 0.3s ease;
 `;
 const TimeDropdown = styled(motion.div)`
   position: absolute;
@@ -481,15 +487,17 @@ const TimeDropdown = styled(motion.div)`
     background: ${theme.text.gamma[700]};
   }
 `;
-const TimeOption = styled.div`
+const TimeOption = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isSelected" && prop !== "$disabled",
+})`
   padding: 12px 16px;
   font-size: 16px;
   font-family: "Pretendard-Medium";
   border-radius: 8px;
   cursor: pointer;
-  color: ${(props) => (props.isSelected ? theme.color.primary : "inherit")};
-  background-color: ${(props) => (props.isSelected ? `${theme.color.primary}15` : "transparent")};
+  color: ${(props) => (props.$isSelected ? theme.color.primary : "inherit")};
+  background-color: ${(props) => (props.$isSelected ? `${theme.color.primary}15` : "transparent")};
   &:hover {
-    background-color: ${(props) => !props.disabled && `${theme.color.primary}1A`};
+    background-color: ${(props) => !props.$disabled && `${theme.color.primary}1A`};
   }
 `;

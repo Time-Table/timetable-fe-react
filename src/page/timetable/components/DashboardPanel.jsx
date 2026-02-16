@@ -95,7 +95,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                               {usersSchedule.length > 0 && (
                                    <MemberChip
                                         onClick={() => setSelectedName(null, true)}
-                                        isSelected={selectedName === null}
+                                        $isSelected={selectedName === null}
                                    >
                                         전체
                                    </MemberChip>
@@ -113,7 +113,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                                         <MemberChip
                                              key={index}
                                              onClick={() => handleUserClick(user.name)}
-                                             isSelected={selectedName === user.name}
+                                             $isSelected={selectedName === user.name}
                                         >
                                              {user.name}
                                         </MemberChip>
@@ -134,7 +134,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                          </SectionHeader>
                          <ChatLog ref={chatEndRef}>
                               {chatLog.map((chat, idx) => (
-                                   <ChatBubble key={idx} isMine={chat.name === name}>
+                                   <ChatBubble key={idx} $isMine={chat.name === name}>
                                         <ChatName>{chat.name}</ChatName>
                                         <ChatMessage>{chat.message}</ChatMessage>
                                    </ChatBubble>
@@ -204,10 +204,12 @@ const MembersGrid = styled.div`
      overflow-y: auto;
 `;
 
-const MemberChip = styled.button`
-     background-color: ${({ isSelected }) => (isSelected ? theme.color.primary : theme.text.gamma[950])};
-     border: 1px solid ${({ isSelected }) => (isSelected ? theme.color.primary : theme.text.gamma[900])};
-     color: ${({ isSelected }) => (isSelected ? "white" : theme.text.gamma[400])};
+const MemberChip = styled("button", {
+     shouldForwardProp: (prop) => prop !== "$isSelected",
+})`
+     background-color: ${({ $isSelected }) => ($isSelected ? theme.color.primary : theme.text.gamma[950])};
+     border: 1px solid ${({ $isSelected }) => ($isSelected ? theme.color.primary : theme.text.gamma[900])};
+     color: ${({ $isSelected }) => ($isSelected ? "white" : theme.text.gamma[400])};
      font-family: "Pretendard-Medium";
      font-size: 15px;
      padding: 8px 16px;
@@ -216,9 +218,9 @@ const MemberChip = styled.button`
      transition: all 0.2s ease;
 
      &:hover {
-          background-color: ${({ isSelected }) => (isSelected ? theme.color.primary : `${theme.color.primary}15`)};
-          color: ${({ isSelected }) => (isSelected ? "white" : theme.color.primary)};
-          border-color: ${({ isSelected }) => (isSelected ? theme.color.primary : `${theme.color.primary}30`)};
+          background-color: ${({ $isSelected }) => ($isSelected ? theme.color.primary : `${theme.color.primary}15`)};
+          color: ${({ $isSelected }) => ($isSelected ? "white" : theme.color.primary)};
+          border-color: ${({ $isSelected }) => ($isSelected ? theme.color.primary : `${theme.color.primary}30`)};
      }
 `;
 
@@ -280,28 +282,34 @@ const ChatLog = styled.div`
      border-radius: 8px;
 `;
 
-const ChatBubble = styled.div`
+const ChatBubble = styled("div", {
+     shouldForwardProp: (prop) => prop !== "$isMine",
+})`
      display: flex;
      flex-direction: column;
-     align-self: ${({ isMine }) => (isMine ? "flex-end" : "flex-start")};
+     align-self: ${({ $isMine }) => ($isMine ? "flex-end" : "flex-start")};
      max-width: 80%;
 `;
 
-const ChatName = styled.span`
+const ChatName = styled("span", {
+     shouldForwardProp: (prop) => prop !== "$isMine",
+})`
      font-family: "Pretendard-SemiBold";
      font-size: 13px;
      color: ${theme.text.gamma[500]};
      margin: 0 8px 4px 8px;
-     text-align: ${({ isMine }) => (isMine ? "right" : "left")};
+     text-align: ${({ $isMine }) => ($isMine ? "right" : "left")};
 `;
 
-const ChatMessage = styled.div`
+const ChatMessage = styled("div", {
+     shouldForwardProp: (prop) => prop !== "$isMine",
+})`
      font-family: "Pretendard-Regular";
      font-size: 15px;
      padding: 10px 14px;
      border-radius: 18px;
-     background-color: ${({ isMine }) => (isMine ? theme.color.primary : "#EAEAEA")};
-     color: ${({ isMine }) => (isMine ? "white" : "black")};
+     background-color: ${({ $isMine }) => ($isMine ? theme.color.primary : "#EAEAEA")};
+     color: ${({ $isMine }) => ($isMine ? "white" : "black")};
      word-wrap: break-word;
      white-space: pre-wrap;
 `;

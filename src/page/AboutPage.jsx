@@ -148,34 +148,71 @@ export default function AboutPage() {
             Mobile / Tab / PC 이용{" "}
           </AnimatedNotes>
         </div>
+
+        <DescriptionSection ref={addToRefs} data-animation="fade-up">
+          <h3>왜 타임테이블2 인가요?</h3>
+          <p>
+            타임테이블2는 복잡한 일정 조율 과정을 간소화하기 위해 만들어졌습니다.
+            단순한 인터페이스를 통해 누구나 쉽게 모임 시간을 제안하고,
+            구성원들의 가능한 시간을 한눈에 파악할 수 있습니다.
+          </p>
+          <p>
+            로그인 없이도 30초 만에 시작할 수 있는 최적의 일정 조율 시스템을 경험해 보세요.
+          </p>
+          <h3>주요 기능</h3>
+          <ul style={{ textAlign: "left", display: "inline-block" }}>
+            <li>직관적인 드래그 방식의 시간 선택</li>
+            <li>실시간으로 업데이트되는 그룹 시간표</li>
+            <li>가장 많은 인원이 모일 수 있는 골든타임 자동 계산</li>
+            <li>모바일과 PC 어디서나 편리한 접속</li>
+          </ul>
+        </DescriptionSection>
+
         <PageWrapper>
-          <SelectionContainer>
-            <SelectionBox onClick={() => navigate("/quick-create")}>
-              <IconWrapper color={theme.color.primary}>
-                <BsLightningChargeFill size={40} />
-              </IconWrapper>
-              <BoxTitle>빠른 생성</BoxTitle>
-              <BoxDescription>필수 정보만으로 신속하게</BoxDescription>
-            </SelectionBox>
-            <SelectionBox disabled>
-              <IconWrapper color={theme.color.button.blue}>
-                <BsCalendarDate size={40} />
-              </IconWrapper>
-              <BoxTitle>일반 생성</BoxTitle>
-              <BoxDescription>{"세부 설정으로 정교하게"}</BoxDescription>
-              <BoxDescription>{"(준비중)"}</BoxDescription>
-            </SelectionBox>
-          </SelectionContainer>
-          <HelpContainer onClick={handleHelpClick}>
-            <IoHelpCircleOutline size={24} color={theme.text.gamma[500]} />
-            <span>각 생성 방식이 궁금하신가요?</span>
-          </HelpContainer>
+          <PrimaryButtonLarge onClick={() => navigate("/quick-create")}>
+            <BsLightningChargeFill size={24} />
+            로그인 없이 생성하기
+          </PrimaryButtonLarge>
         </PageWrapper>
-        <AdSense />
+        <AdSense isReady={true} />
       </ContentDiv>
     </AboutPageDiv>
   );
 }
+
+const PrimaryButtonLarge = styled.button`
+  background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+  color: white;
+  border: none;
+  padding: 20px 40px;
+  border-radius: 16px;
+  font-family: "Pretendard-Bold";
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px ${theme.color.primary}30;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px ${theme.color.primary}40;
+  }
+
+  @media (max-width: 480px) {
+    padding: 16px 28px;
+    font-size: 16px;
+    gap: 8px;
+    width: 90%;
+    justify-content: center;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+`;
 
 const PageWrapper = styled.div`
   ${theme.styles.flexCenterColumn}
@@ -184,109 +221,34 @@ const PageWrapper = styled.div`
   box-sizing: border-box;
 `;
 
-const SelectionContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  @media (max-width: 480px) {
-    flex-direction: row;
-    width: 100%;
-    gap: 15px;
-  }
-`;
-
-const SelectionBox = styled.div`
-  ${theme.styles.flexCenterColumn}
-  width: 100%;
-  max-width: 220px;
-  aspect-ratio: 1 / 1;
-  border: 1px solid ${theme.text.gamma[800]};
-  border-radius: 20px;
-  cursor: pointer;
+const DescriptionSection = styled.div`
+  padding: 40px 20px;
+  text-align: center;
+  font-family: "Pretendard-Regular";
+  color: ${theme.text.gamma[200]};
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(20px);
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    filter 0.3s ease,
-    opacity 0.3s ease;
-  background-color: white;
-  padding: 20px;
-  box-sizing: border-box;
+    opacity 1s ease-out,
+    transform 1s ease-out;
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  h3 {
+    font-family: "Pretendard-Bold";
+    font-size: 24px;
+    margin-top: 30px;
+    color: black;
   }
 
-  @media (max-width: 480px) {
-    flex: 1;
-    padding: 15px;
-    justify-content: center;
-  }
-
-  ${(props) =>
-    props.disabled &&
-    css`
-      filter: grayscale(100%);
-      opacity: 0.6;
-      cursor: not-allowed;
-
-      &:hover {
-        transform: none;
-        box-shadow: none;
-      }
-    `}
-`;
-
-const IconWrapper = styled.div`
-  color: ${(props) => props.color};
-  margin-bottom: 15px;
-  @media (max-width: 480px) {
-    margin-bottom: 10px;
-    svg {
-      width: 28px;
-      height: 28px;
-    }
-  }
-`;
-
-const BoxTitle = styled.h2`
-  font-family: "Pretendard-Bold";
-  font-size: 22px;
-  margin: 0 0 10px 0;
-  text-align: center;
-  @media (max-width: 480px) {
+  p {
     font-size: 16px;
-    margin-bottom: 5px;
+    max-width: 600px;
+    margin: 10px auto;
   }
-`;
 
-const BoxDescription = styled.p`
-  font-family: "Pretendard-Regular";
-  font-size: 16px;
-  color: ${theme.text.gamma[500]};
-  margin: 0;
-  text-align: center;
-  @media (max-width: 480px) {
-    font-size: 12px;
-    line-height: 1.3;
-  }
-`;
-
-const HelpContainer = styled.div`
-  ${theme.styles.flexCenterRow}
-  margin-top: 40px;
-  gap: 8px;
-  cursor: pointer;
-  color: ${theme.text.gamma[500]};
-  font-family: "Pretendard-Regular";
-  font-size: 16px;
-  text-align: center;
-  &:hover {
-    color: ${theme.color.primary};
-  }
-  @media (max-width: 480px) {
-    ${theme.styles.flexCenterColumn}
-    font-size: 14px;
+  li {
+    font-size: 15px;
+    margin-bottom: 8px;
   }
 `;
 

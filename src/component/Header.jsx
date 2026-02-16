@@ -21,7 +21,10 @@ export default function Header() {
           };
      }, []);
 
-     const handleLogoClick = () => navigate("/");
+     const handleLogoClick = () => {
+          navigate("/");
+          window.scrollTo(0, 0);
+     };
      const handleHelpClick = () => {
           Swal.fire({
                icon: "question",
@@ -33,7 +36,10 @@ export default function Header() {
                showCancelButton: true,
                cancelButtonText: "취소",
                cancelButtonColor: `${theme.text.gamma[800]}`,
-               preConfirm: () => navigate("/about"),
+               preConfirm: () => {
+                    navigate("/about");
+                    window.scrollTo(0, 0);
+               },
           });
      };
      const handleContactClick = () => {
@@ -73,10 +79,13 @@ export default function Header() {
                },
           });
      };
-     const handleCreateClick = () => navigate("/create");
+     const handleCreateClick = () => {
+          navigate("/quick-create");
+          window.scrollTo(0, 0);
+     };
 
      return (
-          <HeaderWrapper scrolled={isScrolled}>
+          <HeaderWrapper $scrolled={isScrolled}>
                <HeaderContainer>
                     <Logo onClick={handleLogoClick}>
                          <span className="logo-time">Time</span>
@@ -112,7 +121,7 @@ const HeaderWrapper = styled.header`
      background-color: rgba(255, 255, 255, 0.8);
      backdrop-filter: blur(8px);
      -webkit-backdrop-filter: blur(8px);
-     box-shadow: ${(props) => (props.scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none")};
+     box-shadow: ${(props) => (props.$scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none")};
 `;
 
 const HeaderContainer = styled.div`

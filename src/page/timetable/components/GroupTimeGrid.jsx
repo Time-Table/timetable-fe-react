@@ -79,7 +79,7 @@ export default function GroupTimeGrid({
         {isDropdownOpen && (
           <DropdownContent>
             <DropdownItem
-              isSelected={selectedName === null}
+              $isSelected={selectedName === null}
               onClick={() => {
                 setSelectedName(null);
                 setDropdownOpen(false);
@@ -90,7 +90,7 @@ export default function GroupTimeGrid({
             {usersSchedule.map((user, index) => (
               <DropdownItem
                 key={index}
-                isSelected={selectedName === user.name}
+                $isSelected={selectedName === user.name}
                 onClick={() => {
                   setSelectedName(user.name);
                   setDropdownOpen(false);
@@ -235,24 +235,26 @@ const DropdownContent = styled.div`
   box-sizing: border-box;
 `;
 
-const DropdownItem = styled.div`
+const DropdownItem = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isSelected",
+})`
   padding: 8px 16px;
   cursor: pointer;
   font-family: "Pretendard-Medium";
   font-size: 14px;
   border-radius: 999px;
-  background-color: ${({ isSelected }) => (isSelected ? theme.color.primary : "white")};
+  background-color: ${({ $isSelected }) => ($isSelected ? theme.color.primary : "white")};
   border: 1px solid
-    ${({ isSelected }) => (isSelected ? theme.color.primary : theme.text.gamma[800])};
-  color: ${({ isSelected }) => (isSelected ? "white" : theme.text.gamma[400])};
+    ${({ $isSelected }) => ($isSelected ? theme.color.primary : theme.text.gamma[800])};
+  color: ${({ $isSelected }) => ($isSelected ? "white" : theme.text.gamma[400])};
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${({ isSelected }) =>
-      isSelected ? theme.color.primary : `${theme.color.primary}15`};
-    color: ${({ isSelected }) => (isSelected ? "white" : theme.color.primary)};
-    border-color: ${({ isSelected }) =>
-      isSelected ? theme.color.primary : `${theme.color.primary}30`};
+    background-color: ${({ $isSelected }) =>
+      $isSelected ? theme.color.primary : `${theme.color.primary}15`};
+    color: ${({ $isSelected }) => ($isSelected ? "white" : theme.color.primary)};
+    border-color: ${({ $isSelected }) =>
+      $isSelected ? theme.color.primary : `${theme.color.primary}30`};
   }
 `;
 

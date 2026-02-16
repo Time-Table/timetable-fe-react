@@ -18,7 +18,7 @@ const backdropVariants = {
 };
 
 const TimeGridModal = ({
-  isOpen,
+  $isOpen,
   onClose,
   banedCells,
   title,
@@ -34,7 +34,7 @@ const TimeGridModal = ({
 }) => {
   return (
     <AnimatePresence>
-      {isOpen && (
+      {$isOpen && (
         <Backdrop
           variants={backdropVariants}
           initial="hidden"

@@ -278,7 +278,7 @@ export default function TimetablePage() {
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
             </ContentPanel>
-            <AdSense slot="7512892307" layout="in-article" format="fluid" />
+            <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length > 0} />
           </RightPanel>
         </DesktopContainer>
       ) : (
@@ -288,13 +288,13 @@ export default function TimetablePage() {
           <ContentPanel>
             <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
           </ContentPanel>
-          <AdSense slot="7512892307" layout="in-article" format="fluid" />
+          <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length > 0} />
           <FloatingButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
         </MainContent>
       )}
       {tableInfo && !isDesktop && (
         <TimeGridModal
-          isOpen={isGridModalOpen}
+          $isOpen={isGridModalOpen}
           onClose={() => setIsGridModalOpen(false)}
           banedCells={banedCells}
           title={title}

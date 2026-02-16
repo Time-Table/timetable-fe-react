@@ -7,12 +7,10 @@ import AdSense from "../component/AdSense";
 const NotFound = () => {
   return (
     <CreatePageDiv>
-      <AdSense />
       <h1>404 Error</h1>
       <Loader />
       <h1>열심히 돌았지만 페이지를 발견하지 못했습니다.</h1>
       <p>*요청하신 페이지는 존재하지 않습니다.</p>
-      <AdSense />
     </CreatePageDiv>
   );
 };
