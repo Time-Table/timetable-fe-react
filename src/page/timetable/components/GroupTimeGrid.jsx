@@ -55,9 +55,10 @@ export default function GroupTimeGrid({
           onClick={async () => {
             handleClick();
             const res = await getTableInfo(tableId);
-            if (res._id) {
+            const tableData = res?.data || res;
+            if (tableData?._id) {
               setSelectedName(null);
-              setTableInfo(res);
+              setTableInfo(tableData);
             } else {
               await Toast.fire({
                 icon: "error",

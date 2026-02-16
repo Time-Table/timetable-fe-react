@@ -34,6 +34,9 @@ const ManagerPage = () => {
   const [tableData, setTableData] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("admin_auth") === "verified";
@@ -90,9 +93,9 @@ const ManagerPage = () => {
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
         setVisitData(sortedVisits);
-        const today = new Date().toISOString().split("T")[0];
+        const todayKST = getKSTToday();
         setSelectedDate(
-          sortedVisits.find((v) => v.date === today) ? today : sortedVisits[0]?.date || "",
+          sortedVisits.find((v) => v.date === todayKST) ? todayKST : sortedVisits[0]?.date || "",
         );
       }
 
@@ -117,10 +120,10 @@ const ManagerPage = () => {
     if (isAuthenticated) fetchData();
   }, [isAuthenticated, fetchData]);
 
-  // 통계 계산 로직 (최적화)
+  // 통계 계산 로직 (KST 기준)
   const getPeriodStats = (days) => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
+    // KST 자정 기준 설정
+    const cutoff = new Date(new Date(getKSTToday()).getTime() - (days - 1) * 24 * 60 * 60 * 1000);
     const filtered = visitData.filter((v) => new Date(v.date) >= cutoff);
     return {
       visits: filtered.reduce(
@@ -139,6 +142,37 @@ const ManagerPage = () => {
 
   const currentDayStats = selectedDate ? visitData.find((e) => e.date === selectedDate) || {} : {};
 
+  // 한국 시간(KST) 기준 날짜/시간 포맷 함수
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    const formatter = new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Seoul",
+    });
+    const parts = formatter.formatToParts(date);
+    const getPart = (type) => parts.find((p) => p.type === type).value;
+    return `${getPart("year")}-${getPart("month")}-${getPart("day")}일 ${getPart("hour")}시 ${getPart("minute")}분 ${getPart("second")}초`;
+  };
+
+  const getKSTToday = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Seoul",
+    });
+    const parts = formatter.formatToParts(now);
+    return `${parts.find((p) => p.type === "year").value}-${parts.find((p) => p.type === "month").value}-${parts.find((p) => p.type === "day").value}`;
+  };
+
   // 수정 핸들러
   const handleEditClick = (table) => {
     setEditingTable({ ...table });
@@ -149,18 +183,45 @@ const ManagerPage = () => {
 
   return (
     <PageContainer>
-      <Sidebar>
+      <MobileHeader>
         <Logo>
+          <FiLock /> <span>Admin</span>
+        </Logo>
+        <MenuButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+          {isSidebarOpen ? <FiX size={24} /> : <FiGrid size={24} />}
+        </MenuButton>
+      </MobileHeader>
+
+      <Sidebar $isOpen={isSidebarOpen}>
+        <Logo className="desktop-only">
           <FiLock /> <span>Admin Console</span>
         </Logo>
         <Menu>
-          <MenuItem active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>
+          <MenuItem
+            active={activeTab === "dashboard"}
+            onClick={() => {
+              setActiveTab("dashboard");
+              setIsSidebarOpen(false);
+            }}
+          >
             <FiGrid /> 대시보드
           </MenuItem>
-          <MenuItem active={activeTab === "tables"} onClick={() => setActiveTab("tables")}>
+          <MenuItem
+            active={activeTab === "tables"}
+            onClick={() => {
+              setActiveTab("tables");
+              setIsSidebarOpen(false);
+            }}
+          >
             <FiLayers /> 테이블 관리
           </MenuItem>
-          <MenuItem active={activeTab === "stats"} onClick={() => setActiveTab("stats")}>
+          <MenuItem
+            active={activeTab === "stats"}
+            onClick={() => {
+              setActiveTab("stats");
+              setIsSidebarOpen(false);
+            }}
+          >
             <FiPieChart /> 상세 분석
           </MenuItem>
         </Menu>
@@ -175,7 +236,7 @@ const ManagerPage = () => {
       </Sidebar>
 
       <MainContent>
-        <TopBar>
+        <TopBar className="desktop-only">
           <FiCalendar />
           <span>
             {activeTab === "dashboard"
@@ -312,69 +373,95 @@ const ManagerPage = () => {
                   <StyledTable>
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Specs</th>
                         <th>Created At</th>
+                        <th>Title</th>
                         <th>Action</th>
+                        <th>Specs</th>
+                        <th>ID</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tableData.map((table) => (
-                        <tr key={table.tableId}>
-                          <td className="mono">{table.tableId.substring(0, 8)}</td>
-                          <td className="bold">{table.title}</td>
-                          <td>
-                            <Tag>{table.dates?.length} Days</Tag>
-                            <Tag>
-                              {table.startHour}-{table.endHour}
-                            </Tag>
-                          </td>
-                          <td>{new Date(table.createdAt).toLocaleDateString()}</td>
-                          <td>
-                            <ActionGroup>
-                              <ActionBtn color="#4e73df" onClick={() => handleEditClick(table)}>
-                                <FiEdit3 />
-                              </ActionBtn>
-                              <ActionBtn
-                                color="#e74a3b"
-                                onClick={() => {
-                                  Swal.fire({
-                                    title: "삭제하시겠습니까?",
-                                    icon: "warning",
-                                    showCancelButton: true,
-                                    confirmButtonText: "삭제",
-                                    confirmButtonColor: "#e74a3b",
-                                  }).then(async (res) => {
-                                    if (res.isConfirmed) {
-                                      const dRes = await deleteTable(table.tableId);
-                                      if (dRes?.success) {
-                                        Toast.fire({ icon: "success", title: "삭제 완료" });
-                                        setTableData((prev) =>
-                                          prev.filter((t) => t.tableId !== table.tableId),
-                                        );
+                      {tableData
+                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                        .map((table) => (
+                          <tr key={table.tableId}>
+                            <td className="mono small">{formatDateTime(table.createdAt)}</td>
+                            <td className="bold">{table.title}</td>
+                            <td>
+                              <ActionGroup>
+                                <ActionBtn color="#4e73df" onClick={() => handleEditClick(table)}>
+                                  <FiEdit3 />
+                                </ActionBtn>
+                                <ActionBtn
+                                  color="#e74a3b"
+                                  onClick={() => {
+                                    Swal.fire({
+                                      title: "삭제하시겠습니까?",
+                                      icon: "warning",
+                                      showCancelButton: true,
+                                      confirmButtonText: "삭제",
+                                      confirmButtonColor: "#e74a3b",
+                                    }).then(async (res) => {
+                                      if (res.isConfirmed) {
+                                        const dRes = await deleteTable(table.tableId);
+                                        if (dRes?.success) {
+                                          Toast.fire({ icon: "success", title: "삭제 완료" });
+                                          setTableData((prev) =>
+                                            prev.filter((t) => t.tableId !== table.tableId),
+                                          );
+                                        }
                                       }
-                                    }
-                                  });
-                                }}
-                              >
-                                <FiTrash2 />
-                              </ActionBtn>
-                              <ActionBtn
-                                color="#36b9cc"
-                                as="a"
-                                href={`/table/${table.tableId}`}
-                                target="_blank"
-                              >
-                                <FiExternalLink />
-                              </ActionBtn>
-                            </ActionGroup>
-                          </td>
-                        </tr>
-                      ))}
+                                    });
+                                  }}
+                                >
+                                  <FiTrash2 />
+                                </ActionBtn>
+                                <ActionBtn
+                                  color="#36b9cc"
+                                  as="a"
+                                  href={`/table/${table.tableId}`}
+                                  target="_blank"
+                                >
+                                  <FiExternalLink />
+                                </ActionBtn>
+                              </ActionGroup>
+                            </td>
+                            <td>
+                              <Tag>{table.dates?.length} Days</Tag>
+                              <Tag>
+                                {table.startHour}-{table.endHour}
+                              </Tag>
+                            </td>
+                            <td className="mono">{table.tableId.substring(0, 8)}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </StyledTable>
                 </TableContainer>
+                {tableData.length > itemsPerPage && (
+                  <Pagination>
+                    <PageBtn
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </PageBtn>
+                    <PageInfo>
+                      Page <strong>{currentPage}</strong> of{" "}
+                      {Math.ceil(tableData.length / itemsPerPage)}
+                    </PageInfo>
+                    <PageBtn
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(Math.ceil(tableData.length / itemsPerPage), p + 1),
+                        )
+                      }
+                      disabled={currentPage === Math.ceil(tableData.length / itemsPerPage)}
+                    >
+                      Next
+                    </PageBtn>
+                  </Pagination>
+                )}
               </Section>
             )}
 
@@ -390,7 +477,7 @@ const ManagerPage = () => {
                         const dayCounts = [0, 0, 0, 0, 0, 0, 0];
                         tableData.forEach((t) =>
                           t.dates?.forEach((d) => {
-                            const day = new Date(d).getDay();
+                            const day = new Date(`${d}T00:00:00+09:00`).getDay();
                             if (!isNaN(day)) dayCounts[day]++;
                           }),
                         );
@@ -439,7 +526,7 @@ const ManagerPage = () => {
                               const dayCounts = [0, 0, 0, 0, 0, 0, 0];
                               tableData.forEach((t) =>
                                 t.dates?.forEach((d) => {
-                                  const day = new Date(d).getDay();
+                                  const day = new Date(`${d}T00:00:00+09:00`).getDay();
                                   if (!isNaN(day)) dayCounts[day]++;
                                 }),
                               );
@@ -539,15 +626,61 @@ const PageContainer = styled.div`
   background: #f8f9fc;
   color: #5a5c69;
   overflow: hidden;
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+  }
 `;
-const Sidebar = styled.aside`
+
+const MobileHeader = styled.div`
+  display: none;
+  @media (max-width: 1024px) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 60px;
+    background: #4e73df;
+    color: white;
+    z-index: 1001;
+  }
+`;
+
+const MenuButton = styled.button`
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const Sidebar = styled("aside", {
+  shouldForwardProp: (prop) => prop !== "$isOpen",
+})`
   width: 240px;
   background: #4e73df;
   background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
   color: white;
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 2000;
+  transition: all 0.3s ease;
+
+  @media (max-width: 1024px) {
+    position: fixed;
+    top: 0;
+    left: ${(props) => (props.$isOpen ? "0" : "-240px")};
+    height: 100vh;
+    box-shadow: 10px 0 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .desktop-only {
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
 `;
 const Logo = styled.div`
   height: 70px;
@@ -604,11 +737,20 @@ const TopBar = styled.header`
   font-weight: 700;
   gap: 10px;
   font-size: 1rem;
+
+  &.desktop-only {
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
 `;
 const ContentArea = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 30px;
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 const Section = styled.div`
   margin-bottom: 40px;
@@ -626,6 +768,10 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 24px;
   margin-bottom: 30px;
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
 `;
 const StatCardWrapper = styled.div`
   background: white;
@@ -657,6 +803,10 @@ const PeriodGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
   margin-bottom: 40px;
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
 `;
 const PeriodCard = styled.div`
   background: ${(props) => props.color};
@@ -688,12 +838,18 @@ const DetailGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 24px;
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
 `;
 const DetailCard = styled.div`
   background: white;
   border-radius: 0.35rem;
   padding: 25px;
   box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  @media (max-width: 480px) {
+    padding: 15px;
+  }
 `;
 const CardHeader = styled.h3`
   font-size: 0.9rem;
@@ -736,12 +892,42 @@ const InfoBox = styled.div`
 const TableContainer = styled.div`
   background: white;
   border-radius: 0.35rem;
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+`;
+const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 25px;
+`;
+const PageBtn = styled.button`
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #d1d3e2;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  &:hover:not(:disabled) {
+    background: #f8f9fc;
+    border-color: #4e73df;
+    color: #4e73df;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+const PageInfo = styled.span`
+  font-size: 0.9rem;
+  color: #5a5c69;
 `;
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
   th,
   td {
     padding: 16px 20px;
@@ -760,7 +946,10 @@ const StyledTable = styled.table`
   }
   .mono {
     font-family: monospace;
-    color: #b7b9cc;
+    color: #000000;
+  }
+  .small {
+    font-size: 0.75rem;
   }
   .bold {
     font-weight: 700;
@@ -777,6 +966,7 @@ const Tag = styled.span`
   font-size: 0.7rem;
   margin-right: 5px;
   border: 1px solid #e3e6f0;
+  white-space: nowrap;
 `;
 const ActionGroup = styled.div`
   display: flex;
@@ -882,10 +1072,12 @@ const ModalOverlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
 `;
 const ModalContent = styled.div`
   background: white;
-  width: 450px;
+  width: 100%;
+  max-width: 450px;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 `;
