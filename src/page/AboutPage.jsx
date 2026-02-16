@@ -9,8 +9,6 @@ import Seo from "../Seo";
 import { trackVisit } from "../api/visit";
 import { useNavigate } from "react-router-dom";
 import { BsLightningChargeFill } from "react-icons/bs";
-import { css } from "@emotion/react";
-import Swal from "sweetalert2";
 import AdSense from "../component/AdSense";
 
 export default function AboutPage() {

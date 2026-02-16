@@ -13,7 +13,6 @@ import Swal from "sweetalert2";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
-import AdSense from "../../component/AdSense";
 
 export default function QuickCreatePage() {
   const navigate = useNavigate();

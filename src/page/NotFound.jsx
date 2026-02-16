@@ -2,7 +2,6 @@ import React from "react";
 import theme from "../theme";
 import styled from "@emotion/styled";
 import Loader from "./timetable/components/Loading";
-import AdSense from "../component/AdSense";
 
 const NotFound = () => {
   return (
