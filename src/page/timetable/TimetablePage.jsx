@@ -17,11 +17,12 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
 import FloatingButton from "./components/FloatingButton";
 import TimeGridModal from "./components/TimeGridModal";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { FiUserPlus, FiShare2, FiCalendar } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
+import Arrow from "../../assets/svg/Arrow";
 
 export default function TimetablePage() {
   const { tableId } = useParams();
@@ -40,6 +41,14 @@ export default function TimetablePage() {
   const hasTrackedVisit = useRef(false);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const [isTipsOpen, setIsTipsOpen] = useState(() => {
+    const saved = localStorage.getItem("isTipsOpen");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("isTipsOpen", JSON.stringify(isTipsOpen));
+  }, [isTipsOpen]);
 
   const fetchAllData = useCallback(async () => {
     const res = await getTableInfo(tableId);
@@ -278,7 +287,7 @@ export default function TimetablePage() {
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
             </ContentPanel>
-            <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length > 0} />
+            <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length >= 2} />
           </RightPanel>
         </DesktopContainer>
       ) : (
@@ -288,10 +297,56 @@ export default function TimetablePage() {
           <ContentPanel>
             <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
           </ContentPanel>
-          <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length > 0} />
+          <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={!!tableInfo && usersScheduleList.length >= 2} />
           <FloatingButton onClick={() => setIsGridModalOpen(true)} selectedName={selectedName} />
         </MainContent>
       )}
+
+      <TableFooterSection>
+        <div className="accordion-header" onClick={() => setIsTipsOpen(!isTipsOpen)}>
+          <h3>📅 모임 시간 조율을 위한 팁</h3>
+          <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
+            <Arrow width={16} height={16} angle={90} />
+          </motion.div>
+        </div>
+        <AnimatePresence>
+          {isTipsOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="accordion-content">
+                <p>
+                  타임테이블2를 활용해 가장 효율적으로 약속 시간을 정하는 방법을 확인해 보세요.
+                  모든 구성원이 일정을 입력한 뒤, '순위' 탭을 확인하면 가장 많은 인원이 모일 수 있는 최적의 시간(골든타임)을 자동으로 찾아드립니다.
+                </p>
+                <div className="tip-grid">
+                  <div className="tip-item">
+                    <h4>1. 친구 초대 및 링크 공유</h4>
+                    <p>상단의 '초대' 버튼을 클릭하면 고유 링크가 복사됩니다. 이 링크를 카카오톡이나 커뮤니티에 공유하여 멤버들을 초대하세요.</p>
+                  </div>
+                  <div className="tip-item">
+                    <h4>2. 드래그로 쉽고 빠르게 입력하세요</h4>
+                    <p>'빠른 참여'를 통해 이름을 등록한 후, PC와 모바일에서 드래그 동작으로 가능한 시간대를 한꺼번에 선택할 수 있습니다.</p>
+                  </div>
+                  <div className="tip-item">
+                    <h4>3. 익명성 보장과 데이터 보호</h4>
+                    <p>타임테이블2는 이메일이나 전화번호와 같은 개인정보를 요구하지 않습니다. 오직 이름만으로 간편하게 참여할 수 있습니다.</p>
+                  </div>
+                </div>
+                <p className="last-p">
+                  본 서비스는 대학 조별 과제, 직장 회식, 친구 모임 등 시간을 맞추기 힘든 모든 상황에서 무료로 이용할 수 있는 전문 일정 조율 도구입니다. 
+                  등록된 일정 데이터는 삭제 요청 전까지 영구적으로 안전하게 보관되어 언제든 다시 확인하실 수 있습니다.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </TableFooterSection>
+
       {tableInfo && !isDesktop && (
         <TimeGridModal
           $isOpen={isGridModalOpen}
@@ -314,6 +369,84 @@ export default function TimetablePage() {
     <NotFoundTable />
   );
 }
+
+const TableFooterSection = styled.section`
+  margin: 50px auto 0;
+  max-width: 800px;
+  width: 100%;
+  padding: 0;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  text-align: left;
+  font-family: "Pretendard-Regular";
+  overflow: hidden;
+
+  .accordion-header {
+    padding: 24px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: ${theme.text.gamma[950]};
+    }
+
+    h3 {
+      font-family: "Pretendard-Bold";
+      font-size: 22px;
+      margin: 0;
+      color: ${theme.color.primary};
+    }
+  }
+
+  .accordion-content {
+    padding: 0 30px 30px;
+  }
+
+  p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: ${theme.text.gamma[500]};
+    margin-bottom: 25px;
+  }
+
+  .tip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .tip-item {
+    padding: 20px;
+    background-color: ${theme.text.gamma[950]};
+    border-radius: 12px;
+    
+    h4 {
+      font-family: "Pretendard-Bold";
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: black;
+    }
+    
+    p {
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+  }
+
+  .last-p {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 20px;
+    border-top: 1px solid ${theme.text.gamma[900]};
+    padding-top: 20px;
+  }
+`;
 
 const PageWrapper = styled.div`
   width: 100%;

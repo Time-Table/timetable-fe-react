@@ -34,18 +34,13 @@ export default function AboutPage() {
             } else if (entry.target.dataset.animation === "fade-up") {
               entry.target.style.transform = "translateY(0)";
             }
-          } else {
-            entry.target.style.opacity = "0";
-            if (entry.target.dataset.animation === "slide") {
-              entry.target.style.transform = "translateX(-20px)";
-            } else if (entry.target.dataset.animation === "fade-up") {
-              entry.target.style.transform = "translateY(20px)";
-            }
+            // 한 번 보여진 것은 계속 유지되도록 관찰 중지 (선택 사항)
+            // observer.unobserve(entry.target);
           }
         });
       },
       {
-        threshold: 0.2,
+        threshold: 0.1,
       },
     );
 
@@ -124,23 +119,34 @@ export default function AboutPage() {
           </AnimatedNotes>
         </div>
 
-        <DescriptionSection ref={addToRefs} data-animation="fade-up">
+        <DescriptionSection ref={addToRefs} data-animation="fade-up" style={{ opacity: 1, transform: "translateY(0)" }}>
           <h3>왜 타임테이블2 인가요?</h3>
           <p>
-            타임테이블2는 복잡한 일정 조율 과정을 간소화하기 위해 만들어졌습니다.
-            단순한 인터페이스를 통해 누구나 쉽게 모임 시간을 제안하고,
-            구성원들의 가능한 시간을 한눈에 파악할 수 있습니다.
+            타임테이블2는 복잡한 일정 조율 과정을 간소화하기 위해 만들어진 무료 서비스입니다.
+            회원가입이나 번거로운 로그인 과정 없이, 단 30초 만에 약속을 제안하고
+            구성원들의 가능한 시간을 한눈에 파악할 수 있는 가장 효율적인 시스템을 제공합니다.
           </p>
           <p>
-            로그인 없이도 30초 만에 시작할 수 있는 최적의 일정 조율 시스템을 경험해 보세요.
+            우리는 일상 속에서 빈번하게 일어나는 "언제 시간 돼?"라는 질문에 대한
+            가장 빠르고 명확한 답변을 찾을 수 있도록 돕는 것을 목표로 합니다.
+            직관적인 인터페이스와 실시간 데이터 동기화를 통해 불필요한 대화 시간을 줄이고,
+            더욱 즐거운 모임을 준비하는 데 집중할 수 있도록 지원합니다.
           </p>
-          <h3>주요 기능</h3>
-          <ul style={{ textAlign: "left", display: "inline-block" }}>
-            <li>직관적인 드래그 방식의 시간 선택</li>
-            <li>실시간으로 업데이트되는 그룹 시간표</li>
-            <li>가장 많은 인원이 모일 수 있는 골든타임 자동 계산</li>
-            <li>모바일과 PC 어디서나 편리한 접속</li>
+          <h3>주요 기능 및 장점</h3>
+          <ul style={{ textAlign: "left", display: "inline-block", padding: "0 20px" }}>
+            <li><strong>직관적인 드래그 방식:</strong> 모바일과 PC 어디서나 손쉽게 시간을 선택할 수 있습니다.</li>
+            <li><strong>실시간 그룹 시간표:</strong> 모든 구성원의 응답이 실시간으로 취합되어 한눈에 보여집니다.</li>
+            <li><strong style={{ color: "#D4AF37" }}>골든타임 자동 추천:</strong> 알고리즘을 통해 가장 많은 인원이 모일 수 있는 최적의 시간을 자동으로 찾아줍니다.</li>
+            <li><strong>완벽한 익명성 보장:</strong> 로그인 없이 이름만으로 참여가 가능하며, 개인정보를 요구하지 않습니다.</li>
+            <li><strong>반응형 디자인:</strong> 다양한 디바이스(스마트폰, 태블릿, PC)에 최적화된 사용자 경험을 제공합니다.</li>
           </ul>
+          <h3>이런 분들께 추천합니다</h3>
+          <p>
+            - 대학 조별 과제 시간을 정해야 하는 학생들<br />
+            - 회식이나 정기 모임 날짜를 조율해야 하는 동호회<br />
+            - 여러 명의 일정을 한꺼번에 관리해야 하는 프로젝트 매니저<br />
+            - 친구들과의 주말 약속을 빠르게 확정하고 싶은 분들
+          </p>
         </DescriptionSection>
 
         <PageWrapper>
@@ -202,7 +208,7 @@ const DescriptionSection = styled.div`
   font-family: "Pretendard-Regular";
   color: ${theme.text.gamma[200]};
   line-height: 1.6;
-  opacity: 0;
+  opacity: 0.1;
   transform: translateY(20px);
   transition:
     opacity 1s ease-out,
@@ -254,7 +260,7 @@ const RedBackgroundDiv = styled.div`
   align-items: center;
   gap: 10px;
   padding: 10px;
-  opacity: 0;
+  opacity: 0.1;
   transform: translateX(-20px);
   transition:
     opacity 1s ease-out,
@@ -272,7 +278,7 @@ const AnimatedText = styled.h1`
   font-family: Pretendard-Bold;
   color: black;
   text-align: center;
-  opacity: 0;
+  opacity: 0.1;
   transform: translateY(20px);
   transition:
     opacity 1s ease-out,
@@ -289,7 +295,7 @@ const AnimatedSubtitle = styled.h2`
   font-family: Pretendard-Regular;
   color: black;
   text-align: center;
-  opacity: 0;
+  opacity: 0.1;
   transform: translateX(-20px);
   transition:
     opacity 1s ease-out,
@@ -305,7 +311,7 @@ const AnimatedNotes = styled.span`
   font-family: Pretendard-semi-Bold;
   color: ${theme.color.primaryTint};
   text-align: center;
-  opacity: 0;
+  opacity: 0.1;
   transform: translateX(-20px);
   transition:
     opacity 1s ease-out,
@@ -317,7 +323,7 @@ const AnimatedNotes = styled.span`
 `;
 
 const AnimatedSVG = styled.div`
-  opacity: 0;
+  opacity: 0.1;
   transform: translateY(20px);
   transition:
     opacity 1s ease-out,
