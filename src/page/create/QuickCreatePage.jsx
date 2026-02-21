@@ -28,7 +28,6 @@ export default function QuickCreatePage() {
   const endDropdownRef = useRef(null);
 
   const isStep1Done = selectedDates.length > 0;
-  const isStep2Done = true; // 시간 범위는 기본값 존재
   const isStep3Done = title.trim() !== "";
   const isPrerequisitesMet = isStep1Done && isStep3Done;
   const hasTrackedVisit = useRef(false);
