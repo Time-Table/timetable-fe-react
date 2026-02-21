@@ -373,11 +373,12 @@ const ManagerPage = () => {
                   <StyledTable>
                     <thead>
                       <tr>
-                        <th>Created At</th>
-                        <th>Title</th>
-                        <th>Action</th>
-                        <th>Specs</th>
-                        <th>ID</th>
+                        <th>생성일</th>
+                        <th>방 제목</th>
+                        <th>관리</th>
+                        <th>참여 인원</th>
+                        <th>설정</th>
+                        <th>식별 ID</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -425,6 +426,11 @@ const ManagerPage = () => {
                                   <FiExternalLink />
                                 </ActionBtn>
                               </ActionGroup>
+                            </td>
+                            <td>
+                              <Tag color="#1cc88a" style={{ background: "#e0f2f1", borderColor: "#b2dfdb" }}>
+                                {table.participantCount || 0}명
+                              </Tag>
                             </td>
                             <td>
                               <Tag>{table.dates?.length} Days</Tag>
