@@ -1,5 +1,5 @@
 import "./App.css";
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes, useLocation } from "react-router-dom";
 import TimetablePage from "./page/timetable/TimetablePage";
 import Header from "./component/Header";
 import CreatePage from "./page/create/CreatePage.jsx";
@@ -14,6 +14,13 @@ import TermsPage from "./page/TermsPage";
 import PrivacyPage from "./page/PrivacyPage";
 import Footer from "./component/Footer";
 import ScrollToTop from "./component/ScrollToTop";
+
+function ConditionalFooter() {
+     const location = useLocation();
+     const hideFooterPaths = ["/quick-create"];
+     if (hideFooterPaths.includes(location.pathname)) return null;
+     return <Footer />;
+}
 
 function App() {
      return (
@@ -34,7 +41,7 @@ function App() {
                          <Route path="/privacy" element={<PrivacyPage />}></Route>
                          <Route path="*" element={<NotFound />}></Route>
                     </Routes>
-                    <Footer />
+                    <ConditionalFooter />
                </Router>
           </HelmetProvider>
      );

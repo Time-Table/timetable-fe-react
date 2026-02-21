@@ -12,7 +12,6 @@ import { trackVisit } from "../../api/visit";
 import Swal from "sweetalert2";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function QuickCreatePage() {
   const navigate = useNavigate();
@@ -27,7 +26,11 @@ export default function QuickCreatePage() {
   const [isEndDropdownOpen, setEndDropdownOpen] = useState(false);
   const startDropdownRef = useRef(null);
   const endDropdownRef = useRef(null);
-  const isPrerequisitesMet = title.trim() !== "" && selectedDates.length > 0;
+
+  const isStep1Done = selectedDates.length > 0;
+  const isStep2Done = true; // 시간 범위는 기본값 존재
+  const isStep3Done = title.trim() !== "";
+  const isPrerequisitesMet = isStep1Done && isStep3Done;
   const hasTrackedVisit = useRef(false);
 
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function QuickCreatePage() {
 
   const handleCreateTable = async () => {
     if (!isPrerequisitesMet) {
-      Swal.fire("입력 오류", "모임 이름과 날짜를 먼저 입력해주세요.", "error");
+      Swal.fire("입력 오류", "날짜와 모임 이름을 먼저 입력해주세요.", "error");
       return;
     }
     setIsLoading(true);
@@ -93,34 +96,88 @@ export default function QuickCreatePage() {
     return times;
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
-  };
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
-  };
-
   return (
     <>
       <Seo title="타임테이블 - 빠른 생성" description="빠르게 약속을 만들어보세요." />
       <PageWrapper>
         <Header>
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <ArrowLayout onClick={() => navigate("/create")}>
-              <Arrow width={10} height={20} angle={180} />
-            </ArrowLayout>
-          </motion.div>
+          <ArrowLayout onClick={() => navigate("/create")}>
+            <Arrow width={10} height={20} angle={180} />
+          </ArrowLayout>
           <TitleContainer>
             <BsLightningChargeFill />
             <PageTitle>빠른 테이블 생성</PageTitle>
           </TitleContainer>
           <div style={{ width: "44px" }} />
         </Header>
-        <Content initial="hidden" animate="visible" variants={containerVariants}>
-          <StepCard variants={itemVariants}>
-            <StepTitle>1. 모임 이름</StepTitle>
+        <Content>
+          <StepCard>
+            <StepTitle>1. 날짜 선택</StepTitle>
+            <StepDescription>약속 후보 날짜를 모두 선택해주세요.</StepDescription>
+            <Calendar selectedDates={selectedDates} setSelectedDates={setSelectedDates} />
+          </StepCard>
+
+          <StepCard $isOpen={isStartDropdownOpen || isEndDropdownOpen}>
+            <StepTitle>2. 시간 범위 설정</StepTitle>
+            <StepDescription>가능한 시간 범위를 설정해주세요.</StepDescription>
+            <TimeSelection>
+              <DropdownContainer ref={startDropdownRef}>
+                <CustomSelectButton onClick={() => setStartDropdownOpen(!isStartDropdownOpen)}>
+                  <span>{startHour}</span> <DropdownArrow $isOpen={isStartDropdownOpen} />
+                </CustomSelectButton>
+                {isStartDropdownOpen && (
+                  <TimeDropdown>
+                    {generateTimes(0, 24).map((time) => (
+                      <TimeOption
+                        key={`start-${time}`}
+                        $isSelected={time === startHour}
+                        onClick={() => {
+                          setStartHour(time);
+                          if (time >= endHour) {
+                            const nextH = parseInt(time.split(":")[0]) + 1;
+                            setEndHour(`${String(nextH).padStart(2, "0")}:00`);
+                          }
+                          setStartDropdownOpen(false);
+                        }}
+                      >
+                        {time}
+                      </TimeOption>
+                    ))}
+                  </TimeDropdown>
+                )}
+              </DropdownContainer>
+              <TimeSeparator>부터</TimeSeparator>
+              <DropdownContainer ref={endDropdownRef}>
+                <CustomSelectButton onClick={() => setEndDropdownOpen(!isEndDropdownOpen)}>
+                  <span>{endHour}</span> <DropdownArrow $isOpen={isEndDropdownOpen} />
+                </CustomSelectButton>
+                {isEndDropdownOpen && (
+                  <TimeDropdown>
+                    {generateTimes(1, 25).map((time) => (
+                      <TimeOption
+                        key={`end-${time}`}
+                        $isSelected={time === endHour}
+                        onClick={() => {
+                          setEndHour(time);
+                          if (time <= startHour) {
+                            const prevH = parseInt(time.split(":")[0]) - 1;
+                            setStartHour(`${String(prevH).padStart(2, "0")}:00`);
+                          }
+                          setEndDropdownOpen(false);
+                        }}
+                      >
+                        {time}
+                      </TimeOption>
+                    ))}
+                  </TimeDropdown>
+                )}
+              </DropdownContainer>
+              <TimeSeparator>까지</TimeSeparator>
+            </TimeSelection>
+          </StepCard>
+
+          <StepCard>
+            <StepTitle>3. 모임 이름</StepTitle>
             <StepDescription>다른 멤버들이 알아보기 쉬운 이름으로 지어주세요.</StepDescription>
             <CustomInput
               type="text"
@@ -130,139 +187,45 @@ export default function QuickCreatePage() {
               maxLength={25}
             />
           </StepCard>
-          <StepCard variants={itemVariants}>
-            <StepTitle>2. 날짜 선택</StepTitle>
-            <StepDescription>약속 후보 날짜를 모두 선택해주세요.</StepDescription>
-            <Calendar selectedDates={selectedDates} setSelectedDates={setSelectedDates} />
-          </StepCard>
 
-          <StepCard
-            variants={itemVariants}
-            layout
-            $isOpen={isStartDropdownOpen || isEndDropdownOpen}
-          >
-            <StepTitle>3. 시간 범위 설정</StepTitle>
-            <StepDescription>가능한 시간 범위를 설정해주세요.</StepDescription>
-            <TimeSelection>
-              <DropdownContainer ref={startDropdownRef}>
-                <CustomSelectButton onClick={() => setStartDropdownOpen(!isStartDropdownOpen)}>
-                  <span>{startHour}</span> <DropdownArrow $isOpen={isStartDropdownOpen} />
-                </CustomSelectButton>
-                <AnimatePresence>
-                  {isStartDropdownOpen && (
-                    <TimeDropdown
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                    >
-                      {generateTimes(0, 24).map((time) => (
-                        <TimeOption
-                          key={`start-${time}`}
-                          $isSelected={time === startHour}
-                          onClick={() => {
-                            setStartHour(time);
-                            if (time >= endHour)
-                              setEndHour(
-                                `${String(parseInt(time.split(":")[0]) + 1).padStart(2, "0")}:00`,
-                              );
-                            setStartDropdownOpen(false);
-                          }}
-                        >
-                          {time}
-                        </TimeOption>
-                      ))}
-                    </TimeDropdown>
-                  )}
-                </AnimatePresence>
-              </DropdownContainer>
-              <TimeSeparator>부터</TimeSeparator>
-              <DropdownContainer ref={endDropdownRef}>
-                <CustomSelectButton onClick={() => setEndDropdownOpen(!isEndDropdownOpen)}>
-                  <span>{endHour}</span> <DropdownArrow $isOpen={isEndDropdownOpen} />
-                </CustomSelectButton>
-                <AnimatePresence>
-                  {isEndDropdownOpen && (
-                    <TimeDropdown
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                    >
-                      {generateTimes(1, 25).map((time) => (
-                        <TimeOption
-                          key={`end-${time}`}
-                          $isSelected={time === endHour}
-                          onClick={() => {
-                            setEndHour(time);
-                            if (time <= startHour)
-                              setStartHour(
-                                `${String(parseInt(time.split(":")[0]) - 1).padStart(2, "0")}:00`,
-                              );
-                            setEndDropdownOpen(false);
-                          }}
-                        >
-                          {time}
-                        </TimeOption>
-                      ))}
-                    </TimeDropdown>
-                  )}
-                </AnimatePresence>
-              </DropdownContainer>
-              <TimeSeparator>까지</TimeSeparator>
-            </TimeSelection>
-          </StepCard>
-
-          <StepCard variants={itemVariants} layout>
-            <motion.div layout>
-              <AccordionHeader
-                onClick={
-                  isPrerequisitesMet ? () => setIsAccordionOpen(!isAccordionOpen) : undefined
-                }
-                $disabled={!isPrerequisitesMet}
+          <StepCard>
+            <AccordionHeader
+              onClick={isPrerequisitesMet ? () => setIsAccordionOpen(!isAccordionOpen) : undefined}
+              $disabled={!isPrerequisitesMet}
+            >
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <StepTitle style={{ color: theme.text.gamma[500] }}>
+                  (선택)시간 잠금 <FaLock size={15} style={{ marginLeft: "4px" }} />
+                </StepTitle>
+                <StepDescription>선택하신 시간대는 아무도 선택할 수 없습니다.</StepDescription>
+              </div>
+              <AccordionIcon
+                style={{ transform: isAccordionOpen ? "rotate(180deg)" : "rotate(0deg)" }}
               >
-                <div>
-                  <StepTitle style={{ color: theme.text.gamma[500] }}>
-                    (선택)시간 잠금 <FaLock size={15} />
-                  </StepTitle>
-                  <StepDescription>잠긴 시간대는 아무도 선택할 수 없습니다.</StepDescription>
-                </div>
-                <AccordionIcon animate={{ rotate: isAccordionOpen ? 180 : 0 }}>
-                  <Arrow width={12} height={12} angle={90} />
-                </AccordionIcon>
-              </AccordionHeader>
-            </motion.div>
-            <AnimatePresence>
-              {!isPrerequisitesMet && (
-                <LockMessage
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <FaLock size={12} />
-                  <span>이전 단계를 먼저 완료해주세요.</span>
-                </LockMessage>
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {isAccordionOpen && isPrerequisitesMet && (
-                <TimeGridWrapper
-                  initial={{ maxHeight: 0, marginTop: 0 }}
-                  animate={{ maxHeight: 1000, marginTop: "2rem" }}
-                  exit={{ maxHeight: 0, marginTop: 0 }}
-                >
-                  <TimeGrid
-                    dates={selectedDates}
-                    startHour={startHour}
-                    endHour={endHour}
-                    selectedCells={banedCells}
-                    setSelectedCells={setBanedCells}
-                    selectedCellColor={theme.text.gamma[800]}
-                  />
-                </TimeGridWrapper>
-              )}
-            </AnimatePresence>
+                <Arrow width={12} height={12} angle={90} />
+              </AccordionIcon>
+            </AccordionHeader>
+            {!isPrerequisitesMet && (
+              <LockMessage>
+                <FaLock size={12} />
+                <span>이전 단계를 먼저 완료해주세요.</span>
+              </LockMessage>
+            )}
+            {isAccordionOpen && isPrerequisitesMet && (
+              <TimeGridWrapper style={{ marginTop: "2rem" }}>
+                <TimeGrid
+                  dates={selectedDates}
+                  startHour={startHour}
+                  endHour={endHour}
+                  selectedCells={banedCells}
+                  setSelectedCells={setBanedCells}
+                  selectedCellColor={theme.text.gamma[800]}
+                />
+              </TimeGridWrapper>
+            )}
           </StepCard>
 
-          <motion.div variants={itemVariants}>
+          <div style={{ marginTop: "25px" }}>
             <Button
               title={isLoading ? "생성 중..." : "생성하기"}
               onClick={handleCreateTable}
@@ -274,15 +237,15 @@ export default function QuickCreatePage() {
                 transition: "filter 0.2s ease-in-out",
                 filter: isLoading || !isPrerequisitesMet ? "brightness(0.7)" : "brightness(1)",
               }}
-              StyleDiv={{ marginTop: "30px" }}
+              StyleDiv={{ marginTop: "50px" }}
             />
-          </motion.div>
+          </div>
         </Content>
       </PageWrapper>
     </>
   );
 }
-const titleFadeIn = `@keyframes titleFadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`;
+
 const PageWrapper = styled.div`
   width: 100%;
   max-width: 800px;
@@ -299,12 +262,11 @@ const Header = styled.div`
   margin-bottom: 20px;
   background-color: ${theme.text.gamma[950]};
 `;
-const TitleContainer = styled(motion.div)`
-  ${titleFadeIn} display: flex;
+const TitleContainer = styled.div`
+  display: flex;
   align-items: center;
   gap: 10px;
   color: ${theme.color.primary};
-  animation: titleFadeIn 0.6s ease-out;
 `;
 const PageTitle = styled.h1`
   font-family: "Pretendard-Bold";
@@ -320,15 +282,15 @@ const ArrowLayout = styled.div`
   align-items: center;
   justify-content: center;
 `;
-const Content = styled(motion.div)`
+const Content = styled.div`
   display: flex;
   flex-direction: column;
 `;
-const StepCard = styled(motion.div, {
-  shouldForwardProp: (prop) => prop !== "$isOpen" && prop !== "layout",
+const StepCard = styled("div", {
+  shouldForwardProp: (prop) => prop !== "$isOpen",
 })`
   position: relative;
-  z-index: ${(props) => (props.layout ? (props.$isOpen ? 2 : 1) : 1)};
+  z-index: ${(props) => (props.$isOpen ? 2 : 1)};
   background: white;
   border: 1px solid ${theme.text.gamma[900]};
   border-radius: 16px;
@@ -348,10 +310,8 @@ const AccordionHeader = styled("div", {
   justify-content: space-between;
   align-items: center;
   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  transition: color 0.3s ease;
   color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")};
   & > div > * {
-    transition: color 0.3s ease;
     color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")} !important;
   }
   & > div > h2 {
@@ -366,17 +326,10 @@ const CustomInput = styled.input`
   border: 1px solid ${theme.text.gamma[800]};
   border-radius: 10px;
   background-color: ${theme.text.gamma[950]};
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
   box-sizing: border-box;
-  &::placeholder {
-    color: ${theme.text.gamma[600]};
-  }
   &:focus {
     outline: none;
     border-color: ${theme.color.primary};
-    box-shadow: 0 0 0 3px ${theme.color.primary}30;
   }
 `;
 const StepTitle = styled.h2`
@@ -396,15 +349,15 @@ const StepDescription = styled.p`
   font-size: 15px;
   color: ${theme.text.gamma[500]};
   margin: 0;
-  @media (max-width: 480px) {
-    margin-bottom: 16px;
-  }
+  margin-bottom: 12px;
 `;
-const AccordionIcon = styled(motion.div)``;
-const TimeGridWrapper = styled(motion.div)`
+const AccordionIcon = styled.div`
+  transition: transform 0.3s ease;
+`;
+const TimeGridWrapper = styled.div`
   overflow: hidden;
 `;
-const LockMessage = styled(motion.div)`
+const LockMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -433,7 +386,7 @@ const DropdownContainer = styled.div`
   width: 100%;
   flex: 1;
 `;
-const CustomSelectButton = styled(motion.button)`
+const CustomSelectButton = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -446,9 +399,8 @@ const CustomSelectButton = styled(motion.button)`
   border-radius: 10px;
   background-color: white;
   cursor: pointer;
-  text-align: left;
 `;
-const DropdownArrow = styled(motion.div, {
+const DropdownArrow = styled("div", {
   shouldForwardProp: (prop) => prop !== "$isOpen",
 })`
   width: 8px;
@@ -456,9 +408,8 @@ const DropdownArrow = styled(motion.div, {
   border-left: 2px solid ${theme.text.gamma[500]};
   border-bottom: 2px solid ${theme.text.gamma[500]};
   transform: ${(props) => (props.$isOpen ? "rotate(135deg)" : "rotate(-45deg)")};
-  transition: transform 0.3s ease;
 `;
-const TimeDropdown = styled(motion.div)`
+const TimeDropdown = styled.div`
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -472,22 +423,9 @@ const TimeDropdown = styled(motion.div)`
   z-index: 100;
   padding: 8px;
   box-sizing: border-box;
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: ${theme.text.gamma[800]};
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: ${theme.text.gamma[700]};
-  }
 `;
 const TimeOption = styled("div", {
-  shouldForwardProp: (prop) => prop !== "$isSelected" && prop !== "$disabled",
+  shouldForwardProp: (prop) => prop !== "$isSelected",
 })`
   padding: 12px 16px;
   font-size: 16px;
@@ -497,6 +435,6 @@ const TimeOption = styled("div", {
   color: ${(props) => (props.$isSelected ? theme.color.primary : "inherit")};
   background-color: ${(props) => (props.$isSelected ? `${theme.color.primary}15` : "transparent")};
   &:hover {
-    background-color: ${(props) => !props.$disabled && `${theme.color.primary}1A`};
+    background-color: ${theme.color.primary}1A;
   }
 `;
