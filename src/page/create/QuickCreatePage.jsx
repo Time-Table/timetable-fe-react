@@ -132,8 +132,10 @@ export default function QuickCreatePage() {
                         $isSelected={time === startHour}
                         onClick={() => {
                           setStartHour(time);
-                          if (time >= endHour) {
-                            const nextH = parseInt(time.split(":")[0]) + 1;
+                          const startH = parseInt(time.split(":")[0]);
+                          const endH = parseInt(endHour.split(":")[0]);
+                          if (startH >= endH) {
+                            const nextH = Math.min(startH + 1, 24);
                             setEndHour(`${String(nextH).padStart(2, "0")}:00`);
                           }
                           setStartDropdownOpen(false);
@@ -158,8 +160,10 @@ export default function QuickCreatePage() {
                         $isSelected={time === endHour}
                         onClick={() => {
                           setEndHour(time);
-                          if (time <= startHour) {
-                            const prevH = parseInt(time.split(":")[0]) - 1;
+                          const startH = parseInt(startHour.split(":")[0]);
+                          const endH = parseInt(time.split(":")[0]);
+                          if (endH <= startH) {
+                            const prevH = Math.max(endH - 1, 0);
                             setStartHour(`${String(prevH).padStart(2, "0")}:00`);
                           }
                           setEndDropdownOpen(false);

@@ -86,7 +86,7 @@ export default function TimeGrid({
       });
       setLastSelectedCell(cellKey);
     },
-    [lastSelectedCell, setSelectedCells, readOnly]
+    [lastSelectedCell, setSelectedCells, readOnly],
   );
 
   const handleTouchStart = useCallback(
@@ -100,7 +100,7 @@ export default function TimeGrid({
       setDragAction(action);
       updateSelection(cellKey, action);
     },
-    [selectedCells, updateSelection, readOnly]
+    [selectedCells, updateSelection, readOnly],
   );
 
   const handleTouchMove = useCallback(
@@ -113,7 +113,7 @@ export default function TimeGrid({
         updateSelection(elem.dataset.cellkey, dragAction);
       }
     },
-    [isDragging, dragAction, updateSelection, readOnly]
+    [isDragging, dragAction, updateSelection, readOnly],
   );
 
   const handleTouchEnd = useCallback(
@@ -124,7 +124,7 @@ export default function TimeGrid({
       setDragAction(null);
       setLastSelectedCell(null);
     },
-    [readOnly]
+    [readOnly],
   );
 
   const handleMouseDown = useCallback(
@@ -138,7 +138,7 @@ export default function TimeGrid({
       setDragAction(action);
       updateSelection(cellKey, action);
     },
-    [selectedCells, updateSelection, readOnly]
+    [selectedCells, updateSelection, readOnly],
   );
 
   const handleMouseMove = useCallback(
@@ -149,7 +149,7 @@ export default function TimeGrid({
         updateSelection(elem.dataset.cellkey, dragAction);
       }
     },
-    [isDragging, dragAction, updateSelection, readOnly]
+    [isDragging, dragAction, updateSelection, readOnly],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -223,10 +223,13 @@ export default function TimeGrid({
   const currentWeek = weeks[currentWeekIndex] || [];
   const generateTimeRange = (start, end) => {
     const times = [];
-    let [startHourNum] = start.split(":").map(Number);
-    let [endHourNum] = end.split(":").map(Number);
+    let startHourNum = parseInt(start.split(":")[0]);
+    let endHourNum = parseInt(end.split(":")[0]);
     if (startHourNum >= endHourNum) return [];
-    while (startHourNum < endHourNum) {
+
+    const safeEnd = Math.min(endHourNum, 24);
+
+    while (startHourNum < safeEnd) {
       times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
       times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
       startHourNum++;
@@ -336,7 +339,7 @@ export default function TimeGrid({
 
                 if (readOnly) {
                   viewInfo = resolvedTimeInfo.find(
-                    (item) => item.time === cellKey || item === cellKey
+                    (item) => item.time === cellKey || item === cellKey,
                   );
                   const count = viewInfo?.count || 0;
                   viewOpacity = count > 0 ? 0.2 + (count / maxCount) * 0.8 : 0;
@@ -354,17 +357,16 @@ export default function TimeGrid({
                     $isDisabled={!dates.includes(date)}
                     $isBaned={banedCells.includes(cellKey)}
                     $readOnly={readOnly}
-                                                                      onClick={() => {
-                                                                           if (readOnly) {
-                                                                                if (!viewInfo) {
-                                                                                     setSelectedViewCell(null);
-                                                                                     return;
-                                                                                }
-                                                                                if (isViewSelected) setSelectedViewCell(null);
-                                                                                else setSelectedViewCell(viewInfo);
-                                                                           }
-                                                                      }}
-                    
+                    onClick={() => {
+                      if (readOnly) {
+                        if (!viewInfo) {
+                          setSelectedViewCell(null);
+                          return;
+                        }
+                        if (isViewSelected) setSelectedViewCell(null);
+                        else setSelectedViewCell(viewInfo);
+                      }
+                    }}
                   >
                     {readOnly && (
                       <>
@@ -519,7 +521,8 @@ const Cell = styled.div`
   height: 30px;
   border-right: 1px solid ${theme.text.gamma[900]};
   border-bottom: 1px solid ${theme.text.gamma[900]};
-  background-color: ${(props) => (props.$isDisabled || props.$isBaned) && `${theme.text.gamma[900]}`};
+  background-color: ${(props) =>
+    (props.$isDisabled || props.$isBaned) && `${theme.text.gamma[900]}`};
   cursor: ${(props) =>
     props.$isDisabled || props.$isBaned ? "not-allowed" : props.$readOnly ? "pointer" : "pointer"};
   pointer-events: ${(props) => (props.$isDisabled || props.$isBaned ? "none" : "auto")};
@@ -528,31 +531,35 @@ const Cell = styled.div`
   ${(props) =>
     !props.$readOnly &&
     css`
-         &::after {
-              content: "";
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background-color: ${props.$selectedCellColor || theme.color.primary};
-              opacity: ${props.$isSelected ? 1 : 0};
-              transform: ${props.$isSelected ? "scale(1)" : "scale(0)"};
-              transform-origin: center;
-              transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
-              animation: ${
-                props.$isSelected ? css`${waveAnimation} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)` : "none"
-              };
-         }
-         @media (hover: hover) {
-              &:hover::after {
-                   background-color: ${!props.$isSelected && `${theme.color.primary}20`};
-                   opacity: ${!props.$isSelected && 1};
-                   transform: scale(1);
-                   animation: none;
-              }
-         }
-     `}
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: ${props.$selectedCellColor || theme.color.primary};
+        opacity: ${props.$isSelected ? 1 : 0};
+        transform: ${props.$isSelected ? "scale(1)" : "scale(0)"};
+        transform-origin: center;
+        transition:
+          transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+          opacity 0.3s ease;
+        animation: ${props.$isSelected
+          ? css`
+              ${waveAnimation} 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+            `
+          : "none"};
+      }
+      @media (hover: hover) {
+        &:hover::after {
+          background-color: ${!props.$isSelected && `${theme.color.primary}20`};
+          opacity: ${!props.$isSelected && 1};
+          transform: scale(1);
+          animation: none;
+        }
+      }
+    `}
 
   @media (max-width: 480px) {
     height: 26px;
@@ -622,7 +629,9 @@ const ArrowLayout = styled.button`
   width: 32px;
   height: 32px;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
   pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
   opacity: ${(props) => (props.$disabled ? 0.4 : 1)};
   &:hover {
