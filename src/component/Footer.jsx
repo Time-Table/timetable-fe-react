@@ -62,6 +62,7 @@ const Footer = () => {
             <h4>서비스</h4>
             <Link to="/about">소개</Link>
             <Link to="/guide">이용 가이드</Link>
+            <Link to="/blog">칼럼/가이드</Link>
           </LinkGroup>
           <LinkGroup>
             <h4>정책</h4>

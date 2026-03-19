@@ -12,6 +12,8 @@ import Seo from "./Seo";
 import { HelmetProvider } from "react-helmet-async";
 import TermsPage from "./page/TermsPage";
 import PrivacyPage from "./page/PrivacyPage";
+import BlogListPage from "./page/blog/BlogListPage";
+import BlogDetailPage from "./page/blog/BlogDetailPage";
 import Footer from "./component/Footer";
 import ScrollToTop from "./component/ScrollToTop";
 
@@ -39,6 +41,8 @@ function App() {
                          <Route path="/guide" element={<GuidePage />}></Route>
                          <Route path="/terms" element={<TermsPage />}></Route>
                          <Route path="/privacy" element={<PrivacyPage />}></Route>
+                         <Route path="/blog" element={<BlogListPage />}></Route>
+                         <Route path="/blog/:id" element={<BlogDetailPage />}></Route>
                          <Route path="*" element={<NotFound />}></Route>
                     </Routes>
                     <ConditionalFooter />
