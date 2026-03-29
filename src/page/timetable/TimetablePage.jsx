@@ -395,6 +395,10 @@ const TableFooterSection = styled.section`
     user-select: none;
     transition: background-color 0.2s ease;
 
+    @media (max-width: 480px) {
+      padding: 20px;
+    }
+
     &:hover {
       background-color: ${theme.text.gamma[950]};
     }
@@ -404,11 +408,17 @@ const TableFooterSection = styled.section`
       font-size: 22px;
       margin: 0;
       color: ${theme.color.primary};
+      @media (max-width: 480px) {
+        font-size: 18px;
+      }
     }
   }
 
   .accordion-content {
     padding: 0 30px 30px;
+    @media (max-width: 480px) {
+      padding: 0 20px 24px;
+    }
   }
 
   p {
@@ -416,30 +426,46 @@ const TableFooterSection = styled.section`
     line-height: 1.6;
     color: ${theme.text.gamma[500]};
     margin-bottom: 25px;
+    @media (max-width: 480px) {
+      font-size: 14px;
+    }
   }
 
   .tip-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
     gap: 20px;
     margin-bottom: 30px;
+    width: 100%;
+    box-sizing: border-box;
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
   }
 
   .tip-item {
     padding: 20px;
     background-color: ${theme.text.gamma[950]};
     border-radius: 12px;
+    min-width: 0; /* Grid overflow 방지 핵심 */
+    width: 100%;
+    box-sizing: border-box;
+    word-break: keep-all;
+    overflow-wrap: break-word;
     
     h4 {
       font-family: "Pretendard-Bold";
       font-size: 16px;
       margin-bottom: 10px;
       color: black;
+      line-height: 1.4;
     }
     
     p {
       font-size: 14px;
       margin-bottom: 0;
+      line-height: 1.6;
     }
   }
 
@@ -458,6 +484,9 @@ const PageWrapper = styled.div`
   box-sizing: border-box;
   background-color: #f8f9fa;
   min-height: calc(100vh - 72px); // Header height
+  @media (max-width: 480px) {
+    padding: 24px 16px 60px;
+  }
 `;
 
 const MainContent = styled.div`

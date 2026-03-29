@@ -7,39 +7,47 @@ const GuideOverlay = ({ isDesktop }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, arrowLeft: 0 });
+  const [tooltipPos, setTooltipPos] = useState({
+    top: 0,
+    left: 0,
+    arrowLeft: 50,
+    finalPosition: "bottom",
+  });
 
-  const steps = React.useMemo(() => [
-    {
-      id: "guide-quick-join",
-      title: "빠른 참여",
-      description: "이름을 등록하고 바로 내 일정을 입력할 수 있어요.",
-      position: "bottom",
-    },
-    {
-      id: "guide-invite",
-      title: "초대",
-      description: "링크를 복사해 친구들에게 공유하고 초대해 보세요.",
-      position: "bottom",
-    },
-    ...(isDesktop
-      ? [
-          {
-            id: "guide-all-timetable",
-            title: "전체 시간표 현황",
-            description: "그룹원들의 일정을 한눈에 확인하고 최적의 시간을 찾아보세요.",
-            position: "right",
-          },
-        ]
-      : [
-          {
-            id: "guide-floating-button",
-            title: "전체 시간표 보기",
-            description: "언제든지 전체 인원의 시간표 현황을 확인할 수 있어요.",
-            position: "top",
-          },
-        ]),
-  ], [isDesktop]);
+  const steps = React.useMemo(
+    () => [
+      {
+        id: "guide-invite",
+        title: "초대",
+        description: "링크를 공유하여 인원을 초대하세요",
+        position: "bottom",
+      },
+      ...(isDesktop
+        ? [
+            {
+              id: "guide-all-timetable",
+              title: "전체 시간표 현황",
+              description: "그룹원들의 일정을 한눈에 확인하세요",
+              position: "right",
+            },
+          ]
+        : [
+            {
+              id: "guide-floating-button",
+              title: "전체 시간표 보기",
+              description: "그룹원들의 일정을 한눈에 확인하세요",
+              position: "top",
+            },
+          ]),
+      {
+        id: "guide-quick-join",
+        title: "빠른 참여",
+        description: "내 일정을 등록해 보세요",
+        position: "bottom",
+      },
+    ],
+    [isDesktop],
+  );
 
   useEffect(() => {
     const hasSeenGuide = localStorage.getItem("hasSeenTimetableGuide");
@@ -57,41 +65,64 @@ const GuideOverlay = ({ isDesktop }) => {
     const rect = element.getBoundingClientRect();
     setTargetRect(rect);
 
-    const tooltipWidth = 280;
-    const tooltipHeight = 150; // 근사치
+    const tooltipWidth = Math.min(280, window.innerWidth - 40);
+    const tooltipHeight = 160; // 여유 있는 추정치
     const margin = 15;
     const currentStep = steps[step];
+    let finalPosition = currentStep.position;
 
     let top = 0;
     let left = 0;
-    let arrowLeft = 50; // %
+    let arrowLeft = 50;
 
-    if (currentStep.position === "bottom") {
-      top = rect.bottom + margin;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    } else if (currentStep.position === "top") {
-      top = rect.top - tooltipHeight - margin;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    } else if (currentStep.position === "right") {
-      top = rect.top + rect.height / 2 - tooltipHeight / 2;
+    // 가로 위치 기본 계산
+    if (finalPosition === "right") {
       left = rect.right + margin;
+      top = rect.top + rect.height / 2 - tooltipHeight / 2;
+
+      // 오른쪽 공간 부족 시 왼쪽으로 변경 (데스크톱 대응)
+      if (left + tooltipWidth > window.innerWidth - 10) {
+        left = rect.left - tooltipWidth - margin;
+      }
+    } else {
+      left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+      if (finalPosition === "bottom") {
+        top = rect.bottom + margin;
+        // 하단 공간 부족 시 상단으로 뒤집기
+        if (top + tooltipHeight > window.innerHeight - 20) {
+          finalPosition = "top";
+          top = rect.top - tooltipHeight - margin;
+        }
+      } else if (finalPosition === "top") {
+        top = rect.top - tooltipHeight - margin;
+        // 상단 공간 부족 시 하단으로 뒤집기
+        if (top < 20) {
+          finalPosition = "bottom";
+          top = rect.bottom + margin;
+        }
+      }
     }
 
-    // 화면 밖으로 나가는 것 방지
-    const minLeft = 10;
-    const maxLeft = window.innerWidth - tooltipWidth - 10;
-    const originalLeft = left;
-    left = Math.min(Math.max(minLeft, left), maxLeft);
+    // 화면 밖으로 나가는 것 방지 (가로)
+    const minLeft = 20;
+    const maxLeft = window.innerWidth - tooltipWidth - 20;
+    left = Math.max(minLeft, Math.min(left, maxLeft));
 
-    // 꼭지점(화살표) 위치 보정 (타겟 요소의 중앙을 가리키도록)
-    if (currentStep.position === "top" || currentStep.position === "bottom") {
+    // 화면 밖으로 나가는 것 방지 (세로)
+    const minTop = 20;
+    const maxTop = window.innerHeight - tooltipHeight - 20;
+    top = Math.max(minTop, Math.min(top, maxTop));
+
+    // 화살표 위치 계산 (상/하단일 때만)
+    if (finalPosition === "top" || finalPosition === "bottom") {
       const targetCenter = rect.left + rect.width / 2;
       const tooltipRelativeCenter = targetCenter - left;
       arrowLeft = (tooltipRelativeCenter / tooltipWidth) * 100;
-      arrowLeft = Math.min(Math.max(10, arrowLeft), 90); // 너무 끝으로 가는 것 방지
+      arrowLeft = Math.max(10, Math.min(90, arrowLeft));
     }
 
-    setTooltipPos({ top, left, arrowLeft });
+    setTooltipPos({ top, left, arrowLeft, finalPosition });
   }, [isVisible, step, steps]);
 
   useEffect(() => {
@@ -112,10 +143,6 @@ const GuideOverlay = ({ isDesktop }) => {
     }
   };
 
-  const handleClose = () => {
-    setIsVisible(false);
-  };
-
   const handleNeverShowAgain = () => {
     localStorage.setItem("hasSeenTimetableGuide", "true");
     setIsVisible(false);
@@ -123,15 +150,9 @@ const GuideOverlay = ({ isDesktop }) => {
 
   if (!isVisible || !targetRect) return null;
 
-  const currentStep = steps[step];
-
   return (
     <AnimatePresence>
-      <Overlay
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
+      <Overlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
         <Highlight
           animate={{
             top: targetRect.top - 5,
@@ -141,30 +162,31 @@ const GuideOverlay = ({ isDesktop }) => {
           }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
-        
+
         <Tooltip
           key={step}
-          currentStepPosition={currentStep.position}
+          currentStepPosition={tooltipPos.finalPosition}
           arrowLeft={tooltipPos.arrowLeft}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ 
-            opacity: 1, 
+          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+          animate={{
+            opacity: 1,
             scale: 1,
+            y: 0,
             top: tooltipPos.top,
             left: tooltipPos.left,
           }}
-          exit={{ opacity: 0, scale: 0.9 }}
+          exit={{ opacity: 0, scale: 0.9, y: 10 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         >
-          <TooltipTitle>{currentStep.title}</TooltipTitle>
-          <TooltipDescription>{currentStep.description}</TooltipDescription>
+          <TooltipTitle>{steps[step].title}</TooltipTitle>
+          <TooltipDescription>{steps[step].description}</TooltipDescription>
           <ButtonGroup>
-            <StepIndicator>{step + 1} / {steps.length}</StepIndicator>
+            <StepIndicator>
+              {step + 1} / {steps.length}
+            </StepIndicator>
             <div style={{ display: "flex", gap: "8px" }}>
               {step === steps.length - 1 && (
-                <NeverShowButton onClick={handleNeverShowAgain}>
-                  다시 보지 않기
-                </NeverShowButton>
+                <NeverShowButton onClick={handleNeverShowAgain}>다시 보지 않기</NeverShowButton>
               )}
               <NextButton onClick={handleNext}>
                 {step === steps.length - 1 ? "시작하기" : "다음"}
@@ -200,6 +222,7 @@ const Highlight = styled(motion.div)`
 const Tooltip = styled(motion.div)`
   position: fixed;
   width: 280px;
+  max-width: calc(100vw - 40px);
   background: white;
   padding: 20px;
   border-radius: 16px;
@@ -208,6 +231,7 @@ const Tooltip = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-sizing: border-box;
 
   &::after {
     content: "";
