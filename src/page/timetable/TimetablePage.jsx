@@ -23,6 +23,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
 import Arrow from "../../assets/svg/Arrow";
+import GuideOverlay from "./components/GuideOverlay";
 
 export default function TimetablePage() {
   const { tableId } = useParams();
@@ -200,6 +201,7 @@ export default function TimetablePage() {
       </Description>
       <ActionButtons>
         <PrimaryActionButton
+          id="guide-quick-join"
           onClick={() => {
             setRightScreen("JoinForm");
             setSelectedToggle(null);
@@ -209,6 +211,7 @@ export default function TimetablePage() {
           <span>빠른 참여</span>
         </PrimaryActionButton>
         <SecondaryActionButton
+          id="guide-invite"
           onClick={() => {
             setRightScreen("InviteSection");
             setSelectedToggle(null);
@@ -256,6 +259,7 @@ export default function TimetablePage() {
 
   return isValidTableId ? (
     <PageWrapper>
+      <GuideOverlay isDesktop={isDesktop} />
       <Seo
         title={`${title || "테이블"}`}
         description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -264,7 +268,7 @@ export default function TimetablePage() {
 
       {isDesktop ? (
         <DesktopContainer>
-          <LeftPanel>
+          <LeftPanel id="guide-all-timetable">
             {tableInfo && (
               <GroupTimeGrid
                 banedCells={banedCells}

@@ -41,6 +41,7 @@ const FloatingButton = ({ onClick, selectedName }) => {
 
      return (
           <FabContainer
+               id="guide-floating-button"
                onClick={onClick}
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
