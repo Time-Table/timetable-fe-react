@@ -85,7 +85,7 @@ export default function GroupTimeGrid({
   useEffect(() => {
     if (!selectedCell || !popupRef.current) return;
     const el = popupRef.current;
-    const { height, width, top: elTop, left: elLeft } = el.getBoundingClientRect();
+    const { height, width } = el.getBoundingClientRect();
     const winH = window.innerHeight;
     const winW = window.innerWidth;
 

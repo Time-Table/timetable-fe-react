@@ -16,7 +16,7 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers, FiChevronRight } from "react-icons/fi";
+import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
