@@ -331,7 +331,7 @@ export default function TimetablePage() {
     const steps = [
       {
         id: "join",
-        label: "참여",
+        label: "참여/삭제",
         icon: <FiUserPlus size={16} />,
         done: !!name,
         active: rightScreen === "JoinForm",

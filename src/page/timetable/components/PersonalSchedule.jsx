@@ -109,7 +109,7 @@ export default function PersonalSchedule({
                     {onViewTimetable && (
                          <ViewTimetableBtn onClick={onViewTimetable}>
                               <FiGrid size={15} />
-                              전체 시간표 보기
+                              전체 시간표
                          </ViewTimetableBtn>
                     )}
                     {hasNoSchedule && (
