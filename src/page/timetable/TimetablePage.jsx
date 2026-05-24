@@ -248,7 +248,10 @@ export default function TimetablePage() {
         />
       </ToggleBar>
       {!isDesktop && (
-        <ViewAllTimetableButton onClick={() => setIsGridModalOpen(true)}>
+        <ViewAllTimetableButton
+          $disabled={usersScheduleList.length === 0}
+          onClick={() => usersScheduleList.length > 0 && setIsGridModalOpen(true)}
+        >
           <FiGrid size={16} />
           전체 시간표 보기
         </ViewAllTimetableButton>
@@ -647,39 +650,39 @@ const ViewAllTimetableButton = styled.button`
   gap: 10px;
   width: 100%;
   height: 52px;
-  background: linear-gradient(135deg, ${theme.color.primary}18, ${theme.color.primaryTint}28);
-  border: 2px solid ${theme.color.primary}60;
-  color: ${theme.color.primary};
   border-radius: 14px;
   font-family: "Pretendard-Bold";
   font-size: 16px;
+  letter-spacing: -0.3px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px ${theme.color.primary}20;
-  letter-spacing: -0.3px;
-  animation: viewAllPulse 3s ease-in-out infinite;
+  border: 2px solid;
 
-  @keyframes viewAllPulse {
-    0%, 100% {
-      box-shadow: 0 4px 14px ${theme.color.primary}20;
+  ${props => props.$disabled
+    ? `
+      background: ${theme.text.gamma[900]};
+      border-color: ${theme.text.gamma[800]};
+      color: ${theme.text.gamma[600]};
+      cursor: not-allowed;
+      pointer-events: none;
+    `
+    : `
+      background: linear-gradient(135deg, ${theme.color.primary}18, ${theme.color.primaryTint}28);
       border-color: ${theme.color.primary}60;
-    }
-    50% {
-      box-shadow: 0 4px 22px ${theme.color.primary}45;
-      border-color: ${theme.color.primary}cc;
-    }
-  }
+      color: ${theme.color.primary};
+      box-shadow: 0 4px 14px ${theme.color.primary}20;
 
-  &:hover {
-    background: linear-gradient(135deg, ${theme.color.primary}28, ${theme.color.primaryTint}40);
-    border-color: ${theme.color.primary};
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${theme.color.primary}35;
-    animation: none;
-  }
+      &:hover {
+        background: linear-gradient(135deg, ${theme.color.primary}28, ${theme.color.primaryTint}40);
+        border-color: ${theme.color.primary};
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px ${theme.color.primary}35;
+      }
 
-  &:active {
-    transform: translateY(0);
+      &:active {
+        transform: translateY(0);
+      }
+    `
   }
 `;
 
