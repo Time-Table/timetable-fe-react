@@ -313,12 +313,12 @@ const AccordionHeader = styled("div", {
   justify-content: space-between;
   align-items: center;
   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")};
+  color: ${(props) => (props.$disabled ? theme.text.gamma[800] : "inherit")};
   & > div > * {
-    color: ${(props) => (props.$disabled ? theme.text.gamma[700] : "inherit")} !important;
+    color: ${(props) => (props.$disabled ? theme.text.gamma[800] : "inherit")} !important;
   }
   & > div > h2 {
-    color: ${(props) => (props.$disabled ? theme.text.gamma[700] : theme.color.primary)} !important;
+    color: ${(props) => (props.$disabled ? theme.text.gamma[800] : theme.color.primary)} !important;
   }
 `;
 const CustomInput = styled.input`

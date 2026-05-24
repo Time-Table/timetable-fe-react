@@ -340,7 +340,7 @@ const DateNumber = styled.span`
                : props.$disabled
                ? theme.text.gamma[900]
                : props.$isDifferentMonth
-               ? theme.text.gamma[700]
+               ? theme.text.gamma[500]
                : "black"};
      transition: color 0.2s ease-in-out;
      pointer-events: none;

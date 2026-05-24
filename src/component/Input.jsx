@@ -49,7 +49,7 @@ const StyledInput = styled.input`
      transition: border-color 0.2s ease-in-out;
 
      &::placeholder {
-          color: ${theme.text.gamma[700]};
+          color: ${theme.text.gamma[500]};
      }
 
      &:focus {

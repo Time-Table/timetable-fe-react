@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import { addSchedule } from "../../../api/schedule";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
+import { FiGrid } from "react-icons/fi";
 
 export default function PersonalSchedule({
      setSaveButtonState,
@@ -20,6 +21,7 @@ export default function PersonalSchedule({
      banedCells,
      bgTimeInfo,
      onSaveSuccess,
+     onViewTimetable,
 }) {
      const [isLoading, setIsLoading] = useState(true);
      const [isSaving, setIsSaving] = useState(false);
@@ -69,6 +71,8 @@ export default function PersonalSchedule({
                } else {
                     setSaveButtonState(!saveButtonState);
                }
+          } catch {
+               Swal.fire({ icon: "error", title: "저장에 실패했습니다.", text: "잠시 후 다시 시도해 주세요." });
           } finally {
                setIsSaving(false);
           }
@@ -102,6 +106,12 @@ export default function PersonalSchedule({
                               님의 가능한 시간을 선택해주세요.
                          </NoteText>
                     </HeaderWrapper>
+                    {onViewTimetable && (
+                         <ViewTimetableBtn onClick={onViewTimetable}>
+                              <FiGrid size={15} />
+                              전체 시간표 보기
+                         </ViewTimetableBtn>
+                    )}
                     {hasNoSchedule && (
                          <SelectPrompt
                               initial={{ opacity: 0, y: -6 }}
@@ -222,6 +232,32 @@ const EmptyState = styled.div`
      text-align: center;
      font-size: 18px;
      color: ${theme.text.gamma[500]};
+`;
+
+const ViewTimetableBtn = styled.button`
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     gap: 8px;
+     width: 100%;
+     height: 44px;
+     background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+     color: white;
+     border: none;
+     border-radius: 10px;
+     font-family: "Pretendard-Bold";
+     font-size: 14px;
+     cursor: pointer;
+     transition: all 0.2s ease;
+     box-shadow: 0 4px 12px ${theme.color.primary}30;
+
+     &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px ${theme.color.primary}40;
+     }
+     &:active {
+          transform: translateY(0);
+     }
 `;
 
 const SaveButton = styled.button`

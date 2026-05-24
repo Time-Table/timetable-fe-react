@@ -7,11 +7,10 @@ export const addSchedule = async (tableId, name, availableTimes) => {
       name,
       availableTimes,
     });
-    if (res.success) {
-      return res.data;
-    }
+    return res;
   } catch (error) {
     console.error("addSchedule error:", error.response || error);
+    throw error;
   }
 };
 

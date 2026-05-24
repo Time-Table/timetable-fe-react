@@ -441,7 +441,7 @@ const CloseBtn = styled.button`
 
 const CellInfoSection = styled.div`
   padding: 12px 16px;
-  & + & { border-top: 1px solid ${theme.text.gamma[950]}; }
+  & + & { border-top: 1px solid ${theme.text.gamma[900]}; }
 `;
 
 const CellInfoLabel = styled.div`
@@ -473,5 +473,5 @@ const NameChip = styled.span`
 const NoName = styled.span`
   font-family: "Pretendard-Regular";
   font-size: 13px;
-  color: ${theme.text.gamma[700]};
+  color: ${theme.text.gamma[800]};
 `;

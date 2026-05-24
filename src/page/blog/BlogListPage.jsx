@@ -122,7 +122,7 @@ const PostMeta = styled.div`
 const PostDate = styled.span`
   font-family: "Pretendard-Regular";
   font-size: 13px;
-  color: ${theme.text.gamma[700]};
+  color: ${theme.text.gamma[500]};
 `;
 
 const PostAuthor = styled.span`

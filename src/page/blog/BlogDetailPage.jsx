@@ -63,9 +63,28 @@ export default function BlogDetailPage() {
             </Meta>
           </Header>
           <Content>
-            {post.content.split("\n\n").map((paragraph, index) => (
-              <Paragraph key={index}>{paragraph}</Paragraph>
-            ))}
+            {(() => {
+              const paragraphs = post.content.split("\n\n");
+              const images = post.images || [];
+              const result = [];
+              if (images[0]) {
+                result.push(<ArticleImage key="img-0" src={images[0].url} alt={images[0].alt} loading="lazy" />);
+              }
+              const remaining = images.slice(1);
+              const insertPoints = remaining.map((_, i) =>
+                Math.floor(paragraphs.length * ((i + 1) / (remaining.length + 1)))
+              );
+              paragraphs.forEach((paragraph, index) => {
+                result.push(<Paragraph key={index}>{paragraph}</Paragraph>);
+                const imgIdx = insertPoints.indexOf(index + 1);
+                if (imgIdx !== -1) {
+                  result.push(
+                    <ArticleImage key={`img-${imgIdx + 1}`} src={remaining[imgIdx].url} alt={remaining[imgIdx].alt} loading="lazy" />
+                  );
+                }
+              });
+              return result;
+            })()}
           </Content>
           <AdSense isReady={true} />
           <Footer>
@@ -149,7 +168,7 @@ const MetaDate = styled.time`
 `;
 
 const MetaDivider = styled.span`
-  color: ${theme.text.gamma[700]};
+  color: ${theme.text.gamma[500]};
   font-size: 14px;
 `;
 
@@ -173,6 +192,16 @@ const AuthorBio = styled.span`
 
 const Content = styled.div`
   margin-top: 40px;
+`;
+
+const ArticleImage = styled.img`
+  width: 100%;
+  border-radius: 16px;
+  margin: 32px 0;
+  object-fit: cover;
+  max-height: 420px;
+  display: block;
+  border: 1px solid ${theme.text.gamma[900]};
 `;
 
 const Paragraph = styled.p`

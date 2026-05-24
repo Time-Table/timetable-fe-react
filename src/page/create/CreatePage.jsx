@@ -272,7 +272,7 @@ const SecondaryButton = styled.button`
 
   &:hover {
     background-color: ${theme.text.gamma[950]};
-    border-color: ${theme.text.gamma[700]};
+    border-color: ${theme.text.gamma[800]};
   }
 `;
 

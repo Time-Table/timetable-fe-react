@@ -37,6 +37,10 @@ export const blogPosts = [
 ■ 마무리: 일정 조율 자체가 팀워크다
 
 조별 과제에서 좋은 결과물을 내기 위해서는 내용의 질도 중요하지만, 그 전에 팀원들이 얼마나 잘 소통하고 협력하느냐가 핵심입니다. 일정 조율에 드는 시간과 에너지를 줄이면, 그만큼 더 많은 시간을 실질적인 작업에 투자할 수 있습니다. 올바른 도구를 사용해 효율적으로 시간을 맞추고, 팀원 모두가 존중받는 환경에서 최선의 결과물을 만들어보세요.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80&auto=format&fit=crop", alt: "팀원들이 함께 노트북으로 일정을 조율하는 모습" },
+      { url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=80&auto=format&fit=crop", alt: "화이트보드 앞에서 팀 회의를 진행하는 학생들" },
+    ],
   },
   {
     id: 2,
@@ -83,6 +87,10 @@ export const blogPosts = [
 ■ 마무리: 완벽한 일정 관리보다 지속 가능한 시스템을
 
 처음부터 완벽한 일정표를 만들려고 하지 마세요. 첫 주는 아이젠하워 매트릭스만, 둘째 주는 타임 블로킹을 추가하는 식으로 하나씩 쌓아가는 것이 지속 가능합니다. 시간 관리는 재능이 아니라 습관입니다. 작은 변화를 꾸준히 실천하는 사람이 결국 '갓생'을 살게 됩니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&q=80&auto=format&fit=crop", alt: "플래너와 캘린더로 주간 일정을 정리하는 직장인" },
+      { url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80&auto=format&fit=crop", alt: "깔끔하게 정돈된 사무실 업무 공간" },
+    ],
   },
   {
     id: 3,
@@ -122,6 +130,10 @@ export const blogPosts = [
 ■ 마무리: 원격 협업의 성패는 시간 관리가 결정한다
 
 원격 협업은 결국 '신뢰'와 '시스템'의 조화입니다. 서로의 집중 시간을 방해하지 않으면서도 필요한 때에 즉시 연결될 수 있는 합의된 리듬을 팀이 함께 만들어가는 것, 그것이 성공적인 원격 팀의 핵심 역량입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1587560699334-cc4ff634909f?w=800&q=80&auto=format&fit=crop", alt: "노트북으로 화상 회의를 진행하는 재택근무자" },
+      { url: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=800&q=80&auto=format&fit=crop", alt: "집 책상에서 원격으로 팀과 협업하는 모습" },
+    ],
   },
   {
     id: 4,
@@ -161,6 +173,10 @@ export const blogPosts = [
 ■ 마무리: 리더의 시간 철학이 팀 문화를 만든다
 
 리더가 어떻게 시간을 쓰느냐는 팀원에게 강력한 메시지를 전달합니다. 리더가 불필요한 회의에 시간을 낭비하면 팀원들도 그렇게 합니다. 반대로 리더가 명확한 우선순위를 가지고 전략적으로 시간을 사용하면, 팀 전체의 시간 사용 방식이 달라집니다. 리더의 시간 관리는 개인 생산성의 문제가 아니라 팀 문화의 문제입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80&auto=format&fit=crop", alt: "리더가 팀원들과 함께 전략 회의를 진행하는 모습" },
+      { url: "https://images.unsplash.com/photo-1455849318743-b2233052fcff?w=800&q=80&auto=format&fit=crop", alt: "자신감 있게 팀의 방향을 제시하는 비즈니스 리더" },
+    ],
   },
   {
     id: 5,
@@ -200,6 +216,10 @@ export const blogPosts = [
 ■ 마무리: 미루는 습관은 고칠 수 있다
 
 미루는 습관은 성격의 결함이 아닙니다. 잘못 설계된 환경과 시스템의 결과입니다. 올바른 전략으로 환경을 바꾸면 누구든 미루는 습관에서 벗어날 수 있습니다. 오늘부터 딱 하나, 2분 법칙만 실천해보세요. 작은 시작이 큰 변화의 첫 걸음입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1501139083538-0139583c060f?w=800&q=80&auto=format&fit=crop", alt: "중요한 과제 앞에서 고민하며 창밖을 바라보는 모습" },
+      { url: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=80&auto=format&fit=crop", alt: "뽀모도로 타이머와 함께 집중해서 공부하는 모습" },
+    ],
   },
   {
     id: 6,
@@ -238,6 +258,10 @@ export const blogPosts = [
 ■ 마무리: 잘 쉬는 사람이 더 멀리 간다
 
 마라톤 선수도 페이스를 조절하며 달립니다. 처음부터 전력 질주하면 결승선을 밟을 수 없습니다. 삶도 마찬가지입니다. 잘 쉬는 것은 시간 낭비가 아니라 더 오래, 더 멀리, 더 건강하게 달리기 위한 전략적 투자입니다. 오늘 캘린더를 열고, 가장 먼저 '나를 위한 휴식 시간'을 예약해보세요.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80&auto=format&fit=crop", alt: "자연 속에서 평화롭게 명상하며 번아웃을 회복하는 모습" },
+      { url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80&auto=format&fit=crop", alt: "요가와 스트레칭으로 몸과 마음을 회복하는 모습" },
+    ],
   },
   {
     id: 7,
@@ -276,6 +300,10 @@ export const blogPosts = [
 ■ 마무리: 시간표는 한 학기 삶의 설계도
 
 시간표는 단순한 강의 목록이 아닙니다. 어떤 강의를, 언제, 어떤 순서로 배치하느냐에 따라 한 학기의 리듬, 체력, 성적, 심지어 인간관계까지 달라집니다. 조금 더 신중하게, 전략적으로 시간표를 설계하면 대학 생활의 질이 확연히 달라집니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=80&auto=format&fit=crop", alt: "활기찬 대학교 캠퍼스 전경" },
+      { url: "https://images.unsplash.com/photo-1523580494863-6f3031224c84?w=800&q=80&auto=format&fit=crop", alt: "도서관에서 집중하여 공부하는 대학생" },
+    ],
   },
   {
     id: 8,
@@ -314,6 +342,10 @@ export const blogPosts = [
 ■ 마무리: 좋은 회의 문화는 팀의 경쟁력이다
 
 회의 문화는 하루아침에 바뀌지 않습니다. 하지만 한 번의 회의에서 아젠다를 미리 공유하고, 타이머를 사용하고, 회의 후 3가지를 기록하는 작은 변화부터 시작해보세요. 이 작은 변화가 팀 전체의 시간을 되찾아줍니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1558403194-611308249627?w=800&q=80&auto=format&fit=crop", alt: "아젠다를 공유하며 효율적으로 진행되는 비즈니스 회의" },
+      { url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=80&auto=format&fit=crop", alt: "타이머와 함께 시간을 지키며 진행되는 팀 회의" },
+    ],
   },
   {
     id: 9,
@@ -352,6 +384,10 @@ export const blogPosts = [
 ■ 마무리: 여행의 추억은 일정이 아니라 여유에서 만들어진다
 
 완벽하게 짜인 일정표가 좋은 여행을 보장하지 않습니다. 오히려 여유와 융통성이 있는 일정이 더 좋은 추억을 만듭니다. 계획은 철저하게 하되, 실행은 유연하게. 그것이 가족 여행의 황금 법칙입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&q=80&auto=format&fit=crop", alt: "가족이 함께 즐거운 여행을 떠나는 행복한 모습" },
+      { url: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80&auto=format&fit=crop", alt: "여행 지도를 보며 드라이브 코스를 계획하는 모습" },
+    ],
   },
   {
     id: 10,
@@ -396,6 +432,10 @@ export const blogPosts = [
 ■ 마무리: 저녁의 3시간이 5년 뒤 당신을 만든다
 
 직장을 다니면서 동시에 새로운 스킬을 배우고, 부업을 시작하고, 책을 쓰는 사람들의 공통점은 저녁 시간을 전략적으로 사용한다는 것입니다. 오늘 저녁, 소파에 앉기 전에 단 5분이라도 하고 싶은 것에 집중해보세요. 그 5분이 첫 걸음이 됩니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1456406644174-8ddd4cd52a06?w=800&q=80&auto=format&fit=crop", alt: "저녁 카페에서 자기계발 공부에 집중하는 직장인" },
+      { url: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&q=80&auto=format&fit=crop", alt: "책과 노트를 펼쳐두고 저녁 자기계발을 이어가는 모습" },
+    ],
   },
   {
     id: 11,
@@ -434,6 +474,10 @@ export const blogPosts = [
 ■ 마무리: 재택근무는 자기 관리의 기술이다
 
 재택근무에서 성과를 내는 사람들의 공통점은 자신만의 명확한 일과 시스템을 가지고 있다는 것입니다. 사무실 환경이 외부에서 부여하던 구조를 이제는 스스로 만들어야 합니다. 이것은 도전이지만, 동시에 진정한 자기 주도적 삶의 시작점이기도 합니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800&q=80&auto=format&fit=crop", alt: "집에서 효율적으로 업무를 보는 재택근무 공간" },
+      { url: "https://images.unsplash.com/photo-1585232350773-b02a8e6e4b5f?w=800&q=80&auto=format&fit=crop", alt: "업무와 휴식 공간이 명확하게 분리된 홈 오피스 환경" },
+    ],
   },
   {
     id: 12,
@@ -479,6 +523,10 @@ export const blogPosts = [
 ■ 마무리: 시험 기간 밤샘은 선택이 아니다
 
 2-2-2 복습법을 학기 초부터 꾸준히 실천하면, 시험 기간에 새벽까지 공부하지 않아도 됩니다. 이미 내용이 장기 기억으로 자리 잡혀 있기 때문입니다. 처음에는 귀찮게 느껴지더라도, 한 학기만 실천해보세요. 시험 기간의 스트레스가 얼마나 줄어드는지 직접 경험하게 될 것입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=800&q=80&auto=format&fit=crop", alt: "체계적인 복습 노트를 정리하며 공부하는 학생" },
+      { url: "https://images.unsplash.com/photo-1456243762991-859aa8814b4d?w=800&q=80&auto=format&fit=crop", alt: "망각곡선을 이기기 위해 플래시카드로 반복 학습하는 모습" },
+    ],
   },
   {
     id: 13,
@@ -522,6 +570,10 @@ export const blogPosts = [
 ■ 마무리: 훌륭한 행사는 치밀한 시간 설계에서 시작된다
 
 행사의 콘텐츠만큼 중요한 것이 시간 관리입니다. 아무리 좋은 강연자와 프로그램이 있어도 일정이 엉망이면 참석자들의 만족도는 낮아집니다. 반대로 매끄럽고 여유 있게 흘러가는 일정은 참석자들에게 "잘 준비된 행사"라는 강력한 인상을 남깁니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80&auto=format&fit=crop", alt: "대규모 컨퍼런스에 참석한 많은 사람들의 모습" },
+      { url: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80&auto=format&fit=crop", alt: "행사장에서 네트워킹을 즐기는 참석자들" },
+    ],
   },
   {
     id: 14,
@@ -571,6 +623,10 @@ export const blogPosts = [
 ■ 마무리: 최고의 루틴은 당신에게 맞는 루틴이다
 
 성공한 사람들의 루틴이 모두 다른 이유는 각자의 크로노타입이 다르기 때문입니다. 팀 쿡은 새벽 4시에 일어나고, 오바마 전 대통령은 밤 1시까지 일했습니다. 어느 것이 더 우월한 게 아닙니다. 중요한 것은 자신의 에너지 리듬을 이해하고, 그에 맞게 시간표를 설계하는 것입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=800&q=80&auto=format&fit=crop", alt: "자신의 생체 리듬에 맞게 상쾌한 아침 루틴을 즐기는 모습" },
+      { url: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=800&q=80&auto=format&fit=crop", alt: "크로노타입에 따라 충분한 수면을 취하는 모습" },
+    ],
   },
   {
     id: 15,
@@ -618,6 +674,10 @@ export const blogPosts = [
 ■ 마무리: 공유된 일정표가 팀을 하나로 만든다
 
 팀의 모든 정보가 한 곳에 모여 있고, 누구나 언제든지 접근할 수 있다는 것은 팀 문화의 투명성을 만듭니다. 이 투명성이 신뢰를 쌓고, 신뢰가 협업의 품질을 높입니다. 노션 팀 대시보드는 단순한 도구가 아니라, 팀의 협업 문화를 바꾸는 시스템입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1587440871875-191322ee64b0?w=800&q=80&auto=format&fit=crop", alt: "노트북으로 팀 대시보드를 관리하며 협업하는 모습" },
+      { url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80&auto=format&fit=crop", alt: "디지털 도구로 팀 일정을 실시간 공유하며 소통하는 팀" },
+    ],
   },
   {
     id: 16,
@@ -657,6 +717,10 @@ export const blogPosts = [
 ■ 마무리: 잠은 게으름이 아니라 투자다
 
 세계적인 투자자 워런 버핏, 아마존 창업자 제프 베조스, 마이크로소프트 창업자 빌 게이츠 모두 하루 8시간 수면을 공개적으로 지킨다고 밝혔습니다. 성공한 사람들이 더 많이 자는 이유는 잠이 다음 날의 성과를 결정하는 핵심 투자임을 경험으로 알기 때문입니다. 오늘 밤, 일찍 자는 결단이 내일의 당신을 더 영리하고 창의적으로 만들어줄 것입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1530026405186-ed1f139313f3?w=800&q=80&auto=format&fit=crop", alt: "충분한 수면이 뇌의 창의성과 기억력에 미치는 영향" },
+      { url: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80&auto=format&fit=crop", alt: "수면 부족으로 피곤한 상태에서 밤새워 업무를 이어가는 모습" },
+    ],
   },
   {
     id: 17,
@@ -702,6 +766,10 @@ export const blogPosts = [
 ■ 마무리: 운동은 사치가 아니라 생존 전략이다
 
 성과를 내면서 오래 일하고 싶다면 운동은 선택이 아닙니다. 오늘 캘린더를 열고, 이번 주 운동 시간 3개를 먼저 예약하세요. 그 시간이 당신의 뇌를 업그레이드하는 가장 확실한 투자입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80&auto=format&fit=crop", alt: "규칙적인 운동으로 뇌와 신체 모두를 강화하는 직장인" },
+      { url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80&auto=format&fit=crop", alt: "점심시간을 활용해 달리기로 오후 집중력을 충전하는 모습" },
+    ],
   },
   {
     id: 18,
@@ -757,6 +825,10 @@ export const blogPosts = [
 ■ 마무리: 잘 쉰 주말이 다음 주를 바꾼다
 
 월요일 아침, 에너지가 충전된 상태로 출근하는 것과 지친 상태로 출근하는 것의 차이는 그 주의 성과 전체에 영향을 미칩니다. 주말을 전략적으로 쉬는 것은 다음 5일을 위한 최고의 투자입니다.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80&auto=format&fit=crop", alt: "주말 자연 속 가벼운 산책으로 에너지를 충전하는 모습" },
+      { url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop", alt: "자전거를 타며 액티브 휴식을 즐기는 주말 오후" },
+    ],
   },
   {
     id: 19,
@@ -800,5 +872,9 @@ export const blogPosts = [
 ■ 마무리: 이메일은 도구일 뿐, 주인이 되어라
 
 이메일은 당신의 업무를 돕는 도구여야지, 당신의 하루를 지배하는 주인이 되어서는 안 됩니다. 배치 처리, 템플릿 활용, 일정 조율 도구 사용이라는 세 가지 전략만 실천해도 하루 이메일 처리 시간을 절반으로 줄일 수 있습니다. 절약된 시간을 더 중요한 일에 투자하세요.`,
+    images: [
+      { url: "https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=800&q=80&auto=format&fit=crop", alt: "비즈니스 이메일을 효율적으로 작성하고 관리하는 직장인" },
+      { url: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80&auto=format&fit=crop", alt: "이메일 받은 편지함을 정리하며 생산성을 높이는 모습" },
+    ],
   },
 ];

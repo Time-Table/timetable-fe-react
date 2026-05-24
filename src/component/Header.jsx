@@ -208,7 +208,7 @@ const IconButton = styled(BaseButton)`
      height: 42px;
      border-radius: 50%;
      background-color: transparent;
-     color: ${theme.text.gamma[700]};
+     color: ${theme.text.gamma[500]};
 
      svg {
           width: 24px;
@@ -236,7 +236,7 @@ const ResponsiveButton = styled(BaseButton)`
      border-radius: 8px;
      font-family: "Pretendard-Medium", sans-serif;
      background-color: transparent;
-     color: ${theme.text.gamma[700]};
+     color: ${theme.text.gamma[500]};
 
      &:hover {
           background-color: ${theme.text.gamma[100]};

@@ -752,7 +752,7 @@ const ArrowLayout = styled.button`
   opacity: ${(props) => (props.$disabled ? 0.4 : 1)};
   &:hover {
     background-color: ${theme.text.gamma[900]};
-    border-color: ${theme.text.gamma[700]};
+    border-color: ${theme.text.gamma[800]};
   }
   svg {
     width: 8px;

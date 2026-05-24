@@ -1,4 +1,5 @@
 import styled from "@emotion/styled/macro";
+import { keyframes, css } from "@emotion/react";
 import theme from "../../theme";
 import InviteSection from "./components/InviteSection";
 import DashboardPanel from "./components/DashboardPanel";
@@ -131,6 +132,9 @@ export default function TimetablePage() {
   const [isValidTableId, setIsValidTableId] = useState(null);
   const [isGridModalOpen, setIsGridModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [hasClickedMembers, setHasClickedMembers] = useState(() => {
+    return localStorage.getItem("hasClickedMembers") === "true";
+  });
 
   const hasTrackedVisit = useRef(false);
 
@@ -146,7 +150,7 @@ export default function TimetablePage() {
 
   const fetchAllData = useCallback(async () => {
     const res = await getTableInfo(tableId);
-    if (res.status === 404) {
+    if (!res || res.status === 404) {
       setIsValidTableId(false);
       return;
     }
@@ -273,6 +277,7 @@ export default function TimetablePage() {
             banedCells={banedCells}
             bgTimeInfo={timeInfo}
             onSaveSuccess={refreshScheduleData}
+            onViewTimetable={!isDesktop ? () => setIsGridModalOpen(true) : undefined}
           />
         ) : (
           <Loader />
@@ -350,7 +355,14 @@ export default function TimetablePage() {
         done: false,
         active: selectedToggle === "인원",
         disabled: false,
-        onClick: () => handleToggleClick("DashboardPanel", "인원"),
+        pulse: !hasClickedMembers && selectedToggle !== "인원",
+        onClick: () => {
+          if (!hasClickedMembers) {
+            localStorage.setItem("hasClickedMembers", "true");
+            setHasClickedMembers(true);
+          }
+          handleToggleClick("DashboardPanel", "인원");
+        },
       },
     ];
     return (
@@ -366,6 +378,7 @@ export default function TimetablePage() {
                   $done={step.done && !step.active}
                   $active={step.active}
                   $disabled={step.disabled}
+                  $pulse={!!step.pulse}
                 >
                   <StepIcon>{step.icon}</StepIcon>
                 </StepCircle>
@@ -741,6 +754,11 @@ const StepItemWrapper = styled.div`
 `;
 
 
+const memberPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 ${theme.color.primary}60; }
+  50% { box-shadow: 0 0 0 9px ${theme.color.primary}00; }
+`;
+
 const StepCircle = styled.div`
   position: relative;
   width: 36px;
@@ -755,28 +773,37 @@ const StepCircle = styled.div`
 
   ${(p) =>
     p.$active &&
-    `
-    background: linear-gradient(135deg, ${theme.color.primaryTint}, ${theme.color.primary});
-    color: white;
-    box-shadow: 0 4px 12px ${theme.color.primary}40;
-  `}
+    css`
+      background: linear-gradient(135deg, ${theme.color.primaryTint}, ${theme.color.primary});
+      color: white;
+      box-shadow: 0 4px 12px ${theme.color.primary}40;
+    `}
   ${(p) =>
     p.$done &&
     !p.$active &&
-    `
-    background: white;
-    color: ${theme.color.primary};
-    border: 2.5px solid ${theme.color.primary};
-    box-shadow: 0 0 0 3px ${theme.color.primary}18;
-  `}
+    css`
+      background: white;
+      color: ${theme.color.primary};
+      border: 2px solid ${theme.text.gamma[800]};
+    `}
   ${(p) =>
     !p.$done &&
     !p.$active &&
-    `
-    background: ${theme.text.gamma[900]};
-    color: ${theme.text.gamma[600]};
-    border: 2px solid ${theme.text.gamma[700]};
-  `}
+    !p.$pulse &&
+    css`
+      background: ${theme.text.gamma[900]};
+      color: ${theme.text.gamma[500]};
+      border: 2px solid ${theme.text.gamma[800]};
+    `}
+  ${(p) =>
+    p.$pulse &&
+    !p.$active &&
+    css`
+      background: ${theme.text.gamma[900]};
+      color: ${theme.color.primary};
+      border: 2px solid ${theme.text.gamma[800]};
+      animation: ${memberPulse} 1.6s ease-in-out infinite;
+    `}
 `;
 
 const StepIcon = styled.span`
@@ -884,72 +911,6 @@ const CopyBtn = styled.button`
   `}
 `;
 
-const ScheduleNudge = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 11px 16px;
-  background: ${theme.color.button.blue}0f;
-  border: 1px solid ${theme.color.button.blue}30;
-  border-radius: 10px;
-  color: ${theme.color.button.blue};
-  font-family: "Pretendard-Medium";
-  font-size: 14px;
-  cursor: pointer;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-
-  span {
-    flex: 1;
-    text-align: left;
-  }
-
-  &:hover {
-    background: ${theme.color.button.blue}18;
-    border-color: ${theme.color.button.blue}60;
-  }
-`;
-
-const ViewAllTimetableButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  height: 52px;
-  border-radius: 14px;
-  font-family: "Pretendard-Bold";
-  font-size: 16px;
-  letter-spacing: -0.3px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-
-  ${(props) =>
-    props.$disabled
-      ? `
-      background: ${theme.text.gamma[900]};
-      color: ${theme.text.gamma[600]};
-      cursor: not-allowed;
-      pointer-events: none;
-    `
-      : `
-      background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
-      color: white;
-      box-shadow: 0 4px 16px ${theme.color.primary}35;
-
-      &:hover {
-        filter: brightness(1.06);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px ${theme.color.primary}45;
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    `}
-`;
 
 const IconFab = styled.button`
   position: fixed;

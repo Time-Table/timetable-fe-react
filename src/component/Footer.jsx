@@ -161,12 +161,12 @@ const FooterBottom = styled.div`
   max-width: 1000px;
   margin: 40px auto 0;
   padding-top: 20px;
-  border-top: 1px solid ${theme.text.gamma[950]};
+  border-top: 1px solid ${theme.text.gamma[900]};
   text-align: center;
   
   p {
     font-size: 12px;
-    color: ${theme.text.gamma[700]};
+    color: ${theme.text.gamma[500]};
   }
 `;
 
