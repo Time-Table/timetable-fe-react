@@ -18,7 +18,7 @@ import { trackVisit } from "../../api/visit";
 import FloatingButton from "./components/FloatingButton";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiUserPlus, FiShare2, FiCalendar } from "react-icons/fi";
+import { FiUserPlus, FiShare2, FiCalendar, FiGrid } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
@@ -202,6 +202,7 @@ export default function TimetablePage() {
       <ActionButtons>
         <PrimaryActionButton
           id="guide-quick-join"
+          $highlight={!name}
           onClick={() => {
             setRightScreen("JoinForm");
             setSelectedToggle(null);
@@ -225,26 +226,34 @@ export default function TimetablePage() {
   );
 
   const ToggleButtons = () => (
-    <ToggleBar>
-      <Button
-        title={`인원 (${usersScheduleList.length})`}
-        variant="text"
-        onClick={() => handleToggleClick("DashboardPanel", "인원")}
-        className={selectedToggle === "인원" ? "active" : ""}
-      />
-      <Button
-        title="내 일정"
-        variant="text"
-        onClick={() => handleToggleClick("PersonalSchedule", "내 일정")}
-        className={selectedToggle === "내 일정" ? "active" : ""}
-      />
-      <Button
-        title="순위"
-        variant="text"
-        onClick={() => handleToggleClick("RankingList", "순위")}
-        className={selectedToggle === "순위" ? "active" : ""}
-      />
-    </ToggleBar>
+    <>
+      <ToggleBar>
+        <Button
+          title={`인원 (${usersScheduleList.length})`}
+          variant="text"
+          onClick={() => handleToggleClick("DashboardPanel", "인원")}
+          className={selectedToggle === "인원" ? "active" : ""}
+        />
+        <Button
+          title="내 일정"
+          variant="text"
+          onClick={() => handleToggleClick("PersonalSchedule", "내 일정")}
+          className={selectedToggle === "내 일정" ? "active" : ""}
+        />
+        <Button
+          title="순위"
+          variant="text"
+          onClick={() => handleToggleClick("RankingList", "순위")}
+          className={selectedToggle === "순위" ? "active" : ""}
+        />
+      </ToggleBar>
+      {!isDesktop && (
+        <ViewAllTimetableButton onClick={() => setIsGridModalOpen(true)}>
+          <FiGrid size={16} />
+          전체 시간표 보기
+        </ViewAllTimetableButton>
+      )}
+    </>
   );
 
   if (isValidTableId === null) {
@@ -604,11 +613,74 @@ const CustomActionButton = styled.button`
 const PrimaryActionButton = styled(CustomActionButton)`
   background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
   color: white;
+
+  ${props => props.$highlight && `
+    animation: pulseHighlight 1.4s ease-in-out infinite;
+    position: relative;
+  `}
+
+  @keyframes pulseHighlight {
+    0% {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 0px ${theme.color.primary}70;
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18), 0 0 0 10px ${theme.color.primary}00;
+      transform: scale(1.04);
+    }
+    100% {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 0px ${theme.color.primary}00;
+      transform: scale(1);
+    }
+  }
 `;
 
 const SecondaryActionButton = styled(CustomActionButton)`
   background: ${theme.color.button.blue};
   color: white;
+`;
+
+const ViewAllTimetableButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, ${theme.color.primary}18, ${theme.color.primaryTint}28);
+  border: 2px solid ${theme.color.primary}60;
+  color: ${theme.color.primary};
+  border-radius: 14px;
+  font-family: "Pretendard-Bold";
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px ${theme.color.primary}20;
+  letter-spacing: -0.3px;
+  animation: viewAllPulse 3s ease-in-out infinite;
+
+  @keyframes viewAllPulse {
+    0%, 100% {
+      box-shadow: 0 4px 14px ${theme.color.primary}20;
+      border-color: ${theme.color.primary}60;
+    }
+    50% {
+      box-shadow: 0 4px 22px ${theme.color.primary}45;
+      border-color: ${theme.color.primary}cc;
+    }
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, ${theme.color.primary}28, ${theme.color.primaryTint}40);
+    border-color: ${theme.color.primary};
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px ${theme.color.primary}35;
+    animation: none;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const ToggleBar = styled.div`
