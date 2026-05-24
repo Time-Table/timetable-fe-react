@@ -14,6 +14,7 @@ export default function TimeGrid({
   selectedCells = [],
   setSelectedCells,
   selectedCellColor,
+  bgTimeInfo,
   // View Mode Props
   timeInfo,
   readOnly = false,
@@ -36,6 +37,10 @@ export default function TimeGrid({
   const [isLoading, setIsLoading] = useState(false); // Default to false for input mode
   const [maxCount, setMaxCount] = useState(1);
   const [selectedViewCell, setSelectedViewCell] = useState(null);
+
+  // Background timeInfo State (input mode only)
+  const [resolvedBgTimeInfo, setResolvedBgTimeInfo] = useState([]);
+  const [bgMaxCount, setBgMaxCount] = useState(1);
 
   const todayDateString = new Date().toISOString().split("T")[0];
 
@@ -73,6 +78,30 @@ export default function TimeGrid({
     };
     resolveTimeInfo();
   }, [timeInfo, readOnly]);
+
+  // Background timeInfo resolution (input mode)
+  useEffect(() => {
+    if (!bgTimeInfo) return;
+    const resolve = async () => {
+      try {
+        const resolved = bgTimeInfo instanceof Promise ? await bgTimeInfo : bgTimeInfo;
+        let validData = [];
+        if (Array.isArray(resolved)) {
+          if (typeof resolved[0] === "string") {
+            validData = resolved.map((time) => ({ time, count: 1, members: [], _id: `bg-${time}` }));
+          } else {
+            validData = resolved;
+          }
+        }
+        setResolvedBgTimeInfo(validData);
+        const max = validData.reduce((acc, cur) => Math.max(acc, cur.count), 1);
+        setBgMaxCount(max);
+      } catch {
+        setResolvedBgTimeInfo([]);
+      }
+    };
+    resolve();
+  }, [bgTimeInfo]);
 
   // --- Input Mode Logic ---
   const updateSelection = useCallback(
@@ -360,6 +389,13 @@ export default function TimeGrid({
                   isViewSelected = selectedViewCell?._id === viewInfo?._id;
                 }
 
+                let bgViewOpacity = 0;
+                if (!readOnly && resolvedBgTimeInfo.length > 0) {
+                  const bgViewInfo = resolvedBgTimeInfo.find((item) => item.time === cellKey);
+                  const bgCount = bgViewInfo?.count || 0;
+                  bgViewOpacity = bgCount > 0 ? 0.05 + (bgCount / bgMaxCount) * 0.25 : 0;
+                }
+
                 const isSelected = !readOnly && selectedCells.includes(cellKey);
 
                 const isGolden = !!(readOnly && viewInfo && viewInfo.count === maxCount && maxCount > 0);
@@ -393,6 +429,9 @@ export default function TimeGrid({
                       }
                     }}
                   >
+                    {!readOnly && bgViewOpacity > 0 && (
+                      <BgColoringLayer style={{ opacity: bgViewOpacity }} />
+                    )}
                     {readOnly && (
                       <>
                         <ColoringLayer style={{ opacity: viewOpacity }} />
@@ -609,6 +648,16 @@ const ColoringLayer = styled.div`
   height: 100%;
   background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
   transition: opacity 0.3s ease;
+`;
+const BgColoringLayer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+  pointer-events: none;
+  z-index: 0;
 `;
 
 const goldenShimmer = keyframes`

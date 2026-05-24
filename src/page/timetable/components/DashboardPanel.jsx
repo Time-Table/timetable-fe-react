@@ -9,8 +9,9 @@ import { BsSendFill } from "react-icons/bs";
 import { FiUserPlus } from "react-icons/fi";
 import Input from "../../../component/Input";
 import { AnimatePresence, motion } from "framer-motion";
+import { FiGrid } from "react-icons/fi";
 
-export default function DashboardPanel({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName }) {
+export default function DashboardPanel({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName, onViewTimetable }) {
      const [message, setMessage] = useState("");
      const [chatLog, setChatLog] = useState([]);
      const chatEndRef = useRef(null);
@@ -91,6 +92,12 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                          <SectionHeader>
                               <SectionTitle>참여자 ({usersSchedule.length})</SectionTitle>
                          </SectionHeader>
+                         {onViewTimetable && (
+                              <ViewTimetableBtn onClick={onViewTimetable}>
+                                   <FiGrid size={15} />
+                                   전체 시간표 보기
+                              </ViewTimetableBtn>
+                         )}
                          <MembersGrid>
                               {usersSchedule.length > 0 && (
                                    <MemberChip
@@ -180,6 +187,33 @@ const Section = styled.div`
 `;
 
 const MembersSection = styled(Section)``;
+
+const ViewTimetableBtn = styled.button`
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     gap: 8px;
+     width: 100%;
+     height: 44px;
+     margin-bottom: 12px;
+     background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
+     color: white;
+     border: none;
+     border-radius: 10px;
+     font-family: "Pretendard-Bold";
+     font-size: 14px;
+     cursor: pointer;
+     transition: all 0.2s ease;
+     box-shadow: 0 4px 12px ${theme.color.primary}30;
+
+     &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px ${theme.color.primary}40;
+     }
+     &:active {
+          transform: translateY(0);
+     }
+`;
 const ChatSection = styled(Section)``;
 
 const SectionHeader = styled.div`

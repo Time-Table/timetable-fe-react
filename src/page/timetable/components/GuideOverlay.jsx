@@ -33,18 +33,12 @@ const GuideOverlay = ({ isDesktop }) => {
           ]
         : [
             {
-              id: "guide-floating-button",
+              id: "guide-view-timetable",
               title: "전체 시간표 보기",
-              description: "그룹원들의 일정을 한눈에 확인하세요",
+              description: "버튼을 눌러 그룹원 전체 일정을 확인하세요",
               position: "top",
             },
           ]),
-      {
-        id: "guide-quick-join",
-        title: "빠른 참여",
-        description: "내 일정을 등록해 보세요",
-        position: "bottom",
-      },
     ],
     [isDesktop],
   );

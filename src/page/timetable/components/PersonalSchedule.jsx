@@ -18,8 +18,11 @@ export default function PersonalSchedule({
      tableId,
      usersScheduleList,
      banedCells,
+     bgTimeInfo,
+     onSaveSuccess,
 }) {
      const [isLoading, setIsLoading] = useState(true);
+     const [isSaving, setIsSaving] = useState(false);
      const name = localStorage.getItem("name");
      const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
      const [selectedCells, setSelectedCells] = useState([]);
@@ -42,6 +45,7 @@ export default function PersonalSchedule({
      }, [name, userScheduleInfo]);
 
      const handleSave = async () => {
+          if (isSaving) return;
           if (!tableId || !name) {
                Swal.fire({ icon: "error", title: "로그인 정보가 없습니다." });
                return;
@@ -50,15 +54,24 @@ export default function PersonalSchedule({
                Swal.fire({ icon: "info", title: "변경사항이 없습니다." });
                return;
           }
-          await addSchedule(tableId, name, selectedCells);
-          Swal.fire({
-               icon: "success",
-               iconColor: `${theme.color.primary}`,
-               title: "저장되었습니다!",
-               showConfirmButton: false,
-               timer: 1500,
-          });
-          setSaveButtonState(!saveButtonState);
+          setIsSaving(true);
+          try {
+               await addSchedule(tableId, name, selectedCells);
+               Swal.fire({
+                    icon: "success",
+                    iconColor: `${theme.color.primary}`,
+                    title: "저장되었습니다!",
+                    showConfirmButton: false,
+                    timer: 900,
+               });
+               if (onSaveSuccess) {
+                    onSaveSuccess();
+               } else {
+                    setSaveButtonState(!saveButtonState);
+               }
+          } finally {
+               setIsSaving(false);
+          }
      };
 
      if (isLoading) {
@@ -78,6 +91,8 @@ export default function PersonalSchedule({
           );
      }
 
+     const hasNoSchedule = !userScheduleInfo?.availableTimes?.length;
+
      return (
           <AnimatePresence>
                <Frame initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -87,9 +102,19 @@ export default function PersonalSchedule({
                               님의 가능한 시간을 선택해주세요.
                          </NoteText>
                     </HeaderWrapper>
+                    {hasNoSchedule && (
+                         <SelectPrompt
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, delay: 0.1 }}
+                         >
+                              <PromptDot />
+                              드래그해서 가능한 시간을 선택해주세요
+                         </SelectPrompt>
+                    )}
                     <SaveButton
                          onClick={handleSave}
-                         disabled={areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
+                         disabled={isSaving || areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
                     >
                          저장하기
                     </SaveButton>
@@ -101,10 +126,11 @@ export default function PersonalSchedule({
                          selectedCellColor={theme.color.primaryTint}
                          setSelectedCells={setSelectedCells}
                          banedCells={banedCells}
+                         bgTimeInfo={bgTimeInfo}
                     />
                     <SaveButton
                          onClick={handleSave}
-                         disabled={areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
+                         disabled={isSaving || areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
                     >
                          저장하기
                     </SaveButton>
@@ -141,6 +167,48 @@ const NoteText = styled.p`
      @media (max-width: 480px) {
           font-size: 18px;
           width: 100%;
+     }
+`;
+
+const SelectPrompt = styled(motion.div)`
+     width: 100%;
+     display: flex;
+     align-items: center;
+     gap: 10px;
+     padding: 12px 16px;
+     background: ${theme.color.primary}0a;
+     border: 1.5px solid ${theme.color.primary}30;
+     border-radius: 10px;
+     font-family: "Pretendard-Medium";
+     font-size: 14px;
+     color: ${theme.color.primary};
+     box-sizing: border-box;
+     line-height: 1.5;
+     animation: promptBorderPulse 2.2s ease-in-out infinite;
+
+     @keyframes promptBorderPulse {
+          0%, 100% {
+               border-color: ${theme.color.primary}28;
+               box-shadow: none;
+          }
+          50% {
+               border-color: ${theme.color.primary}90;
+               box-shadow: 0 0 0 4px ${theme.color.primary}12;
+          }
+     }
+`;
+
+const PromptDot = styled.span`
+     flex-shrink: 0;
+     width: 8px;
+     height: 8px;
+     border-radius: 50%;
+     background: ${theme.color.primary};
+     animation: promptPulse 1.8s ease-in-out infinite;
+
+     @keyframes promptPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.75); }
      }
 `;
 

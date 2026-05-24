@@ -22,9 +22,12 @@ const AdSense = ({
       try {
         if (window.adsbygoogle) {
           const ads = document.querySelectorAll(".adsbygoogle:not([data-adsbygoogle-status])");
-          if (ads.length > 0) {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-          }
+          ads.forEach((ad) => {
+            const width = ad.closest(".adsense-wrap")?.getBoundingClientRect().width || 0;
+            if (width > 0) {
+              (window.adsbygoogle = window.adsbygoogle || []).push({});
+            }
+          });
         }
       } catch (e) {
         // console.error("AdSense error:", e);
