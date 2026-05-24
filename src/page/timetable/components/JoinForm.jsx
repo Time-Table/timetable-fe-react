@@ -181,7 +181,7 @@ export default function JoinForm({
             maxLength={15}
           />
           <Input
-            placeholder="비밀번호를 입력해주세요."
+            placeholder="비밀번호를 입력해주세요(1자리 이상)"
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && updateMember(name, password)}
             value={password}
