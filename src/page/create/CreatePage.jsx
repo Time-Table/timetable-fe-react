@@ -6,6 +6,7 @@ import { BsLightningChargeFill } from "react-icons/bs";
 import { useEffect, useRef } from "react";
 import { trackVisit } from "../../api/visit";
 import { motion } from "framer-motion";
+import Preview3 from "../../assets/svg/Preview3";
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -49,6 +50,17 @@ export default function CreatePage() {
               </SecondaryButton>
             </CTASection>
           </motion.div>
+
+          <PreviewSection
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+          >
+            <PreviewLabel>실제 서비스 화면</PreviewLabel>
+            <PreviewWrapper>
+              <Preview3 width="100%" height="auto" />
+            </PreviewWrapper>
+          </PreviewSection>
 
           <FeatureGrid>
             <FeatureCard>
@@ -215,6 +227,43 @@ const SecondaryButton = styled.button`
   &:hover {
     background-color: ${theme.text.gamma[950]};
     border-color: ${theme.text.gamma[700]};
+  }
+`;
+
+const PreviewSection = styled(motion.div)`
+  width: 100%;
+  margin-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const PreviewLabel = styled.span`
+  display: inline-block;
+  padding: 4px 14px;
+  background-color: ${theme.color.primary}12;
+  color: ${theme.color.primary};
+  border-radius: 99px;
+  font-family: "Pretendard-Medium";
+  font-size: 13px;
+`;
+
+const PreviewWrapper = styled.div`
+  width: 100%;
+  max-width: 860px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid ${theme.text.gamma[900]};
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 20px 60px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 `;
 

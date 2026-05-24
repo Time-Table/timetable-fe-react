@@ -27,7 +27,10 @@ export default function BlogListPage() {
               <Category>{post.category}</Category>
               <PostTitle>{post.title}</PostTitle>
               <Summary>{post.summary}</Summary>
-              <PostDate>{post.date}</PostDate>
+              <PostMeta>
+                <PostDate>{post.date}</PostDate>
+                <PostAuthor>{post.author}</PostAuthor>
+              </PostMeta>
             </PostCard>
           ))}
         </PostGrid>
@@ -109,8 +112,21 @@ const Summary = styled.p`
   flex-grow: 1;
 `;
 
+const PostMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+`;
+
 const PostDate = styled.span`
   font-family: "Pretendard-Regular";
   font-size: 13px;
   color: ${theme.text.gamma[700]};
+`;
+
+const PostAuthor = styled.span`
+  font-family: "Pretendard-Medium";
+  font-size: 13px;
+  color: ${theme.color.primary};
 `;

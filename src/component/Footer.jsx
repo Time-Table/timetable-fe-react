@@ -71,7 +71,8 @@ const Footer = () => {
           </LinkGroup>
           <LinkGroup>
             <h4>고객지원</h4>
-            <a href="#contact" onClick={handleContactClick}>문의하기 (Q&A)</a>
+            <Link to="/contact">문의하기</Link>
+            <a href="#contact" onClick={handleContactClick}>이메일 Q&A</a>
           </LinkGroup>
         </FooterLinks>
       </FooterContent>

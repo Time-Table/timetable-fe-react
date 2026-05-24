@@ -1,9 +1,11 @@
 import styled from "@emotion/styled";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import theme from "../../theme";
 import Seo from "../../Seo";
 import { blogPosts } from "../../data/blogPosts";
 import { IoArrowBack } from "react-icons/io5";
+import AdSense from "../../component/AdSense";
 
 export default function BlogDetailPage() {
   const { id } = useParams();
@@ -12,9 +14,37 @@ export default function BlogDetailPage() {
 
   if (!post) return <div>Post not found</div>;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.summary,
+    datePublished: post.date,
+    dateModified: post.date,
+    author: {
+      "@type": "Person",
+      name: post.author,
+      description: post.authorBio,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "타임테이블2",
+      url: "https://www.timetable2.com",
+    },
+    url: `https://www.timetable2.com/blog/${post.id}`,
+    mainEntityOfPage: `https://www.timetable2.com/blog/${post.id}`,
+  };
+
   return (
     <>
-      <Seo title={`${post.title} - 타임테이블2`} description={post.summary} />
+      <Seo
+        title={`${post.title} - 타임테이블2`}
+        description={post.summary}
+        url={`https://www.timetable2.com/blog/${post.id}`}
+      />
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      </Helmet>
       <PageWrapper>
         <BackButton onClick={() => navigate("/blog")}>
           <IoArrowBack size={24} /> 목록으로 돌아가기
@@ -23,13 +53,21 @@ export default function BlogDetailPage() {
           <Header>
             <Category>{post.category}</Category>
             <Title>{post.title}</Title>
-            <Date>{post.date}</Date>
+            <Meta>
+              <MetaDate dateTime={post.date}>{post.date}</MetaDate>
+              <MetaDivider>·</MetaDivider>
+              <MetaAuthor>
+                <AuthorName>{post.author}</AuthorName>
+                <AuthorBio>{post.authorBio}</AuthorBio>
+              </MetaAuthor>
+            </Meta>
           </Header>
           <Content>
             {post.content.split("\n\n").map((paragraph, index) => (
               <Paragraph key={index}>{paragraph}</Paragraph>
             ))}
           </Content>
+          <AdSense isReady={true} />
           <Footer>
             <p>이 정보가 도움이 되셨나요? 효율적인 일정 조율이 필요할 땐 타임테이블2를 이용해보세요.</p>
             <HomeButton onClick={() => navigate("/create")}>무료 시간표 만들기</HomeButton>
@@ -90,15 +128,47 @@ const Title = styled.h1`
   font-size: 36px;
   color: ${theme.text.gamma[100]};
   line-height: 1.3;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   @media (max-width: 480px) {
     font-size: 28px;
   }
 `;
 
-const Date = styled.time`
+const Meta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const MetaDate = styled.time`
   color: ${theme.text.gamma[500]};
-  font-size: 15px;
+  font-size: 14px;
+  font-family: "Pretendard-Regular";
+`;
+
+const MetaDivider = styled.span`
+  color: ${theme.text.gamma[700]};
+  font-size: 14px;
+`;
+
+const MetaAuthor = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const AuthorName = styled.span`
+  font-family: "Pretendard-SemiBold";
+  font-size: 14px;
+  color: ${theme.text.gamma[200]};
+`;
+
+const AuthorBio = styled.span`
+  font-family: "Pretendard-Regular";
+  font-size: 13px;
+  color: ${theme.text.gamma[500]};
 `;
 
 const Content = styled.div`
