@@ -25,6 +25,49 @@ import AdSense from "../../component/AdSense";
 import Arrow from "../../assets/svg/Arrow";
 import GuideOverlay from "./components/GuideOverlay";
 
+const TOGGLE_TIPS = {
+  인원: {
+    emoji: "👥",
+    description: "참여한 멤버들의 일정을 한눈에 확인하세요. 멤버 이름을 클릭하면 해당 멤버만의 가능 시간을 시간표에서 따로 확인할 수 있습니다.",
+    tips: [
+      { title: "멤버 이름을 클릭해보세요", desc: "멤버 이름을 클릭하면 해당 멤버의 가능 시간만 시간표에 강조됩니다. 특정 인원의 스케줄을 빠르게 파악할 수 있어요." },
+      { title: "아직 참여 안 한 분을 초대하세요", desc: "상단 '초대' 버튼을 누르면 고유 링크가 복사됩니다. 카카오톡이나 단체 채팅방에 공유해 더 많은 멤버를 초대하세요." },
+      { title: "참여 인원이 많을수록 정확해요", desc: "모든 구성원이 일정을 입력해야 가장 정확한 골든타임을 찾을 수 있습니다. 아직 참여하지 않은 분들에게 독려해보세요." },
+    ],
+    lastP: "모두가 입력을 마치면 '순위' 탭에서 가장 많은 인원이 모일 수 있는 최적의 시간을 바로 확인할 수 있습니다.",
+  },
+  "내 일정": {
+    emoji: "📝",
+    description: "가능한 시간대를 드래그로 빠르게 선택하세요. PC와 모바일 모두 드래그를 지원합니다.",
+    tips: [
+      { title: "드래그로 한 번에 입력하세요", desc: "셀을 드래그하면 여러 시간대를 한꺼번에 선택할 수 있습니다. 하나씩 누를 필요 없이 쭉 밀면 돼요." },
+      { title: "저장 버튼을 꼭 눌러주세요", desc: "시간을 선택한 뒤 반드시 저장 버튼을 눌러야 그룹 시간표에 반영됩니다. 저장 전에 페이지를 떠나면 입력이 사라져요." },
+      { title: "언제든 수정할 수 있어요", desc: "이름과 비밀번호로 다시 로그인하면 기존 일정을 수정하거나 삭제할 수 있습니다. 일정이 바뀌어도 걱정 없어요." },
+    ],
+    lastP: "가능한 시간대를 넉넉하게 선택할수록 그룹 일정 조율이 더 수월해집니다. 애매한 시간도 일단 선택해두는 걸 추천해요.",
+  },
+  순위: {
+    emoji: "🏆",
+    description: "가장 많은 인원이 모일 수 있는 최적의 시간(골든타임)을 자동으로 계산해 순위별로 보여줍니다.",
+    tips: [
+      { title: "1위가 골든타임이에요", desc: "가장 많은 멤버가 참여 가능한 시간대가 상위에 표시됩니다. 1~3위 시간대를 비교해 최적의 약속 시간을 결정하세요." },
+      { title: "항목을 눌러 참여자를 확인하세요", desc: "순위 항목을 클릭하면 해당 시간에 가능한 멤버 목록을 볼 수 있습니다. 누가 되고 안 되는지 한눈에 파악할 수 있어요." },
+      { title: "모두 입력 후 최종 결정하세요", desc: "아직 일정을 입력하지 않은 멤버가 있다면 순위가 바뀔 수 있습니다. 모두가 입력을 마친 뒤 최종 결정을 내리세요." },
+    ],
+    lastP: "순위 화면을 캡처해 단체 채팅방에 공유하면 모두가 한눈에 확인할 수 있어 빠른 의사결정이 가능합니다.",
+  },
+  default: {
+    emoji: "🚀",
+    description: "이름만 입력하면 바로 참여할 수 있습니다. 회원가입이나 개인정보 입력은 필요 없어요.",
+    tips: [
+      { title: "닉네임만으로 익명 참여", desc: "이메일이나 전화번호 없이 이름(닉네임)만으로 참여가 가능합니다. 원하는 이름을 자유롭게 입력해보세요." },
+      { title: "비밀번호로 내 일정 관리", desc: "비밀번호를 설정하면 나중에 다시 로그인해 일정을 수정하거나 삭제할 수 있습니다." },
+      { title: "참여 후 시간 입력까지 30초", desc: "이름 입력 → 시간 드래그 → 저장. 단 3단계로 내 일정 등록이 완료됩니다." },
+    ],
+    lastP: "참여 후 '내 일정' 탭에서 드래그로 가능 시간을 입력하고, '순위' 탭에서 골든타임을 확인해보세요.",
+  },
+};
+
 export default function TimetablePage() {
   const { tableId } = useParams();
   const [tableInfo, setTableInfo] = useState(null);
@@ -319,48 +362,44 @@ export default function TimetablePage() {
       )}
 
       <TableFooterSection>
-        <div className="accordion-header" onClick={() => setIsTipsOpen(!isTipsOpen)}>
-          <h3>📅 모임 시간 조율을 위한 팁</h3>
-          <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
-            <Arrow width={16} height={16} angle={90} />
-          </motion.div>
-        </div>
-        <AnimatePresence>
-          {isTipsOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ overflow: "hidden" }}
-            >
-              <div className="accordion-content">
-                <p>
-                  타임테이블2를 활용해 가장 효율적으로 약속 시간을 정하는 방법을 확인해 보세요.
-                  모든 구성원이 일정을 입력한 뒤, '순위' 탭을 확인하면 가장 많은 인원이 모일 수 있는 최적의 시간(골든타임)을 자동으로 찾아드립니다.
-                </p>
-                <div className="tip-grid">
-                  <div className="tip-item">
-                    <h4>1. 친구 초대 및 링크 공유</h4>
-                    <p>상단의 '초대' 버튼을 클릭하면 고유 링크가 복사됩니다. 이 링크를 카카오톡이나 커뮤니티에 공유하여 멤버들을 초대하세요.</p>
-                  </div>
-                  <div className="tip-item">
-                    <h4>2. 드래그로 쉽고 빠르게 입력하세요</h4>
-                    <p>'빠른 참여'를 통해 이름을 등록한 후, PC와 모바일에서 드래그 동작으로 가능한 시간대를 한꺼번에 선택할 수 있습니다.</p>
-                  </div>
-                  <div className="tip-item">
-                    <h4>3. 익명성 보장과 데이터 보호</h4>
-                    <p>타임테이블2는 이메일이나 전화번호와 같은 개인정보를 요구하지 않습니다. 오직 이름만으로 간편하게 참여할 수 있습니다.</p>
-                  </div>
-                </div>
-                <p className="last-p">
-                  본 서비스는 대학 조별 과제, 직장 회식, 친구 모임 등 시간을 맞추기 힘든 모든 상황에서 무료로 이용할 수 있는 전문 일정 조율 도구입니다. 
-                  등록된 일정 데이터는 삭제 요청 전까지 영구적으로 안전하게 보관되어 언제든 다시 확인하실 수 있습니다.
-                </p>
+        {(() => {
+          const tips = TOGGLE_TIPS[selectedToggle] || TOGGLE_TIPS.default;
+          return (
+            <>
+              <div className="accordion-header" onClick={() => setIsTipsOpen(!isTipsOpen)}>
+                <h3>{tips.emoji} 모임 시간 조율을 위한 팁</h3>
+                <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
+                  <Arrow width={16} height={16} angle={90} />
+                </motion.div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <AnimatePresence>
+                {isTipsOpen && (
+                  <motion.div
+                    key={selectedToggle}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div className="accordion-content">
+                      <p>{tips.description}</p>
+                      <div className="tip-grid">
+                        {tips.tips.map((tip, i) => (
+                          <div key={i} className="tip-item">
+                            <h4>{tip.title}</h4>
+                            <p>{tip.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="last-p">{tips.lastP}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          );
+        })()}
       </TableFooterSection>
 
       {tableInfo && !isDesktop && (

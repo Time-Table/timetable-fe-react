@@ -5,8 +5,26 @@ import { getTableInfo } from "../../../api/table";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { IoPeople, IoArrowBackCircle } from "react-icons/io5";
+import { FiX } from "react-icons/fi";
 import { keyframes } from "@emotion/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+
+const parseTimeKey = (timeKey) => {
+  const idx = timeKey.lastIndexOf("-");
+  const dateStr = timeKey.slice(0, idx);
+  const timeStart = timeKey.slice(idx + 1);
+  const [h, m] = timeStart.split(":").map(Number);
+  const endMin = h * 60 + m + 30;
+  const endH = Math.floor(endMin / 60) % 24;
+  const endM = endMin % 60;
+  const timeEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+  const dateFormatted = new Date(dateStr + "T00:00:00Z").toLocaleDateString("ko-KR", {
+    month: "long", day: "numeric", weekday: "short", timeZone: "UTC",
+  });
+  return { dateStr, timeStart, timeEnd, dateFormatted };
+};
 
 export default function GroupTimeGrid({
   banedCells,
@@ -35,6 +53,52 @@ export default function GroupTimeGrid({
 
   const [isRotating, setIsRotating] = useState(false);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const popupRef = useRef(null);
+  const POPUP_WIDTH = 260;
+  const POPUP_H_ESTIMATE = 250;
+
+  const handleCellClick = (viewInfo, event) => {
+    if (!viewInfo) { setSelectedCell(null); return; }
+    if (selectedCell?._id === viewInfo._id) { setSelectedCell(null); return; }
+
+    if (event?.currentTarget) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+
+      let left = rect.right + 8;
+      if (left + POPUP_WIDTH > winW - 8) {
+        left = rect.left - POPUP_WIDTH - 8;
+      }
+      left = Math.max(8, Math.min(left, winW - POPUP_WIDTH - 8));
+
+      let top = rect.top;
+      top = Math.max(8, Math.min(top, winH - POPUP_H_ESTIMATE - 8));
+
+      setPopupPos({ top, left });
+    }
+    setSelectedCell(viewInfo);
+  };
+
+  useEffect(() => {
+    if (!selectedCell || !popupRef.current) return;
+    const el = popupRef.current;
+    const { height, width, top: elTop, left: elLeft } = el.getBoundingClientRect();
+    const winH = window.innerHeight;
+    const winW = window.innerWidth;
+
+    setPopupPos(prev => {
+      let { top, left } = prev;
+      if (top + height > winH - 8) top = Math.max(8, winH - height - 8);
+      if (top < 8) top = 8;
+      if (left + width > winW - 8) left = Math.max(8, winW - width - 8);
+      if (left < 8) left = 8;
+      if (top === prev.top && left === prev.left) return prev;
+      return { top, left };
+    });
+  }, [selectedCell]);
 
   const handleClick = () => {
     setIsRotating(true);
@@ -111,7 +175,59 @@ export default function GroupTimeGrid({
         readOnly={true}
         timeInfo={timeInfo}
         banedCells={banedCells}
+        onCellClick={handleCellClick}
+        selectedCellKey={selectedCell?.time}
       />
+
+      {selectedCell && createPortal(
+        <AnimatePresence>
+          {(() => {
+            const { timeStart, timeEnd, dateFormatted } = parseTimeKey(selectedCell.time);
+            const canAttend = selectedCell.members || [];
+            const cannotAttend = usersSchedule
+              .map((u) => u.name)
+              .filter((name) => !canAttend.includes(name));
+            const maxCount = Array.isArray(timeInfo)
+              ? Math.max(...timeInfo.map((t) => t.count || 0), 0)
+              : 0;
+            const isGolden = selectedCell.count === maxCount && maxCount > 0;
+            return (
+              <CellInfoPopup
+                key={selectedCell._id}
+                ref={popupRef}
+                style={{ top: popupPos.top, left: popupPos.left }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                {isGolden && <GoldenBadge>최다 인원</GoldenBadge>}
+                <CellInfoHeader>
+                  <CellTime>{dateFormatted} · {timeStart} ~ {timeEnd}</CellTime>
+                  <CloseBtn onClick={() => setSelectedCell(null)}><FiX size={15} /></CloseBtn>
+                </CellInfoHeader>
+                <CellInfoSection>
+                  <CellInfoLabel $type="can">참여 가능 {canAttend.length}명</CellInfoLabel>
+                  <NameChips>
+                    {canAttend.length > 0
+                      ? canAttend.map((name) => <NameChip key={name} $type="can">{name}</NameChip>)
+                      : <NoName>없음</NoName>}
+                  </NameChips>
+                </CellInfoSection>
+                <CellInfoSection>
+                  <CellInfoLabel $type="cannot">참여 불가 {cannotAttend.length}명</CellInfoLabel>
+                  <NameChips>
+                    {cannotAttend.length > 0
+                      ? cannotAttend.map((name) => <NameChip key={name} $type="cannot">{name}</NameChip>)
+                      : <NoName>없음</NoName>}
+                  </NameChips>
+                </CellInfoSection>
+              </CellInfoPopup>
+            );
+          })()}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {selectedName && (
         <BackButton onClick={() => setSelectedName(null)}>
@@ -272,4 +388,90 @@ const BackButton = styled.button`
   &:hover {
     transform: scale(1.1);
   }
+`;
+
+const CellInfoPopup = styled(motion.div)`
+  position: fixed;
+  width: 260px;
+  z-index: 9999;
+  background: white;
+  border: 1px solid ${theme.text.gamma[900]};
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  transform-origin: left center;
+`;
+
+const GoldenBadge = styled.div`
+  background: linear-gradient(90deg, ${theme.color.primaryTint}, ${theme.color.primary});
+  color: white;
+  font-family: "Pretendard-Bold";
+  font-size: 12px;
+  text-align: center;
+  padding: 5px 0;
+  letter-spacing: 0.5px;
+`;
+
+const CellInfoHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: ${theme.color.primary}08;
+  border-bottom: 1px solid ${theme.text.gamma[900]};
+`;
+
+const CellTime = styled.span`
+  font-family: "Pretendard-Bold";
+  font-size: 14px;
+  color: ${theme.color.primary};
+`;
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${theme.text.gamma[500]};
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 50%;
+  &:hover { background: ${theme.text.gamma[900]}; }
+`;
+
+const CellInfoSection = styled.div`
+  padding: 12px 16px;
+  & + & { border-top: 1px solid ${theme.text.gamma[950]}; }
+`;
+
+const CellInfoLabel = styled.div`
+  font-family: "Pretendard-Bold";
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: ${(props) => props.$type === "can" ? "#16a34a" : theme.text.gamma[500]};
+`;
+
+const NameChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const NameChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-family: "Pretendard-Medium";
+  font-size: 13px;
+  ${(props) => props.$type === "can"
+    ? `background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0;`
+    : `background: ${theme.text.gamma[950]}; color: ${theme.text.gamma[500]}; border: 1px solid ${theme.text.gamma[900]};`
+  }
+`;
+
+const NoName = styled.span`
+  font-family: "Pretendard-Regular";
+  font-size: 13px;
+  color: ${theme.text.gamma[700]};
 `;

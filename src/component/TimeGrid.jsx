@@ -19,6 +19,8 @@ export default function TimeGrid({
   readOnly = false,
   // Common Props
   banedCells = [],
+  onCellClick,
+  selectedCellKey,
 }) {
   const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -119,12 +121,12 @@ export default function TimeGrid({
   const handleTouchEnd = useCallback(
     (e) => {
       if (readOnly) return;
-      if (e.cancelable) e.preventDefault();
+      if (isDragging && e.cancelable) e.preventDefault();
       setIsDragging(false);
       setDragAction(null);
       setLastSelectedCell(null);
     },
-    [readOnly],
+    [readOnly, isDragging],
   );
 
   const handleMouseDown = useCallback(
@@ -238,6 +240,13 @@ export default function TimeGrid({
   };
   const timeRange = generateTimeRange(startHour, endHour);
 
+  const selectedDate = readOnly && selectedCellKey
+    ? selectedCellKey.slice(0, selectedCellKey.lastIndexOf("-"))
+    : null;
+  const selectedTime = readOnly && selectedCellKey
+    ? selectedCellKey.slice(selectedCellKey.lastIndexOf("-") + 1)
+    : null;
+
   const nextWeek = () => {
     if (currentWeekIndex < weeks.length - 1) setCurrentWeekIndex(currentWeekIndex + 1);
   };
@@ -318,6 +327,7 @@ export default function TimeGrid({
                   $isToday={isToday}
                   onClick={() => handleSelectColumn(date)}
                   $readOnly={readOnly}
+                  $isHighlighted={!!(readOnly && selectedDate && date === selectedDate)}
                 >
                   <WeekdayBox>{weekday}</WeekdayBox>
                   <DayBox $isToday={isToday}>{day}</DayBox>
@@ -327,7 +337,11 @@ export default function TimeGrid({
           </HeaderRow>
           {timeRange.map((time, timeIndex) => (
             <Row key={timeIndex}>
-              <TimeCell onClick={() => handleSelectRow(time)} $readOnly={readOnly}>
+              <TimeCell
+                onClick={() => handleSelectRow(time)}
+                $readOnly={readOnly}
+                $isHighlighted={!!(readOnly && selectedTime && time === selectedTime)}
+              >
                 {timeIndex % 2 === 0 ? time : ""}
               </TimeCell>
               {currentWeek.map((date) => {
@@ -348,6 +362,13 @@ export default function TimeGrid({
 
                 const isSelected = !readOnly && selectedCells.includes(cellKey);
 
+                const isGolden = !!(readOnly && viewInfo && viewInfo.count === maxCount && maxCount > 0);
+
+                const isInRow = !!(readOnly && selectedTime && time === selectedTime &&
+                  currentWeek.indexOf(date) <= currentWeek.indexOf(selectedDate));
+                const isInCol = !!(readOnly && selectedDate && date === selectedDate &&
+                  timeRange.indexOf(time) <= timeRange.indexOf(selectedTime));
+
                 return (
                   <Cell
                     key={cellKey}
@@ -357,8 +378,12 @@ export default function TimeGrid({
                     $isDisabled={!dates.includes(date)}
                     $isBaned={banedCells.includes(cellKey)}
                     $readOnly={readOnly}
-                    onClick={() => {
+                    onClick={(e) => {
                       if (readOnly) {
+                        if (onCellClick) {
+                          onCellClick(viewInfo || null, e);
+                          return;
+                        }
                         if (!viewInfo) {
                           setSelectedViewCell(null);
                           return;
@@ -371,20 +396,26 @@ export default function TimeGrid({
                     {readOnly && (
                       <>
                         <ColoringLayer style={{ opacity: viewOpacity }} />
-                        <AnimatePresence>
-                          {isViewSelected && viewInfo && (
-                            <Tooltip
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                            >
-                              <TooltipContent>
-                                <strong>{viewInfo.count}명</strong>
-                                <span>{viewInfo.members?.join(", ")}</span>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </AnimatePresence>
+                        {isGolden && <GoldenEffect />}
+                        {(isInRow || isInCol) && (
+                          <HighlightLayer $strong={isInRow && isInCol} />
+                        )}
+                        {!onCellClick && (
+                          <AnimatePresence>
+                            {isViewSelected && viewInfo && (
+                              <Tooltip
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                              >
+                                <TooltipContent>
+                                  <strong>{viewInfo.count}명</strong>
+                                  <span>{viewInfo.members?.join(", ")}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </AnimatePresence>
+                        )}
                       </>
                     )}
                   </Cell>
@@ -458,6 +489,11 @@ const HeaderCell = styled.div`
       : "pointer"};
   -webkit-tap-highlight-color: transparent;
 
+  ${(props) => props.$isHighlighted && !props.$isDisabled && `
+    color: ${theme.color.primary};
+    font-weight: bold;
+  `}
+
   ${(props) =>
     !props.$readOnly &&
     `
@@ -496,8 +532,8 @@ const TimeCell = styled.div`
   align-items: center;
   grid-column: 1 / 2;
   font-size: 12px;
-  font-family: "Pretendard-Medium";
-  color: ${theme.text.gamma[600]};
+  font-family: ${(props) => props.$isHighlighted ? '"Pretendard-Bold"' : '"Pretendard-Medium"'};
+  color: ${(props) => props.$isHighlighted ? theme.color.primary : theme.text.gamma[600]};
   cursor: ${(props) => (props.$readOnly ? "default" : "pointer")};
   border-radius: 4px;
   transition: background-color 0.2s ease;
@@ -573,6 +609,37 @@ const ColoringLayer = styled.div`
   height: 100%;
   background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
   transition: opacity 0.3s ease;
+`;
+
+const goldenShimmer = keyframes`
+  0%   { opacity: 0; transform: translateX(-100%) skewX(-20deg); }
+  50%  { opacity: 0.45; }
+  100% { opacity: 0; transform: translateX(300%) skewX(-20deg); }
+`;
+
+const GoldenEffect = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.6);
+    animation: ${goldenShimmer} 2.4s ease-in-out infinite;
+  }
+`;
+const HighlightLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  background: ${(props) =>
+    props.$strong ? `${theme.color.primary}30` : `${theme.color.primary}12`};
+  pointer-events: none;
 `;
 const Tooltip = styled(motion.div)`
   position: absolute;
