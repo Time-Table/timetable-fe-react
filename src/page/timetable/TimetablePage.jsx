@@ -325,7 +325,9 @@ export default function TimetablePage() {
   };
 
   const StepBar = () => {
-    const hasMySchedule = !!usersScheduleList.find((u) => u.name === name && u.availableTimes?.length > 0);
+    const hasMySchedule = !!usersScheduleList.find(
+      (u) => u.name === name && u.availableTimes?.length > 0,
+    );
     const steps = [
       {
         id: "join",
@@ -753,7 +755,6 @@ const StepItemWrapper = styled.div`
   }
 `;
 
-
 const memberPulse = keyframes`
   0%, 100% { box-shadow: 0 0 0 0 ${theme.color.primary}60; }
   50% { box-shadow: 0 0 0 9px ${theme.color.primary}00; }
@@ -784,7 +785,7 @@ const StepCircle = styled.div`
     css`
       background: white;
       color: ${theme.color.primary};
-      border: 2px solid ${theme.text.gamma[800]};
+      border: 2px solid ${theme.text.gamma[900]};
     `}
   ${(p) =>
     !p.$done &&
@@ -793,7 +794,7 @@ const StepCircle = styled.div`
     css`
       background: ${theme.text.gamma[900]};
       color: ${theme.text.gamma[500]};
-      border: 2px solid ${theme.text.gamma[800]};
+      border: 2px solid ${theme.text.gamma[900]};
     `}
   ${(p) =>
     p.$pulse &&
@@ -801,7 +802,7 @@ const StepCircle = styled.div`
     css`
       background: ${theme.text.gamma[900]};
       color: ${theme.color.primary};
-      border: 2px solid ${theme.text.gamma[800]};
+      border: 2px solid ${theme.text.gamma[900]};
       animation: ${memberPulse} 1.6s ease-in-out infinite;
     `}
 `;
@@ -910,7 +911,6 @@ const CopyBtn = styled.button`
     &:hover { opacity: 0.9; transform: translateY(-1px); }
   `}
 `;
-
 
 const IconFab = styled.button`
   position: fixed;
