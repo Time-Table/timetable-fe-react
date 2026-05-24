@@ -334,8 +334,9 @@ export default function TimetablePage() {
         label: "참여",
         icon: <FiUserPlus size={16} />,
         done: !!name,
-        active: rightScreen === "JoinForm" || !name,
+        active: rightScreen === "JoinForm",
         disabled: false,
+        pulse: !name && rightScreen !== "JoinForm",
         onClick: () => {
           setRightScreen("JoinForm");
           setSelectedToggle(null);
@@ -357,7 +358,7 @@ export default function TimetablePage() {
         done: false,
         active: selectedToggle === "인원",
         disabled: false,
-        pulse: !hasClickedMembers && selectedToggle !== "인원",
+        pulse: !!name && !hasClickedMembers && selectedToggle !== "인원",
         onClick: () => {
           if (!hasClickedMembers) {
             localStorage.setItem("hasClickedMembers", "true");
