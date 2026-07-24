@@ -5,7 +5,7 @@ import InviteSection from "./components/InviteSection";
 import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import JoinForm from "./components/JoinForm";
-import RankingList from "./components/RankingList";
+import RankingModal from "./components/RankingModal";
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/table";
@@ -132,6 +132,7 @@ export default function TimetablePage() {
   const [name, setName] = useState("");
   const [isValidTableId, setIsValidTableId] = useState(null);
   const [isGridModalOpen, setIsGridModalOpen] = useState(false);
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [hasClickedMembers, setHasClickedMembers] = useState(() => {
     return localStorage.getItem("hasClickedMembers") === "true";
@@ -252,16 +253,6 @@ export default function TimetablePage() {
         );
       case "InviteSection":
         return <InviteSection tableId={tableId} title={title} />;
-      case "RankingList":
-        return (
-          <RankingList
-            setRightScreen={setRightScreen}
-            timeInfo={timeInfo}
-            selectedName={selectedName}
-            setSelectedName={handleUserClickWrapper}
-            usersCount={usersScheduleList.length}
-          />
-        );
       case "DashboardPanel":
         return (
           <DashboardPanel
@@ -413,7 +404,6 @@ export default function TimetablePage() {
   };
 
   const ResultCard = () => {
-    const isActive = rightScreen === "RankingList";
     const topTime =
       Array.isArray(timeInfo) && timeInfo.length > 0
         ? [...timeInfo].sort((a, b) => (b.count || 0) - (a.count || 0))[0]
@@ -421,12 +411,8 @@ export default function TimetablePage() {
     return (
       <ResultCardButton
         type="button"
-        $active={isActive}
-        onClick={() => {
-          setRightScreen("RankingList");
-          setSelectedToggle("순위");
-          setSelectedName(null);
-        }}
+        $active={isRankingOpen}
+        onClick={() => setIsRankingOpen(true)}
       >
         <ResultBadge>
           <FiAward size={18} />
@@ -577,6 +563,23 @@ export default function TimetablePage() {
           usersSchedule={usersScheduleList}
         />
       )}
+
+      <RankingModal
+        isOpen={isRankingOpen}
+        onClose={() => setIsRankingOpen(false)}
+        timeInfo={timeInfo}
+        selectedName={selectedName}
+        setSelectedName={(newName) => {
+          setIsRankingOpen(false);
+          handleUserClickWrapper(newName);
+        }}
+        usersCount={usersScheduleList.length}
+        onGoJoin={(screen) => {
+          setIsRankingOpen(false);
+          setRightScreen(screen);
+          setSelectedToggle(null);
+        }}
+      />
     </PageWrapper>
   ) : (
     <NotFoundTable />
