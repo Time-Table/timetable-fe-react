@@ -729,6 +729,14 @@ const LeftPanel = styled.div`
   top: 24px;
   width: 100%;
   box-sizing: border-box;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+
+  @media (max-width: 1024px) {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 `;
 
 const RightPanel = styled.div`
