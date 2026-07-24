@@ -5,6 +5,7 @@ import InviteSection from "./components/InviteSection";
 import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import JoinForm from "./components/JoinForm";
+import RankingList from "./components/RankingList";
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/table";
@@ -16,7 +17,7 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers } from "react-icons/fi";
+import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers, FiAward, FiChevronRight } from "react-icons/fi";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
@@ -251,6 +252,16 @@ export default function TimetablePage() {
         );
       case "InviteSection":
         return <InviteSection tableId={tableId} title={title} />;
+      case "RankingList":
+        return (
+          <RankingList
+            setRightScreen={setRightScreen}
+            timeInfo={timeInfo}
+            selectedName={selectedName}
+            setSelectedName={handleUserClickWrapper}
+            usersCount={usersScheduleList.length}
+          />
+        );
       case "DashboardPanel":
         return (
           <DashboardPanel
@@ -401,6 +412,34 @@ export default function TimetablePage() {
     );
   };
 
+  const ResultCard = () => {
+    const isActive = rightScreen === "RankingList";
+    const topTime =
+      Array.isArray(timeInfo) && timeInfo.length > 0
+        ? [...timeInfo].sort((a, b) => (b.count || 0) - (a.count || 0))[0]
+        : null;
+    return (
+      <ResultCardButton
+        type="button"
+        $active={isActive}
+        onClick={() => {
+          setRightScreen("RankingList");
+          setSelectedToggle("순위");
+          setSelectedName(null);
+        }}
+      >
+        <ResultBadge>
+          <FiAward size={18} />
+        </ResultBadge>
+        <ResultTitle>골든타임 순위</ResultTitle>
+        {topTime && <ResultCount>최대 {topTime.count}명</ResultCount>}
+        <ResultArrow>
+          <FiChevronRight size={18} />
+        </ResultArrow>
+      </ResultCardButton>
+    );
+  };
+
   if (isValidTableId === null) {
     return (
       <LoaderLayout>
@@ -441,6 +480,7 @@ export default function TimetablePage() {
           </LeftPanel>
           <RightPanel>
             <HeaderContent />
+            <ResultCard />
             <StepBar />
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
@@ -457,6 +497,7 @@ export default function TimetablePage() {
         <>
           <MainContent>
             <HeaderContent />
+            <ResultCard />
             <StepBar />
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
@@ -836,6 +877,55 @@ const StepLine = styled.div`
     p.$filled
       ? `linear-gradient(90deg, ${theme.color.primary}, ${theme.color.primaryTint})`
       : theme.text.gamma[900]};
+`;
+
+const ResultCardButton = styled("button", {
+  shouldForwardProp: (prop) => prop !== "$active",
+})`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  border: 1px solid ${(p) => (p.$active ? theme.color.primary : theme.text.gamma[800])};
+  background: ${(p) => (p.$active ? `${theme.color.primary}0D` : "white")};
+
+  &:hover {
+    background: ${theme.text.gamma[900]};
+  }
+`;
+
+const ResultBadge = styled.span`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.color.primary};
+`;
+
+const ResultTitle = styled.span`
+  flex: 1;
+  font-family: "Pretendard-SemiBold";
+  font-size: 14px;
+  color: ${theme.text.primary};
+`;
+
+const ResultCount = styled.span`
+  flex-shrink: 0;
+  font-family: "Pretendard-Medium";
+  font-size: 12px;
+  color: ${theme.text.gamma[500]};
+`;
+
+const ResultArrow = styled.span`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: ${theme.text.gamma[500]};
 `;
 
 const InviteCard = styled.div`
