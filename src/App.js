@@ -18,6 +18,7 @@ import BlogDetailPage from "./page/blog/BlogDetailPage";
 import Footer from "./component/Footer";
 import ScrollToTop from "./component/ScrollToTop";
 import Seo from "./Seo";
+import ServiceJsonLd from "./component/ServiceJsonLd";
 
 // 관리자 콘솔은 자체 사이드바로 화면 전체를 쓰기 때문에
 // 서비스용 헤더/푸터가 끼면 레이아웃이 깨진다.
@@ -46,6 +47,8 @@ function App() {
                <Router>
                     <ScrollToTop />
                     <Seo />
+                    {/* 서비스 스키마. 컴포넌트가 스스로 정본 랜딩("/")에서만 렌더한다. */}
+                    <ServiceJsonLd />
                     <ConditionalHeader />
                     <Routes>
                          <Route path="/" element={<StartPage />}></Route>

@@ -15,6 +15,13 @@
     <link rel="apple-touch-icon" href="favicon.ico" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>타임테이블 - 쉽고 빠른 모임 일정 조율 서비스</title>
+    <!--
+      og:site_name은 모든 경로에서 같은 값이므로 여기에만 둔다.
+      Seo.js(Helmet)에 같은 태그를 또 넣으면 문서에 두 개가 남는다.
+      랜딩 <title>에서 브랜드명이 빠졌으므로, 검색결과 사이트명은 이 태그와
+      component/ServiceJsonLd.jsx의 WebSite 스키마가 담당한다.
+    -->
+    <meta id="og-site-name" property="og:site_name" content="타임테이블" />
     <meta id="og-title" property="og:title" content="타임테이블 - 쉽고 빠른 모임 일정 조율 서비스" />
     <meta
       id="og-description"

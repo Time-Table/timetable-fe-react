@@ -102,7 +102,13 @@ export default function QuickCreatePage() {
 
   return (
     <>
-      <Seo title="타임테이블 - 빠른 생성" description="빠르게 약속을 만들어보세요." />
+      {/* 랜딩(`/`)도 생성 화면이므로 검색어가 겹치지 않게 역할을 갈라 둔다.
+          `/`는 '약속 시간 정하기', 이 페이지는 '단계별 생성 + 시간 잠금'을 맡는다.
+          화면에 실제로 있는 것(4단계 카드, 시간 잠금)만 설명한다. */}
+      <Seo
+        title="빠른 테이블 생성 - 타임테이블"
+        description="날짜, 시간 범위, 모임 이름을 단계별로 정해 약속 테이블을 만듭니다. 아무도 고를 수 없는 시간대는 미리 잠가 둘 수 있습니다."
+      />
       <PageWrapper>
         <Header>
           <ArrowLayout onClick={() => navigate("/")}>
