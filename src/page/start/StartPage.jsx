@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import styled from "@emotion/styled";
 import { keyframes, css } from "@emotion/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -21,6 +22,7 @@ import {
 import theme from "../../theme";
 import Seo from "../../Seo";
 import TimeGrid from "../../component/TimeGrid";
+import Arrow from "../../assets/svg/Arrow";
 import { createTable } from "../../api/table";
 import { trackVisit } from "../../api/visit";
 import { trackEvent, EVENTS } from "../../utils/analytics";
@@ -41,6 +43,9 @@ const DAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 const TOAST_MS = 3000;
 /** Hero 미끼 격자의 행 수. 아래 미리보기를 축소한 그림이므로 몇 줄만 보여준다. */
 const TEASER_ROWS = 8;
+/** 셀 팝업 크기. /table 의 GroupTimeGrid 와 같은 값이다. */
+const POPUP_WIDTH = 260;
+const POPUP_H_ESTIMATE = 250;
 
 /**
  * Hero 요소가 차례로 올라오며 나타난다. `order`가 순번이다.
@@ -95,6 +100,8 @@ export default function StartPage() {
   // 미리보기에서 열어 둔 칸. `${dayKey}|${hour}` 또는 null.
   // 골든타임 칸을 기본으로 열어 두어 "칸을 누르면 명단이 나온다"를 먼저 보여준다.
   const [openCell, setOpenCell] = useState(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const popupRef = useRef(null);
   const [isLockOpen, setLockOpen] = useState(false);
   const [isLockExpanded, setLockExpanded] = useState(false);
   const [banedCells, setBanedCells] = useState([]);
@@ -256,6 +263,42 @@ export default function StartPage() {
   useEffect(() => {
     setOpenCell(goldenKey);
   }, [goldenKey]);
+
+  /**
+   * 팝업을 열린 칸 옆에 붙인다. /table 의 GroupTimeGrid 와 같은 계산이다.
+   * 다른 점 하나: 여기서는 골든타임 칸이 기본으로 열려 있어 사용자가 스크롤해서 내려온다.
+   * 그래서 스크롤·리사이즈마다 다시 계산해 칸을 계속 따라다니게 한다.
+   */
+  const placePopup = useCallback(() => {
+    if (!openCell) return;
+    const cell = document.querySelector(`[data-cell="${CSS.escape(openCell)}"]`);
+    if (!cell) return;
+    const rect = cell.getBoundingClientRect();
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const width = popupRef.current?.getBoundingClientRect().width || POPUP_WIDTH;
+    const height = popupRef.current?.getBoundingClientRect().height || POPUP_H_ESTIMATE;
+
+    let left = rect.right + 8;
+    if (left + width > winW - 8) left = rect.left - width - 8;
+    left = Math.max(8, Math.min(left, winW - width - 8));
+
+    let top = rect.top;
+    top = Math.max(8, Math.min(top, winH - height - 8));
+
+    setPopupPos((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
+  }, [openCell]);
+
+  useEffect(() => {
+    if (!openCell) return;
+    placePopup();
+    window.addEventListener("scroll", placePopup, true);
+    window.addEventListener("resize", placePopup);
+    return () => {
+      window.removeEventListener("scroll", placePopup, true);
+      window.removeEventListener("resize", placePopup);
+    };
+  }, [openCell, placePopup]);
 
   const openCellInfo = useMemo(() => {
     if (!mock || !openCell) return null;
@@ -761,7 +804,7 @@ export default function StartPage() {
                                   as={members.length ? "button" : "div"}
                                   type={members.length ? "button" : undefined}
                                   $off={off}
-                                  $open={cellKey === openCell}
+                                  data-cell={cellKey || undefined}
                                   $clickable={members.length > 0}
                                   aria-label={
                                     members.length
@@ -783,62 +826,6 @@ export default function StartPage() {
                         ))}
                       </PreviewGrid>
                     </PreviewScroll>
-
-                    {/* 실제 /table 의 셀 팝업과 같은 정보를 담되, 좁은 카드 안에서 잘리지 않게
-                        격자 아래에 붙여 둔다. 골든타임 칸이 기본으로 열려 있다. */}
-                    <AnimatePresence initial={false}>
-                      {openCellInfo && (
-                        <CellInfo
-                          key={openCell}
-                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: theme.duration.sec.fast }}
-                        >
-                          <CellInfoHead>
-                            {openCellInfo.isGolden && <GoldenTag>최다 인원</GoldenTag>}
-                            <CellInfoTime>
-                              {openCellInfo.day.date.getMonth() + 1}월{" "}
-                              {openCellInfo.day.date.getDate()}일 (
-                              {formatDayLabel(openCellInfo.day.date)}){" "}
-                              {String(openCellInfo.hour).padStart(2, "0")}:00~
-                              {String(openCellInfo.hour + 1).padStart(2, "0")}:00
-                            </CellInfoTime>
-                            <CellInfoClose
-                              type="button"
-                              aria-label="이 시간 정보 닫기"
-                              onClick={() => setOpenCell(null)}
-                            >
-                              <FiX size={14} />
-                            </CellInfoClose>
-                          </CellInfoHead>
-                          <CellInfoRow>
-                            <CellInfoLabel $can>참여 가능 {openCellInfo.can.length}명</CellInfoLabel>
-                            <NameChips>
-                              {openCellInfo.can.length ? (
-                                openCellInfo.can.map((m) => (
-                                  <NameChip key={m} $can>
-                                    {m}
-                                  </NameChip>
-                                ))
-                              ) : (
-                                <NoName>없음</NoName>
-                              )}
-                            </NameChips>
-                          </CellInfoRow>
-                          <CellInfoRow>
-                            <CellInfoLabel>참여 불가 {openCellInfo.cannot.length}명</CellInfoLabel>
-                            <NameChips>
-                              {openCellInfo.cannot.length ? (
-                                openCellInfo.cannot.map((m) => <NameChip key={m}>{m}</NameChip>)
-                              ) : (
-                                <NoName>없음</NoName>
-                              )}
-                            </NameChips>
-                          </CellInfoRow>
-                        </CellInfo>
-                      )}
-                    </AnimatePresence>
 
                     <Legend aria-hidden="true">
                       {previewName ? (
@@ -1028,6 +1015,69 @@ export default function StartPage() {
         </CtaBlock>
         </StartShell>
 
+        {/* 열린 칸 옆에 붙는 팝업. /table 의 셀 팝업과 같은 구성이다.
+            포털로 body 에 붙여야 미리보기 카드의 overflow 에 잘리지 않는다. */}
+        {/* 잠금 팝업이 떠 있는 동안에는 감춘다. 포털이라 모달 위로 뜬다. */}
+        {openCellInfo &&
+          !isLockOpen &&
+          createPortal(
+            <AnimatePresence>
+              <CellPopup
+                key={openCell}
+                ref={popupRef}
+                style={{ top: popupPos.top, left: popupPos.left }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                role="dialog"
+                aria-label="예시 시간대 참여 명단"
+              >
+                {openCellInfo.isGolden && <GoldenBadge>최다 인원</GoldenBadge>}
+                <CellInfoHead>
+                  <CellInfoTime>
+                    {openCellInfo.day.date.getMonth() + 1}월 {openCellInfo.day.date.getDate()}일 (
+                    {formatDayLabel(openCellInfo.day.date)}){" "}
+                    {String(openCellInfo.hour).padStart(2, "0")}:00 ~{" "}
+                    {String(openCellInfo.hour + 1).padStart(2, "0")}:00
+                  </CellInfoTime>
+                  <CellInfoClose
+                    type="button"
+                    aria-label="닫기"
+                    onClick={() => setOpenCell(null)}
+                  >
+                    <FiX size={15} />
+                  </CellInfoClose>
+                </CellInfoHead>
+                <CellInfoRow>
+                  <CellInfoLabel $can>참여 가능 {openCellInfo.can.length}명</CellInfoLabel>
+                  <NameChips>
+                    {openCellInfo.can.length ? (
+                      openCellInfo.can.map((m) => (
+                        <NameChip key={m} $can>
+                          {m}
+                        </NameChip>
+                      ))
+                    ) : (
+                      <NoName>없음</NoName>
+                    )}
+                  </NameChips>
+                </CellInfoRow>
+                <CellInfoRow>
+                  <CellInfoLabel>참여 불가 {openCellInfo.cannot.length}명</CellInfoLabel>
+                  <NameChips>
+                    {openCellInfo.cannot.length ? (
+                      openCellInfo.cannot.map((m) => <NameChip key={m}>{m}</NameChip>)
+                    ) : (
+                      <NoName>없음</NoName>
+                    )}
+                  </NameChips>
+                </CellInfoRow>
+              </CellPopup>
+            </AnimatePresence>,
+            document.body
+          )}
+
         {/* 시간 잠금. quick-create 의 (선택)시간 잠금 카드를 팝업으로 옮긴 것이다.
             건너뛰어도 되므로 접힌 채로 열리고, 펼쳐야 격자가 나온다. */}
         <AnimatePresence>
@@ -1052,33 +1102,29 @@ export default function StartPage() {
               >
                 <LockBody>
                 <LockHead>
-                  <LockTitle id="start-lock-title">
-                    <FaLock size={13} aria-hidden="true" />
-                    시간 잠금
-                    <LockOptional>선택</LockOptional>
-                  </LockTitle>
                   <CellInfoClose type="button" aria-label="닫기" onClick={closeLock}>
                     <FiX size={16} />
                   </CellInfoClose>
                 </LockHead>
-                <LockDesc>
-                  잠근 시간대는 참여자가 고를 수 없습니다. 회의실이 없거나 이미 일정이 잡힌
-                  시간을 미리 빼둘 때 씁니다. <b>그냥 넘어가도 됩니다.</b>
-                </LockDesc>
 
+                {/* quick-create 의 '(선택)시간 잠금' 카드를 그대로 옮겼다.
+                    제목 + 한 줄 설명 왼쪽, 회전하는 화살표 오른쪽. */}
                 <LockAccordion
                   type="button"
                   onClick={() => setLockExpanded((v) => !v)}
                   aria-expanded={isLockExpanded}
                   aria-controls="start-lock-grid"
                 >
-                  <span>
-                    시간 고르기
-                    {banedCells.length > 0 && <LockCount>{banedCells.length}칸 잠금</LockCount>}
-                  </span>
-                  <Chevron $open={isLockExpanded} aria-hidden="true">
-                    <FiChevronRight size={16} />
-                  </Chevron>
+                  <div>
+                    <LockTitle id="start-lock-title">
+                      (선택)시간 잠금 <FaLock size={15} aria-hidden="true" />
+                      {banedCells.length > 0 && <LockCount>{banedCells.length}칸</LockCount>}
+                    </LockTitle>
+                    <LockDesc>잠근 시간대는 참여자가 고를 수 없습니다.</LockDesc>
+                  </div>
+                  <AccordionIcon $open={isLockExpanded} aria-hidden="true">
+                    <Arrow width={12} height={12} angle={90} />
+                  </AccordionIcon>
                 </LockAccordion>
 
                 <AnimatePresence initial={false}>
@@ -2463,37 +2509,40 @@ const Explainer = styled.section`
 
 /* ---- 미리보기: 칸을 눌렀을 때 나오는 명단 (실제 /table 의 셀 팝업과 같은 정보) ---- */
 
-const CellInfo = styled(motion.div)`
-  margin-top: ${theme.space[3]};
+const CellPopup = styled(motion.div)`
+  position: fixed;
+  z-index: 9999;
+  width: ${POPUP_WIDTH}px;
   border: 1px solid ${theme.text.gamma[800]};
   border-radius: ${theme.radius.md};
   overflow: hidden;
   background: ${theme.color.surface};
+  box-shadow: ${theme.shadow.popover};
+`;
+
+const GoldenBadge = styled.div`
+  padding: 5px 0;
+  text-align: center;
+  background: linear-gradient(90deg, ${theme.color.primaryTint}, ${theme.color.primary});
+  color: ${theme.color.surface};
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.footnote};
+  letter-spacing: 0.5px;
 `;
 
 const CellInfoHead = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: ${theme.space[2]};
-  padding: ${theme.space[2]} ${theme.space[3]};
+  padding: ${theme.space[3]} ${theme.space[4]};
   background: ${theme.color.primarySurface};
   border-bottom: 1px solid ${theme.text.gamma[900]};
 `;
 
-const GoldenTag = styled.span`
-  flex-shrink: 0;
-  padding: 2px ${theme.space[2]};
-  border-radius: ${theme.radius.pill};
-  background: ${theme.color.primary};
-  color: ${theme.color.surface};
-  font-family: ${theme.font.family.bold};
-  font-size: ${theme.font.size.micro};
-`;
-
 const CellInfoTime = styled.span`
-  flex: 1;
   font-family: ${theme.font.family.bold};
-  font-size: ${theme.font.size.footnote};
+  font-size: ${theme.font.size.label};
   color: ${theme.color.primary};
   word-break: keep-all;
 `;
@@ -2521,7 +2570,7 @@ const CellInfoClose = styled.button`
 `;
 
 const CellInfoRow = styled.div`
-  padding: ${theme.space[2]} ${theme.space[3]};
+  padding: ${theme.space[3]} ${theme.space[4]};
 
   & + & {
     border-top: 1px solid ${theme.text.gamma[900]};
@@ -2598,78 +2647,60 @@ const LockBody = styled.div`
 
 const LockHead = styled.div`
   display: flex;
-  align-items: center;
-  gap: ${theme.space[2]};
-  margin-bottom: ${theme.space[2]};
+  justify-content: flex-end;
 `;
 
 const LockTitle = styled.h2`
-  flex: 1;
   display: flex;
   align-items: center;
-  gap: ${theme.space[2]};
-  margin: 0;
+  gap: ${theme.space[1]};
+  margin: 0 0 4px;
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.title3};
-  color: ${theme.text.gamma[100]};
-`;
-
-const LockOptional = styled.span`
-  padding: 2px ${theme.space[2]};
-  border-radius: ${theme.radius.pill};
-  background: ${theme.text.gamma[900]};
-  color: ${theme.text.gamma[400]};
-  font-family: ${theme.font.family.medium};
-  font-size: ${theme.font.size.footnote};
+  color: ${theme.color.primary};
 `;
 
 const LockDesc = styled.p`
-  margin: 0 0 ${theme.space[4]};
+  margin: 0;
   font-family: ${theme.font.family.regular};
   font-size: ${theme.font.size.small};
-  line-height: ${theme.font.lineHeight.normal};
   color: ${theme.text.gamma[400]};
   word-break: keep-all;
-
-  b {
-    font-family: ${theme.font.family.bold};
-    color: ${theme.text.gamma[200]};
-  }
 `;
 
+/* quick-create 의 AccordionHeader 와 같은 구성 — 테두리 없이 제목/설명과 화살표만. */
 const LockAccordion = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: ${theme.space[3]};
   width: 100%;
-  min-height: 48px;
-  padding: 0 ${theme.space[3]};
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
-  border: 1px solid ${theme.text.gamma[600]};
-  border-radius: ${theme.radius.sm};
-  background: ${theme.color.surface};
-  font-family: ${theme.font.family.semiBold};
-  font-size: ${theme.font.size.label};
-  color: ${theme.text.gamma[200]};
-  transition: background ${theme.duration.fast} ${theme.easing.standard};
+  text-align: left;
 
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${theme.space[2]};
-  }
-
-  &:hover {
-    background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primary};
-  }
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};
-    outline-offset: 2px;
+    outline-offset: 4px;
+    border-radius: ${theme.radius.sm};
+  }
+`;
+
+const AccordionIcon = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  transition: transform ${theme.duration.slow} ease;
+  transform: rotate(${({ $open }) => ($open ? 180 : 0)}deg);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
 const LockCount = styled.span`
+  margin-left: ${theme.space[1]};
   padding: 2px ${theme.space[2]};
   border-radius: ${theme.radius.pill};
   background: ${theme.color.primary};
