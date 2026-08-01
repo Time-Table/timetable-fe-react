@@ -360,6 +360,8 @@ export default function StartPage() {
                     const off = !d || !d.selected;
                     const n = off ? 0 : (mock.cells[`${d.key}|${h}`] || []).length;
                     const target = n ? 0.2 + (n / mock.maxCount) * 0.8 : 0;
+                    // 가장 진한 칸은 아래 미리보기와 같은 반짝임을 준다.
+                    const isGolden = n > 0 && n === mock.maxCount;
                     return (
                       <TeaserCell key={`${row}-${col}`} $off={off}>
                         {target > 0 && (
@@ -373,6 +375,7 @@ export default function StartPage() {
                             }}
                           />
                         )}
+                        {isGolden && <CellShine />}
                       </TeaserCell>
                     );
                   })
@@ -955,7 +958,7 @@ const Badge = styled(motion.span)`
 `;
 
 const PageTitle = styled(motion.h1)`
-  font-family: "Pretendard-Black";
+  font-family: ${theme.font.family.extraBold};
   font-size: 40px;
   line-height: 1.25;
   color: ${theme.text.gamma[100]};
@@ -1150,7 +1153,7 @@ const KeywordChip = styled.button`
 
   &:hover:not(:disabled) {
     background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
     color: ${theme.color.primary};
   }
 
@@ -1193,7 +1196,7 @@ const TitleInput = styled.input`
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};
     outline-offset: 2px;
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
   }
 `;
 
@@ -1239,7 +1242,7 @@ const DateCalendar = styled.div`
     $invalid &&
     `
     background: ${theme.color.primarySurface};
-    box-shadow: inset 0 0 0 1px ${theme.color.primaryBorder};
+    box-shadow: inset 0 0 0 1px ${theme.color.primary};
   `}
 
   @media (max-width: 639px) {
@@ -1289,7 +1292,7 @@ const WeekButton = styled.button`
 
   &:hover:not(:disabled) {
     background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
     color: ${theme.color.primary};
   }
 
@@ -1367,7 +1370,7 @@ const DateCell = styled(motion.button, {
     &:hover:not(:disabled) [data-circle] {
       box-shadow: ${({ $active }) =>
         $active
-          ? `0 0 0 2px ${theme.color.surface}, 0 0 0 4px ${theme.color.primaryBorder}`
+          ? `0 0 0 2px ${theme.color.surface}, 0 0 0 4px ${theme.color.primary}`
           : `inset 0 0 0 2px ${theme.text.gamma[600]}`};
     }
   }
@@ -1447,7 +1450,7 @@ const TimeSelect = styled.select`
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};
     outline-offset: 2px;
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
   }
 `;
 
@@ -1635,7 +1638,7 @@ const NavButton = styled.button`
 
   &:hover:not(:disabled) {
     background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
     color: ${theme.color.primary};
   }
 
@@ -1757,7 +1760,7 @@ const MiniInvite = styled.button`
   text-align: left;
   cursor: pointer;
   background: ${theme.color.primarySurface};
-  border: 1px solid ${theme.color.primaryBorder};
+  border: 1px solid ${theme.color.primary};
   border-radius: 10px;
   padding: 8px 10px;
   display: flex;
@@ -1797,7 +1800,7 @@ const MiniInviteRow = styled.div`
   height: 32px;
   padding: 0 8px;
   background: ${theme.color.surface};
-  border: 1px solid ${theme.color.primaryBorder};
+  border: 1px solid ${theme.color.primary};
   border-radius: 7px;
 `;
 
@@ -1856,7 +1859,7 @@ const MiniResult = styled.button`
 
   &:hover:not(:disabled) {
     background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
   }
 
   &:focus-visible {
@@ -1903,7 +1906,7 @@ const RankRow = styled.div`
   padding: ${theme.space[3]};
   border-radius: ${theme.radius.sm};
   background: ${({ $top }) => ($top ? theme.color.primarySurface : "white")};
-  border: 1px solid ${({ $top }) => ($top ? theme.color.primaryBorder : theme.text.gamma[800])};
+  border: 1px solid ${({ $top }) => ($top ? theme.color.primary : theme.text.gamma[800])};
 `;
 
 const RankTop = styled.div`
@@ -2018,7 +2021,7 @@ const MiniChip = styled.button`
 
   &:hover:not(:disabled) {
     background: ${({ $active }) => ($active ? theme.color.primary : theme.color.primarySurface)};
-    border-color: ${theme.color.primaryBorder};
+    border-color: ${theme.color.primary};
     color: ${({ $active }) => ($active ? "white" : theme.color.primary)};
   }
 
