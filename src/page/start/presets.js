@@ -26,7 +26,7 @@ export const MIN_WEEKS = 1;
 export const MAX_WEEKS = 8;
 
 /** 서버가 받는 형식은 YYYY-MM-DD 고정이다. 로컬 시간 기준으로 만든다. */
-export const formatDateKey = (date) => {
+const formatDateKey = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");

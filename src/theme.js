@@ -1,23 +1,17 @@
-/** 브랜드 빨강의 "글자로 쓸 수 있는" 농도. primaryText 와 weekdaySun 이 같은 값을 쓴다. */
-const BRAND_RED_TEXT = "#CE2E2E";
-
 const color = {
      primary: "#FE6F6F",
      primaryTint: "#FFA29D",
 
-     // 브랜드 #FE6F6F 는 흰 배경에서 2.72:1 이다.
-     // 큰 면적의 배경·장식에는 쓸 수 있지만 글자·경계·포커스로는 쓸 수 없다.
-     // 아래 세 개가 그 자리를 대신한다. (측정값은 specs/design-system.md 표)
-     primaryText: BRAND_RED_TEXT, // 흰 배경 5.18:1 · primarySurface 위 4.71:1
-     primaryBorder: "#F05252", // 흰 배경 3.48:1 · primarySurface 위 3.17:1
+     // 브랜드색을 글자·경계로 쓰면 흰 배경에서 2.72:1 이다(AA 미달).
+     // 2026-08-01 사람이 브랜드 톤을 우선해 그대로 쓰기로 결정했다.
+     // 근거와 실측값은 specs/design-system.md 의 예외 절에 있다.
      primarySurface: "#FFF1F1", // 선택·활성 칩/셀의 옅은 배경
      primarySurfaceHover: "#FFE6E6", // primarySurface 위 hover 한 단계
      appSurface: "#F8F9FA", // 화면 바탕 (/table 의 PageWrapper 와 같은 값)
      surface: "#FFFFFF", // 카드·입력의 기본 표면. 리터럴 white 대신 이 토큰을 쓴다.
 
-     // 요일 색. 색만으로 주말을 말하지 않는다 — 헤더에 '일'·'토' 글자가 이미 있고
-     // 색은 그 위에 얹는 보강 채널이다. 둘 다 본문 대비(4.5:1)를 넘긴다.
-     weekdaySun: BRAND_RED_TEXT, // 흰 배경 5.18:1
+     // 토요일 색. 색만으로 주말을 말하지 않는다 — 헤더에 '토' 글자가 이미 있고
+     // 색은 그 위에 얹는 보강 채널이다. 일요일은 브랜드색을 쓴다.
      weekdaySat: "#2563C9", // 흰 배경 5.66:1
 
      // 미리보기 목업의 브라우저 창 신호등. 실제 UI 색이 아니라 그림의 일부다.
@@ -101,7 +95,6 @@ const radius = {
      sm: "8px",
      md: "12px",
      lg: "16px",
-     xl: "24px",
      pill: "999px",
 };
 
