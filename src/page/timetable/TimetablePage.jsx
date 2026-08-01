@@ -15,6 +15,8 @@ import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
+import { trackEvent, EVENTS } from "../../utils/analytics";
+import { clearTableScopedStorage } from "../../utils/storage";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers, FiAward, FiChevronRight } from "react-icons/fi";
@@ -186,6 +188,7 @@ export default function TimetablePage() {
   useEffect(() => {
     if (!hasTrackedVisit.current) {
       trackVisit("table");
+      trackEvent(EVENTS.TABLE_VIEW, tableId);
       hasTrackedVisit.current = true;
     }
   }, [tableId]);
@@ -193,7 +196,8 @@ export default function TimetablePage() {
   useEffect(() => {
     const storedName = localStorage.getItem("name");
     if (tableId !== localStorage.getItem("tableId")) {
-      localStorage.clear();
+      // 관리자 인증과 방문자 ID는 테이블과 무관하므로 유지한다.
+      clearTableScopedStorage();
       localStorage.setItem("tableId", tableId);
     }
     if (storedName) {
@@ -234,6 +238,7 @@ export default function TimetablePage() {
   const handleCopyInvite = useCallback(() => {
     const url = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
     navigator.clipboard.writeText(url);
+    trackEvent(EVENTS.INVITE_SHARE, tableId);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   }, [tableId]);
@@ -412,7 +417,10 @@ export default function TimetablePage() {
       <ResultCardButton
         type="button"
         $active={isRankingOpen}
-        onClick={() => setIsRankingOpen(true)}
+        onClick={() => {
+          trackEvent(EVENTS.RANKING_OPEN, tableId);
+          setIsRankingOpen(true);
+        }}
       >
         <ResultBadge>
           <FiAward size={18} />
@@ -442,7 +450,6 @@ export default function TimetablePage() {
       <Seo
         title={`${title || "테이블"}`}
         description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
-        url={`${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`}
       />
 
       {isDesktop ? (
@@ -1073,6 +1080,6 @@ const LoaderLayout = styled.div`
   p {
     font-family: "Pretendard-Regular";
     font-size: 16px;
-    color: ${theme.text.gamma[600]};
+    color: ${theme.text.gamma[400]};
   }
 `;

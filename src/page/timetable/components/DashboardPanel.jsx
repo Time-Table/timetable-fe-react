@@ -387,7 +387,7 @@ const RefreshButton = styled.button`
      background: none;
      border: none;
      cursor: pointer;
-     color: ${theme.text.gamma[600]};
+     color: ${theme.text.gamma[500]};
      padding: 8px;
      border-radius: 50%;
 

@@ -42,6 +42,15 @@ export default function TimeGrid({
   const [resolvedBgTimeInfo, setResolvedBgTimeInfo] = useState([]);
   const [bgMaxCount, setBgMaxCount] = useState(1);
 
+  // 마우스를 올린 셀. 시간 라벨이 두 칸에 한 번만 표시되기 때문에
+  // 홀수 행에서는 몇 시인지 알 수 없다는 사용자 요청에서 나온 상태값이다.
+  const [hoveredCell, setHoveredCell] = useState(null);
+
+  // 터치 기기는 탭할 때 호환용 mouseenter를 쏘는데 mouseleave는 오지 않는다.
+  // CSS로 레이어만 숨기면 시간 라벨이 잔상으로 남으므로 상태 자체를 만들지 않는다.
+  const canHover =
+    typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches;
+
   const todayDateString = new Date().toISOString().split("T")[0];
 
   // --- View Mode Logic ---
@@ -342,8 +351,22 @@ export default function TimeGrid({
           </ArrowLayout>
         </WeekNavigation>
       </GridHeader>
-      <GridContainer>
-        <Grid ref={gridRef}>
+      <GridContainer onMouseLeave={() => setHoveredCell(null)}>
+        <Grid
+          ref={gridRef}
+          // 셀마다 onMouseEnter를 달지 않고 그리드에서 한 번만 받는다.
+          // 비활성 셀은 pointer-events:none이라 자기 이벤트를 못 쏘는데,
+          // 그 위를 지날 때 target이 셀이 아니게 되므로 여기서 hover를 해제할 수 있다.
+          onMouseOver={
+            canHover
+              ? (e) => {
+                  if (isDragging) return;
+                  const { hoverdate, hovertime } = e.target.dataset || {};
+                  setHoveredCell(hoverdate && hovertime ? { date: hoverdate, time: hovertime } : null);
+                }
+              : undefined
+          }
+        >
           <HeaderRow>
             <EmptyCell />
             {currentWeek.map((date) => {
@@ -369,9 +392,13 @@ export default function TimeGrid({
               <TimeCell
                 onClick={() => handleSelectRow(time)}
                 $readOnly={readOnly}
-                $isHighlighted={!!(readOnly && selectedTime && time === selectedTime)}
+                $isHighlighted={
+                  !!(readOnly && selectedTime && time === selectedTime) ||
+                  hoveredCell?.time === time
+                }
               >
-                {timeIndex % 2 === 0 ? time : ""}
+                {/* 평소에는 30분 간격으로만 표시하지만, 마우스를 올린 행은 항상 보여준다. */}
+                {timeIndex % 2 === 0 || hoveredCell?.time === time ? time : ""}
               </TimeCell>
               {currentWeek.map((date) => {
                 const cellKey = `${date}-${time}`;
@@ -405,10 +432,15 @@ export default function TimeGrid({
                 const isInCol = !!(readOnly && selectedDate && date === selectedDate &&
                   timeRange.indexOf(time) <= timeRange.indexOf(selectedTime));
 
+                const isHoverRow = hoveredCell?.time === time;
+                const isHoverCol = hoveredCell?.date === date;
+
                 return (
                   <Cell
                     key={cellKey}
                     data-cellkey={!readOnly ? cellKey : undefined}
+                    data-hoverdate={date}
+                    data-hovertime={time}
                     $isSelected={isSelected}
                     $selectedCellColor={selectedCellColor}
                     $isDisabled={!dates.includes(date)}
@@ -431,6 +463,9 @@ export default function TimeGrid({
                   >
                     {!readOnly && bgViewOpacity > 0 && (
                       <BgColoringLayer style={{ opacity: bgViewOpacity }} />
+                    )}
+                    {(isHoverRow || isHoverCol) && (
+                      <HoverGuideLayer $strong={isHoverRow && isHoverCol} />
                     )}
                     {readOnly && (
                       <>
@@ -572,7 +607,7 @@ const TimeCell = styled.div`
   grid-column: 1 / 2;
   font-size: 12px;
   font-family: ${(props) => props.$isHighlighted ? '"Pretendard-Bold"' : '"Pretendard-Medium"'};
-  color: ${(props) => props.$isHighlighted ? theme.color.primary : theme.text.gamma[600]};
+  color: ${(props) => props.$isHighlighted ? theme.color.primary : theme.text.gamma[400]};
   cursor: ${(props) => (props.$readOnly ? "default" : "pointer")};
   border-radius: 4px;
   transition: background-color 0.2s ease;
@@ -681,6 +716,22 @@ const GoldenEffect = styled.div`
     height: 100%;
     background: rgba(255, 255, 255, 0.6);
     animation: ${goldenShimmer} 2.4s ease-in-out infinite;
+  }
+`;
+/**
+ * 마우스를 올린 셀의 행·열을 옅게 비춰 시간축까지 눈이 이어지게 한다.
+ * 터치 기기에서는 hover가 눌린 뒤에도 남아 잔상이 되므로 마우스가 있는 환경에서만 켠다.
+ */
+const HoverGuideLayer = styled.div`
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: ${(props) =>
+    props.$strong ? `${theme.color.primary}1f` : `${theme.color.primary}0d`};
+
+  @media (hover: hover) {
+    display: block;
   }
 `;
 const HighlightLayer = styled.div`

@@ -9,6 +9,7 @@ import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import { createTable } from "../../api/table";
 import { trackVisit } from "../../api/visit";
+import { trackEvent, EVENTS } from "../../utils/analytics";
 import Swal from "sweetalert2";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
@@ -36,6 +37,7 @@ export default function QuickCreatePage() {
     const getVisitLog = async () => {
       if (!hasTrackedVisit.current) {
         await trackVisit("create");
+        trackEvent(EVENTS.CREATE_VIEW);
         hasTrackedVisit.current = true;
       }
     };
@@ -58,6 +60,7 @@ export default function QuickCreatePage() {
       Swal.fire("입력 오류", "날짜와 모임 이름을 먼저 입력해주세요.", "error");
       return;
     }
+    trackEvent(EVENTS.CREATE_SUBMIT);
     setIsLoading(true);
     const res = await createTable(title, selectedDates, startHour, endHour, banedCells);
     setIsLoading(false);
@@ -66,6 +69,7 @@ export default function QuickCreatePage() {
       localStorage.setItem("title", title);
       const newTableId = res.data.tableId;
       const url = `${window.location.origin}/table/${newTableId}`;
+      trackEvent(EVENTS.CREATE_SUCCESS, newTableId);
       Swal.fire({
         icon: "success",
         title: "생성 완료!",
@@ -75,6 +79,7 @@ export default function QuickCreatePage() {
         cancelButtonText: "확인",
         preConfirm: () => {
           navigator.clipboard.writeText(url);
+          trackEvent(EVENTS.INVITE_SHARE, newTableId);
           Swal.showValidationMessage("링크가 복사되었습니다!");
         },
       }).then((result) => {
@@ -365,7 +370,7 @@ const LockMessage = styled.div`
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: ${theme.text.gamma[600]};
+  color: ${theme.text.gamma[400]};
   margin-top: 1rem;
   padding: 10px 12px;
   background-color: ${theme.text.gamma[900]};

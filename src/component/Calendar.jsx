@@ -265,7 +265,7 @@ const SelectMonthButton = styled.button`
      transition: all 0.2s ease;
 
      svg {
-          color: ${theme.text.gamma[600]};
+          color: ${theme.text.gamma[400]};
           transition: color 0.2s ease;
      }
 
@@ -308,7 +308,7 @@ const DaysRow = styled.div`
 const Day = styled.div`
      ${theme.styles.flexCenterRow} font-family: Pretendard-Medium;
      font-size: 14px;
-     color: ${theme.text.gamma[600]};
+     color: ${theme.text.gamma[400]};
 `;
 const Body = styled(motion.div)`
      display: flex;

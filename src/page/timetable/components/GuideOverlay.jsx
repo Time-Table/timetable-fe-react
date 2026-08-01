@@ -286,7 +286,7 @@ const ButtonGroup = styled.div`
 
 const StepIndicator = styled.span`
   font-size: 12px;
-  color: ${theme.text.gamma[600]};
+  color: ${theme.text.gamma[400]};
   font-family: "Pretendard-Medium";
 `;
 
