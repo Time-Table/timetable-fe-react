@@ -1,8 +1,7 @@
 import "./App.css";
-import { Route, BrowserRouter as Router, Routes, useLocation } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes, Navigate, useLocation } from "react-router-dom";
 import TimetablePage from "./page/timetable/TimetablePage";
 import Header from "./component/Header";
-import CreatePage from "./page/create/CreatePage.jsx";
 import QuickCreatePage from "./page/create/QuickCreatePage.jsx";
 import ManagerPage from "./page/ManagerPage";
 import AboutPage from "./page/AboutPage";
@@ -49,14 +48,16 @@ function App() {
                     <Seo />
                     <ConditionalHeader />
                     <Routes>
-                         <Route path="/" element={<CreatePage />}></Route>
-                         <Route path="/create" element={<CreatePage />}></Route>
+                         <Route path="/" element={<StartPage />}></Route>
+                         {/* 옛 랜딩 주소. 색인과 외부 링크가 남아 있어 404 대신 정본으로 보낸다.
+                             크롤러용 301은 public/_redirects 가 담당한다. */}
+                         <Route path="/create" element={<Navigate to="/" replace />}></Route>
+                         <Route path="/start" element={<Navigate to="/" replace />}></Route>
                          <Route path="/quick-create" element={<QuickCreatePage />}></Route>
                          <Route path="/managerPage" element={<ManagerPage />}></Route>
                          <Route path="/table/:tableId" element={<TimetablePage />}></Route>
                          <Route path="/about" element={<AboutPage />}></Route>
                          <Route path="/guide" element={<GuidePage />}></Route>
-                         <Route path="/start" element={<StartPage />}></Route>
                          <Route
                               path="/appointment-scheduling-guide"
                               element={<GuideSchedulingPage />}

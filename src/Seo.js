@@ -3,13 +3,18 @@ import { Helmet } from "react-helmet-async";
 import { useLocation } from "react-router-dom";
 
 /**
- * 검색엔진에 노출할 정본 도메인. www 있는 형태 하나만 쓴다.
- * www 없는 주소와 있는 주소는 검색엔진에게 서로 다른 사이트라, 둘을 섞으면 신호가 쪼개진다.
+ * 검색엔진에 노출할 정본 도메인. **www 없는** 형태 하나만 쓴다.
+ * www 있는 주소는 301 로 이쪽으로 넘어온다. 둘을 섞으면 신호가 쪼개진다.
  */
 export const SITE_URL = "https://timetable2.com";
 
-/** 같은 화면이 두 주소로 열릴 때 정본으로 삼을 주소. `/`와 `/create`는 둘 다 CreatePage다. */
-const CANONICAL_ALIAS = { "/create": "/" };
+/**
+ * 같은 화면이 여러 주소로 열릴 때 정본으로 삼을 주소.
+ * 랜딩을 StartPage 로 바꾸면서 옛 `/create`·`/start` 는 `/` 로 모은다.
+ * 라우터가 리다이렉트하고 `public/_redirects` 가 크롤러용 301 을 담당하지만,
+ * 리다이렉트 전에 렌더된 순간에도 canonical 이 정본을 가리켜야 한다.
+ */
+const CANONICAL_ALIAS = { "/create": "/", "/start": "/" };
 
 /**
  * 색인하면 안 되는 경로.

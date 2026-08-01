@@ -60,7 +60,7 @@ const Footer = () => {
         <FooterLinks>
           <LinkGroup>
             <h4>서비스</h4>
-            <Link to="/start">약속 시간 정하기</Link>
+            <Link to="/">약속 시간 정하기</Link>
             <Link to="/appointment-scheduling-guide">약속 조율 가이드</Link>
             <Link to="/about">소개</Link>
             <Link to="/guide">이용 가이드</Link>

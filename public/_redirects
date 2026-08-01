@@ -20,5 +20,10 @@
 /blog/18    /blog/weekend-active-rest-planning    301!
 /blog/19    /blog/business-email-time-saving    301!
 
+# 랜딩을 /start 내용으로 바꾸면서 옛 주소를 정본(/)으로 보낸다.
+# 같은 화면이 세 주소로 열리면 검색 신호가 쪼개진다.
+/create    /    301!
+/start     /    301!
+
 # SPA 폴백
 /*    /index.html   200

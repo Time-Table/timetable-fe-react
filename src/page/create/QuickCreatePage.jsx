@@ -105,7 +105,7 @@ export default function QuickCreatePage() {
       <Seo title="타임테이블 - 빠른 생성" description="빠르게 약속을 만들어보세요." />
       <PageWrapper>
         <Header>
-          <ArrowLayout onClick={() => navigate("/create")}>
+          <ArrowLayout onClick={() => navigate("/")}>
             <Arrow width={10} height={20} angle={180} />
           </ArrowLayout>
           <TitleContainer>

@@ -201,7 +201,7 @@ export default function GuideSchedulingPage() {
             </Steps>
             <CTABox>
               <p>값이 미리 채워져 있어 바로 확인해 볼 수 있습니다.</p>
-              <CTALink to="/start">약속 조율 시작하기</CTALink>
+              <CTALink to="/">약속 조율 시작하기</CTALink>
             </CTABox>
           </Section>
 
@@ -243,7 +243,7 @@ export default function GuideSchedulingPage() {
               약속을 잡는 데 드는 시간은 모임 자체의 즐거움과 아무 상관이 없습니다. 그 과정을 짧게
               줄이는 것이 타임테이블이 하는 일의 전부입니다.
             </p>
-            <CTALink to="/start">지금 만들어 보기</CTALink>
+            <CTALink to="/">지금 만들어 보기</CTALink>
           </Closing>
         </Article>
       </PageWrapper>
