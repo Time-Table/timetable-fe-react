@@ -1,7 +1,10 @@
 import theme from "../theme";
+import Seo from "../Seo";
 
 export default function TermsPage() {
   return (
+    <>
+    <Seo title="이용약관 - 타임테이블" description="타임테이블 서비스 이용약관입니다." />
     <div
       style={{
         background: "#F5F5F5",
@@ -135,5 +138,6 @@ export default function TermsPage() {
         돌아가기
       </button>
     </div>
+    </>
   );
 }

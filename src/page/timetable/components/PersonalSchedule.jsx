@@ -5,6 +5,7 @@ import Button from "../../../component/Button";
 import TimeGrid from "../../../component/TimeGrid";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../api/schedule";
+import { trackEvent, EVENTS } from "../../../utils/analytics";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiGrid } from "react-icons/fi";
@@ -59,6 +60,7 @@ export default function PersonalSchedule({
           setIsSaving(true);
           try {
                await addSchedule(tableId, name, selectedCells);
+               trackEvent(EVENTS.SCHEDULE_SAVE, tableId);
                Swal.fire({
                     icon: "success",
                     iconColor: `${theme.color.primary}`,

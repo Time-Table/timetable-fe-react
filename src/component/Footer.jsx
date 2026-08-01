@@ -50,7 +50,7 @@ const Footer = () => {
     <FooterContainer>
       <FooterContent>
         <FooterSection>
-          <FooterLogo>타임테이블2</FooterLogo>
+          <FooterLogo>타임테이블</FooterLogo>
           <FooterDescription>
             복잡한 일정 조율을 간단하게. <br />
             링크 하나로 시작하는 스마트한 약속 잡기.
@@ -60,6 +60,8 @@ const Footer = () => {
         <FooterLinks>
           <LinkGroup>
             <h4>서비스</h4>
+            <Link to="/start">약속 시간 정하기</Link>
+            <Link to="/appointment-scheduling-guide">약속 조율 가이드</Link>
             <Link to="/about">소개</Link>
             <Link to="/guide">이용 가이드</Link>
             <Link to="/blog">칼럼/가이드</Link>
@@ -77,7 +79,7 @@ const Footer = () => {
         </FooterLinks>
       </FooterContent>
       <FooterBottom>
-        <p>&copy; 2026 Timetable2. All rights reserved.</p>
+        <p>&copy; 2026 Timetable. All rights reserved.</p>
       </FooterBottom>
     </FooterContainer>
   );
@@ -122,7 +124,7 @@ const FooterDescription = styled.p`
   line-height: 1.6;
 `;
 
-const FooterLinks = styled.div`
+const FooterLinks = styled.nav`
   display: flex;
   justify-content: space-around;
   gap: 20px;

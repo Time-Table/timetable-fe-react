@@ -1,6 +1,6 @@
 {
-  "short_name": "TimeTable",
-  "name": "TimeTable",
+  "short_name": "타임테이블",
+  "name": "타임테이블 - 약속 조율",
   "icons": [
     {
       "src": "favicon.ico",

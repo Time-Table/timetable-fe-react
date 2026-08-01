@@ -2,9 +2,11 @@ import styled from "@emotion/styled";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme";
 import Seo from "../../Seo";
+import ServiceJsonLd from "../../component/ServiceJsonLd";
 import { BsLightningChargeFill } from "react-icons/bs";
 import { useEffect, useRef } from "react";
 import { trackVisit } from "../../api/visit";
+import { trackEvent, EVENTS } from "../../utils/analytics";
 import { motion } from "framer-motion";
 import Preview3 from "../../assets/svg/Preview3";
 
@@ -15,6 +17,7 @@ export default function CreatePage() {
   useEffect(() => {
     if (!hasTrackedVisit.current) {
       trackVisit("landing");
+      trackEvent(EVENTS.LANDING_VIEW);
       hasTrackedVisit.current = true;
     }
   }, []);
@@ -22,9 +25,10 @@ export default function CreatePage() {
   return (
     <>
       <Seo
-        title="타임테이블 - 시작하기"
-        description="가장 빠른 일정 조율, 링크 하나로 시작하세요."
+        title="약속 조율, 로그인 없이 30초 — 타임테이블"
+        description="약속 조율을 링크 하나로. 로그인·설치 없이 30초 만에 만들고, 모두의 가능한 시간을 드래그로 모아 겹치는 골든타임을 자동으로 찾아드립니다. 무료입니다."
       />
+      <ServiceJsonLd />
       <PageWrapper>
         <ContentContainer>
           <motion.div
@@ -34,9 +38,9 @@ export default function CreatePage() {
           >
             <Badge>No Login, No Stress</Badge>
             <MainTitle>
-              도대체 다들,
+              도대체 다들, 언제 시간되세요?
               <br />
-              <span>언제 시간되세요?</span>
+              <span>약속 조율, 링크 하나로 끝</span>
             </MainTitle>
           </motion.div>
 
@@ -57,7 +61,12 @@ export default function CreatePage() {
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <CTASection>
-              <PrimaryButton onClick={() => navigate("/quick-create")}>
+              <PrimaryButton
+                onClick={() => {
+                  trackEvent(EVENTS.CREATE_CTA_CLICK);
+                  navigate("/quick-create");
+                }}
+              >
                 <BsLightningChargeFill size={20} />
                 로그인 없이 생성하기
               </PrimaryButton>
@@ -67,7 +76,7 @@ export default function CreatePage() {
             <SubTitle>
               번거로운 회원가입 없이 30초 만에 테이블을 생성하고 팀원들과{" "}
               <SubTitleEmphasis>최적의 약속 시간을 찾아보세요.</SubTitleEmphasis>{" "}
-              타임테이블2는 복잡한 일정 조율 과정을 단순하게 만들고, 모임의 효율성을
+              타임테이블은 복잡한 일정 조율 과정을 단순하게 만들고, 모임의 효율성을
               극대화하기 위해 설계된 무료 도구입니다. 이미 수많은 팀들이 이 서비스를 통해 조별 과제,
               회식, 주말 약속 등 다양한 일정들을 성공적으로 조율하고 있습니다.
             </SubTitle>
@@ -111,7 +120,7 @@ export default function CreatePage() {
             }}
           >
             <h2 style={{ fontFamily: "Pretendard-Bold", fontSize: "28px", marginBottom: "20px" }}>
-              왜 타임테이블2를 써야 하나요?
+              왜 타임테이블을 써야 하나요?
             </h2>
             <div
               style={{
@@ -156,7 +165,7 @@ export default function CreatePage() {
   );
 }
 
-const PageWrapper = styled.div`
+const PageWrapper = styled.main`
   width: 100%;
   min-height: calc(100vh - 72px);
   background:

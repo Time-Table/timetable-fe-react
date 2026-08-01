@@ -1,31 +1,32 @@
 import styled from "@emotion/styled";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import theme from "../../theme";
 import Seo from "../../Seo";
 import { blogPosts } from "../../data/blogPosts";
 
 export default function BlogListPage() {
-  const navigate = useNavigate();
-
   // 최신글이 위로 오도록 날짜 내림차순 정렬
   const sortedPosts = [...blogPosts].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
     <>
       <Seo
-        title="일정 관리 칼럼 - 타임테이블2"
+        title="일정 관리 칼럼 - 타임테이블"
         description="효율적인 일정 조율과 시간 관리를 위한 전문가들의 칼럼을 확인해보세요."
       />
       <PageWrapper>
         <Header>
-          <Title>Time Table 칼럼</Title>
+          <Title>타임테이블 칼럼</Title>
           <SubTitle>더 나은 협업과 효율적인 삶을 위한 가이드</SubTitle>
         </Header>
+        {/* 카드는 onClick이 아니라 실제 <a>로 연결한다. 그래야 크롤러가 글을 따라갈 수 있다. */}
         <PostGrid>
           {sortedPosts.map((post) => (
-            <PostCard key={post.id} onClick={() => navigate(`/blog/${post.id}`)}>
+            <PostCard key={post.id}>
               <Category>{post.category}</Category>
-              <PostTitle>{post.title}</PostTitle>
+              <PostTitle>
+                <PostLink to={`/blog/${post.slug}`}>{post.title}</PostLink>
+              </PostTitle>
               <Summary>{post.summary}</Summary>
               <PostMeta>
                 <PostDate>{post.date}</PostDate>
@@ -39,7 +40,7 @@ export default function BlogListPage() {
   );
 }
 
-const PageWrapper = styled.div`
+const PageWrapper = styled.main`
   max-width: 1000px;
   margin: 0 auto;
   padding: 60px 20px;
@@ -71,7 +72,8 @@ const PostGrid = styled.div`
   gap: 30px;
 `;
 
-const PostCard = styled.div`
+const PostCard = styled.article`
+  position: relative;
   background: white;
   padding: 30px;
   border-radius: 20px;
@@ -101,6 +103,23 @@ const PostTitle = styled.h2`
   color: ${theme.text.gamma[100]};
   margin-bottom: 16px;
   line-height: 1.4;
+`;
+
+// 카드 전체가 눌리도록 링크를 넓히되, 제목 텍스트는 그대로 보이게 한다.
+const PostLink = styled(Link)`
+  color: inherit;
+  text-decoration: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.primary};
+    outline-offset: 2px;
+  }
 `;
 
 const Summary = styled.p`

@@ -1,19 +1,27 @@
 import styled from "@emotion/styled";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import theme from "../../theme";
-import Seo from "../../Seo";
+import Seo, { SITE_URL } from "../../Seo";
 import { blogPosts } from "../../data/blogPosts";
 import { IoArrowBack } from "react-icons/io5";
 import AdSense from "../../component/AdSense";
+import NotFound from "../NotFound";
 
 export default function BlogDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const post = blogPosts.find((p) => p.id === parseInt(id));
 
-  if (!post) return <div>Post not found</div>;
+  // 예전 주소는 /blog/1 처럼 숫자였다. 색인돼 있으므로 계속 받아주되 slug 주소로 넘긴다.
+  const isLegacyId = /^\d+$/.test(id);
+  const post = isLegacyId
+    ? blogPosts.find((p) => p.id === parseInt(id, 10))
+    : blogPosts.find((p) => p.slug === id);
 
+  if (!post) return <NotFound />;
+  if (isLegacyId) return <Navigate to={`/blog/${post.slug}`} replace />;
+
+  const postUrl = `${SITE_URL}/blog/${post.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -21,6 +29,8 @@ export default function BlogDetailPage() {
     description: post.summary,
     datePublished: post.date,
     dateModified: post.date,
+    inLanguage: "ko-KR",
+    image: post.images?.[0]?.url,
     author: {
       "@type": "Person",
       name: post.author,
@@ -28,19 +38,19 @@ export default function BlogDetailPage() {
     },
     publisher: {
       "@type": "Organization",
-      name: "타임테이블2",
-      url: "https://www.timetable2.com",
+      name: "타임테이블",
+      url: `${SITE_URL}/`,
     },
-    url: `https://www.timetable2.com/blog/${post.id}`,
-    mainEntityOfPage: `https://www.timetable2.com/blog/${post.id}`,
+    url: postUrl,
+    mainEntityOfPage: postUrl,
   };
 
   return (
     <>
       <Seo
-        title={`${post.title} - 타임테이블2`}
+        title={`${post.title} - 타임테이블`}
         description={post.summary}
-        url={`https://www.timetable2.com/blog/${post.id}`}
+        image={post.images?.[0]?.url}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -88,8 +98,15 @@ export default function BlogDetailPage() {
           </Content>
           <AdSense isReady={true} />
           <Footer>
-            <p>이 정보가 도움이 되셨나요? 효율적인 일정 조율이 필요할 땐 타임테이블2를 이용해보세요.</p>
-            <HomeButton onClick={() => navigate("/create")}>무료 시간표 만들기</HomeButton>
+            <p>
+              이 정보가 도움이 되셨나요? 여러 명의 <Link to="/">약속 조율</Link>이 필요하다면
+              타임테이블에서 링크 하나로 끝낼 수 있습니다.{" "}
+              <Link to="/guide">이용 가이드</Link>도 함께 보세요.
+            </p>
+            {/* 버튼이 아니라 링크여야 크롤러가 따라간다. */}
+            <HomeButton as={Link} to="/">
+              무료로 약속 조율 시작하기
+            </HomeButton>
           </Footer>
         </Article>
       </PageWrapper>
@@ -97,7 +114,7 @@ export default function BlogDetailPage() {
   );
 }
 
-const PageWrapper = styled.div`
+const PageWrapper = styled.main`
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 20px 80px;
@@ -225,6 +242,8 @@ const Footer = styled.div`
 `;
 
 const HomeButton = styled.button`
+  display: inline-block;
+  text-decoration: none;
   background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
   color: white;
   border: none;

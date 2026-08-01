@@ -2,10 +2,12 @@ import React from "react";
 import theme from "../theme";
 import styled from "@emotion/styled";
 import Loader from "./timetable/components/Loading";
+import Seo from "../Seo";
 
 const NotFoundTable = () => {
   return (
     <CreatePageDiv>
+      <Seo title="테이블을 찾을 수 없습니다 - 타임테이블" noindex />
       <h1>404 Error</h1>
       <h1>Table-Not Found</h1>
       <Loader />

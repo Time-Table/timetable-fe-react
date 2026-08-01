@@ -4,6 +4,7 @@ import Button from "../../../component/Button";
 import Input from "../../../component/Input";
 import { useState } from "react";
 import { joinUser, getUserInfo, deleteUser } from "../../../api/user";
+import { trackEvent, EVENTS } from "../../../utils/analytics";
 import Swal from "sweetalert2";
 import { FiLogIn } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
@@ -83,6 +84,7 @@ export default function JoinForm({
   };
 
   const handleSuccess = async (userName) => {
+    trackEvent(EVENTS.JOIN_SUCCESS, tableId);
     if (refreshData) {
       await refreshData();
     }
@@ -110,6 +112,7 @@ export default function JoinForm({
       return;
     }
 
+    trackEvent(EVENTS.JOIN_SUBMIT, tableId);
     const user = await joinUser(tableId, name, password);
     if (user) {
       switch (user.code) {

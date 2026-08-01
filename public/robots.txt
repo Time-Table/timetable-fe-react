@@ -1,6 +1,14 @@
 # https://www.robotstxt.org/robotstxt.html
+# 경로는 대소문자를 구분한다. 라우터(react-router)는 구분하지 않으므로
+# 같은 화면에 닿는 표기를 모두 막는다.
 User-agent: *
 Allow: /
+
+# 관리자 콘솔
+Disallow: /managerPage
 Disallow: /managerpage
 
-Sitemap: https://www.timetable2.com/sitemap.xml
+# 초대받은 사람만 보는 모임 일정. 참여자 이름이 들어 있다.
+Disallow: /table/
+
+Sitemap: https://timetable2.com/sitemap.xml

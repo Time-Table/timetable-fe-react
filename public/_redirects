@@ -1,1 +1,24 @@
+# 예전 블로그 주소(/blog/1)는 색인돼 있으므로 slug 주소로 301 보낸다.
+# SPA 폴백(/* -> /index.html)보다 반드시 위에 있어야 한다.
+/blog/1    /blog/group-project-schedule-coordination    301!
+/blog/2    /blog/weekly-work-schedule-guide    301!
+/blog/3    /blog/remote-meeting-time-scheduling    301!
+/blog/4    /blog/leader-time-management-philosophy    301!
+/blog/5    /blog/stop-procrastination-time-management    301!
+/blog/6    /blog/burnout-prevention-rest-time    301!
+/blog/7    /blog/university-free-period-timetable    301!
+/blog/8    /blog/meeting-agenda-and-time-limits    301!
+/blog/9    /blog/family-trip-itinerary-planning    301!
+/blog/10    /blog/evening-self-development-schedule    301!
+/blog/11    /blog/remote-work-energy-management    301!
+/blog/12    /blog/spaced-repetition-2-2-2-method    301!
+/blog/13    /blog/large-event-schedule-checklist    301!
+/blog/14    /blog/miracle-morning-chronotype    301!
+/blog/15    /blog/notion-team-dashboard-schedule    301!
+/blog/16    /blog/sleep-deprivation-and-creativity    301!
+/blog/17    /blog/why-schedule-exercise    301!
+/blog/18    /blog/weekend-active-rest-planning    301!
+/blog/19    /blog/business-email-time-saving    301!
+
+# SPA 폴백
 /*    /index.html   200

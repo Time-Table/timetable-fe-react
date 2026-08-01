@@ -6,9 +6,8 @@ export default function ContactPage() {
   return (
     <PageWrapper>
       <Seo
-        title="문의하기 - 타임테이블2"
-        description="타임테이블2 서비스 이용 중 궁금한 점이나 불편한 사항을 알려주세요. 이메일로 문의하시면 신속하게 답변드리겠습니다."
-        url="https://www.timetable2.com/contact"
+        title="문의하기 - 타임테이블"
+        description="타임테이블 서비스 이용 중 궁금한 점이나 불편한 사항을 알려주세요. 이메일로 문의하시면 신속하게 답변드리겠습니다."
       />
       <Content>
         <Title>문의하기</Title>
@@ -34,7 +33,7 @@ export default function ContactPage() {
             <FaqItem>
               <strong>Q. 서비스 이용은 무료인가요?</strong>
               <p>
-                네, 타임테이블2는 완전 무료로 이용하실 수 있습니다. 회원가입 없이
+                네, 타임테이블은 완전 무료로 이용하실 수 있습니다. 회원가입 없이
                 바로 시작하실 수 있습니다.
               </p>
             </FaqItem>
@@ -48,7 +47,7 @@ export default function ContactPage() {
             <FaqItem>
               <strong>Q. 개인정보가 수집되나요?</strong>
               <p>
-                타임테이블2는 이름(닉네임)만으로 참여가 가능하며, 이메일·전화번호 등
+                타임테이블은 이름(닉네임)만으로 참여가 가능하며, 이메일·전화번호 등
                 개인 식별 정보를 수집하지 않습니다. 자세한 내용은{" "}
                 <a href="/privacy">개인정보처리방침</a>을 확인해 주세요.
               </p>
@@ -68,11 +67,11 @@ export default function ContactPage() {
           <InfoGrid>
             <InfoItem>
               <InfoLabel>서비스명</InfoLabel>
-              <InfoValue>타임테이블2 (Timetable2)</InfoValue>
+              <InfoValue>타임테이블 (Timetable)</InfoValue>
             </InfoItem>
             <InfoItem>
               <InfoLabel>웹사이트</InfoLabel>
-              <InfoValue>https://www.timetable2.com</InfoValue>
+              <InfoValue>https://timetable2.com</InfoValue>
             </InfoItem>
             <InfoItem>
               <InfoLabel>이메일</InfoLabel>
@@ -89,7 +88,7 @@ export default function ContactPage() {
   );
 }
 
-const PageWrapper = styled.div`
+const PageWrapper = styled.main`
   padding: 80px 20px;
   background-color: #f8f9fa;
   min-height: 100vh;

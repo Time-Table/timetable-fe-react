@@ -1,7 +1,10 @@
 import theme from "../theme";
+import Seo from "../Seo";
 
 export default function PrivacyPage() {
   return (
+    <>
+    <Seo title="개인정보처리방침 - 타임테이블" description="타임테이블 개인정보처리방침입니다." />
     <div
       style={{
         background: "#F5F5F5",
@@ -72,5 +75,6 @@ export default function PrivacyPage() {
         돌아가기
       </button>
     </div>
+    </>
   );
 }

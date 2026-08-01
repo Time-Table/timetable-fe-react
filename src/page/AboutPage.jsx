@@ -62,9 +62,10 @@ export default function AboutPage() {
   return (
     <AboutPageDiv>
       <Seo
-        description={"타임테이블에 대해 궁금하신가요?"}
-        url={"https://www.timetable2.com/about"}
+        title="서비스 소개 — 약속 조율 도구 타임테이블"
+        description="타임테이블은 로그인 없이 약속 조율을 끝내는 무료 도구입니다. 드래그로 가능한 시간을 모으고 골든타임을 자동으로 계산하는 방식을 소개합니다."
       />
+      <PageHeading>약속 조율 도구, 타임테이블 소개</PageHeading>
       <ContentDiv>
         <div>
           <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
@@ -120,9 +121,9 @@ export default function AboutPage() {
         </div>
 
         <DescriptionSection ref={addToRefs} data-animation="fade-up" style={{ opacity: 1, transform: "translateY(0)" }}>
-          <h3>왜 타임테이블2 인가요?</h3>
+          <h3>왜 타임테이블 인가요?</h3>
           <p>
-            타임테이블2는 복잡한 일정 조율 과정을 간소화하기 위해 만들어진 무료 서비스입니다.
+            타임테이블은 복잡한 일정 조율 과정을 간소화하기 위해 만들어진 무료 서비스입니다.
             회원가입이나 번거로운 로그인 과정 없이, 단 30초 만에 약속을 제안하고
             구성원들의 가능한 시간을 한눈에 파악할 수 있는 가장 효율적인 시스템을 제공합니다.
           </p>
@@ -233,7 +234,7 @@ const DescriptionSection = styled.div`
   }
 `;
 
-const AboutPageDiv = styled.div`
+const AboutPageDiv = styled.main`
   ${theme.styles.flexCenterColumn}
   width: 100%;
 `;
@@ -273,8 +274,22 @@ const RedBackgroundDiv = styled.div`
   }
 `;
 
-const AnimatedText = styled.h1`
+// 검색엔진과 스크린리더용 페이지 제목. 히어로 카피가 이미 시각적 헤드라인 역할을 한다.
+const PageHeading = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
+const AnimatedText = styled.p`
   font-size: 30px;
+  margin: 0.67em 0;
   font-family: Pretendard-Bold;
   color: black;
   text-align: center;

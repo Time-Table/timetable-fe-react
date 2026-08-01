@@ -6,10 +6,10 @@ import Seo from "../Seo";
 const GuidePage = () => {
   return (
     <PageWrapper>
-      <Seo title="이용 가이드 - 타임테이블2" description="타임테이블2를 효율적으로 사용하는 방법을 알아보세요." />
+      <Seo title="이용 가이드 - 타임테이블" description="타임테이블을 효율적으로 사용하는 방법을 알아보세요." />
       <Content>
         <Title>이용 가이드</Title>
-        <p className="subtitle">타임테이블2를 처음 사용하시나요? 아래 가이드를 따라 30초 만에 약속을 잡아보세요.</p>
+        <p className="subtitle">타임테이블을 처음 사용하시나요? 아래 가이드를 따라 30초 만에 약속을 잡아보세요.</p>
         
         <Section>
           <h3>1. 테이블 생성 및 시간 범위 설정</h3>
@@ -68,7 +68,7 @@ const GuidePage = () => {
           </FaqItem>
           <FaqItem>
             <strong>Q. 모바일에서도 똑같이 사용할 수 있나요?</strong>
-            <p>A. 네, 타임테이블2는 완전한 반응형 웹사이트로 설계되어 있습니다. 갤럭시, 아이폰 등 스마트폰은 물론 태블릿과 PC 어디서나 최적화된 화면으로 이용이 가능합니다.</p>
+            <p>A. 네, 타임테이블은 완전한 반응형 웹사이트로 설계되어 있습니다. 갤럭시, 아이폰 등 스마트폰은 물론 태블릿과 PC 어디서나 최적화된 화면으로 이용이 가능합니다.</p>
           </FaqItem>
           <FaqItem>
             <strong>Q. 누군가 제 이름을 사칭하면 어떻게 하나요?</strong>
@@ -80,7 +80,7 @@ const GuidePage = () => {
   );
 };
 
-const PageWrapper = styled.div`
+const PageWrapper = styled.main`
   padding: 80px 20px;
   background-color: #f8f9fa;
   min-height: 100vh;
