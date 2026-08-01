@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { BsLightningChargeFill } from "react-icons/bs";
+import { FaLock } from "react-icons/fa";
 import {
   FiCalendar,
   FiShare2,
@@ -19,6 +20,7 @@ import {
 } from "react-icons/fi";
 import theme from "../../theme";
 import Seo from "../../Seo";
+import TimeGrid from "../../component/TimeGrid";
 import { createTable } from "../../api/table";
 import { trackVisit } from "../../api/visit";
 import { trackEvent, EVENTS } from "../../utils/analytics";
@@ -26,6 +28,7 @@ import {
   PRESETS,
   buildDefaultDates,
   buildDatesAfter,
+  formatDayLabel,
   HOURS,
   DAYS_PER_WEEK,
   MIN_WEEKS,
@@ -89,6 +92,15 @@ export default function StartPage() {
   const [previewName, setPreviewName] = useState(null);
   const [isRankingOpen, setRankingOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  // 미리보기에서 열어 둔 칸. `${dayKey}|${hour}` 또는 null.
+  // 골든타임 칸을 기본으로 열어 두어 "칸을 누르면 명단이 나온다"를 먼저 보여준다.
+  const [openCell, setOpenCell] = useState(null);
+  const [isLockOpen, setLockOpen] = useState(false);
+  const [isLockExpanded, setLockExpanded] = useState(false);
+  const [banedCells, setBanedCells] = useState([]);
+
+  // 후보 날짜 드래그. quick-create 의 Calendar 와 같은 방식이다.
+  const [dragAction, setDragAction] = useState(null);
   const [isToastOpen, setToastOpen] = useState(false);
   const toastTimer = useRef(null);
   // 마우스와 포커스를 따로 센다. 하나로 합치면 "포커스는 남았는데 포인터만 나간"
@@ -179,6 +191,40 @@ export default function StartPage() {
   const toggleDate = (key) =>
     setDates((prev) => prev.map((d) => (d.key === key ? { ...d, selected: !d.selected } : d)));
 
+  /** 드래그로 지나간 날짜에 같은 동작(켜기/끄기)을 적용한다. 이미 그 상태면 건드리지 않는다. */
+  const applyDrag = useCallback((key, action) => {
+    if (!key || !action) return;
+    setDates((prev) =>
+      prev.map((d) => (d.key === key ? { ...d, selected: action === "select" } : d))
+    );
+  }, []);
+
+  const startDrag = (key, selected) => (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // 캡처를 놓아야 elementFromPoint 로 다른 셀을 집을 수 있다.
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    const action = selected ? "deselect" : "select";
+    setDragAction(action);
+    applyDrag(key, action);
+  };
+
+  useEffect(() => {
+    if (!dragAction) return;
+    const onMove = (e) => {
+      const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-date]");
+      if (cell) applyDrag(cell.dataset.date, dragAction);
+    };
+    const onUp = () => setDragAction(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [dragAction, applyDrag]);
+
   const weekCount = Math.ceil(dates.length / DAYS_PER_WEEK);
 
   /**
@@ -202,6 +248,30 @@ export default function StartPage() {
   }, [dates]);
 
   const shownWeek = previewWeeks[Math.min(previewIndex, previewWeeks.length - 1)] || [];
+
+  /** 골든타임 칸의 키. 미리보기를 열면 여기가 기본으로 펼쳐져 있다. */
+  const goldenKey = mock?.golden ? `${mock.golden.day.key}|${mock.golden.from}` : null;
+
+  // 날짜·시간을 바꾸면 골든타임이 옮겨간다. 열려 있던 칸을 새 골든타임으로 다시 맞춘다.
+  useEffect(() => {
+    setOpenCell(goldenKey);
+  }, [goldenKey]);
+
+  const openCellInfo = useMemo(() => {
+    if (!mock || !openCell) return null;
+    const [dayKey, hourStr] = openCell.split("|");
+    const day = selectedDays.find((d) => d.key === dayKey);
+    if (!day) return null;
+    const hour = Number(hourStr);
+    const can = mock.cells[openCell] || [];
+    return {
+      day,
+      hour,
+      can,
+      cannot: MOCK_MEMBERS.filter((m) => !can.includes(m)),
+      isGolden: can.length > 0 && can.length === mock.maxCount,
+    };
+  }, [mock, openCell, selectedDays]);
 
   /**
    * Hero 미끼에 그릴 시간대. 앞에서부터 자르면 이른 아침처럼 아무도 없는 구간만 나와
@@ -263,10 +333,11 @@ export default function StartPage() {
     setToastOpen(false);
   };
 
-  // 미리보기에서 빠져나오는 탈출구. 개인 시간표와 토스트 모두 Esc로 닫힌다.
+  // 미리보기에서 빠져나오는 탈출구. 안쪽에 열린 것부터 순서대로 닫는다.
   const handlePreviewKeyDown = (e) => {
     if (e.key !== "Escape") return;
     if (isToastOpen) closeToast();
+    else if (openCell) setOpenCell(null);
     else if (previewName) setPreviewName(null);
     else if (isRankingOpen) setRankingOpen(false);
   };
@@ -284,15 +355,28 @@ export default function StartPage() {
           ? "링크를 만드는 중입니다."
           : "가입 없이 생성 · 나중에 수정 가능";
 
+  /** 버튼을 눌러도 바로 만들지 않는다. 시간 잠금을 한 번 물어본 뒤 만든다. */
+  const openLock = () => {
+    if (!isValid || isLoading) return;
+    setBanedCells((prev) => prev.filter((c) => selectedDates.includes(c.slice(0, c.lastIndexOf("-")))));
+    setLockOpen(true);
+  };
+
+  const closeLock = () => {
+    setLockOpen(false);
+    setLockExpanded(false);
+  };
+
   const handleCreate = async () => {
     if (!isValid || isLoading) return;
     trackEvent(EVENTS.CREATE_SUBMIT);
     setIsLoading(true);
-    const res = await createTable(title.trim(), selectedDates, startHour, endHour, []);
+    const res = await createTable(title.trim(), selectedDates, startHour, endHour, banedCells);
     // 응답을 기다리는 사이에 사용자가 페이지를 떠났으면 여기서 끝낸다.
     // 아니면 다른 화면 위에 성공 모달이 뜨고, 확인을 누르면 엉뚱한 곳으로 이동한다.
     if (!isMounted.current) return;
     setIsLoading(false);
+    closeLock();
 
     if (res?.isRateLimit) return;
     if (!res?.success) {
@@ -472,7 +556,10 @@ export default function StartPage() {
                           $active={d.selected}
                           aria-pressed={d.selected}
                           aria-label={`${i === 0 ? "내일, " : ""}${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${DAY_FULL[dow]}`}
-                          onClick={() => toggleDate(d.key)}
+                          data-date={d.key}
+                          onPointerDown={startDrag(d.key, d.selected)}
+                          // 포인터로 이미 처리했다. 키보드(Enter/Space)로 온 클릭만 받는다.
+                          onClick={(e) => e.detail === 0 && toggleDate(d.key)}
                         >
                           <CircleWrap data-circle>
                             <AnimatePresence>
@@ -631,21 +718,32 @@ export default function StartPage() {
 
                     {/* 후보에서 뺀 날은 열이 사라지는 게 아니라 비활성으로 남는다.
                         실제 /table 화면도 한 주를 통째로 그리고 후보 밖 날을 흐리게 둔다. */}
-                    <PreviewScroll aria-hidden="true">
-                      <PreviewGrid $cols={DAYS_PER_WEEK}>
-                        <PreviewCorner />
+                    {/* 칸이 눌러지므로 격자를 통째로 aria-hidden 하지 않는다.
+                        (focus 가능한 요소를 aria-hidden 안에 두면 스크린리더에서 길을 잃는다) */}
+                    <PreviewScroll>
+                      <PreviewGrid
+                        $cols={DAYS_PER_WEEK}
+                        role="group"
+                        aria-label="예시 시간표 — 칸을 누르면 그 시간에 가능한 사람이 나옵니다"
+                      >
+                        <PreviewCorner aria-hidden="true" />
                         {shownWeek.map((d, i) => (
-                          <PreviewHead key={d ? d.key : `off-${i}`} $off={!d || !d.selected}>
+                          <PreviewHead
+                            key={d ? d.key : `off-${i}`}
+                            aria-hidden="true"
+                            $off={!d || !d.selected}
+                          >
                             {DAY_SHORT[i]}
                             <em>{d ? d.date.getDate() : ""}</em>
                           </PreviewHead>
                         ))}
                         {mock.hours.map((h) => (
                           <PreviewRowGroup key={h}>
-                            <PreviewTime>{`${String(h).padStart(2, "0")}:00`}</PreviewTime>
+                            <PreviewTime aria-hidden="true">{`${String(h).padStart(2, "0")}:00`}</PreviewTime>
                             {shownWeek.map((d, i) => {
                               const off = !d || !d.selected;
-                              const members = off ? [] : mock.cells[`${d.key}|${h}`] || [];
+                              const cellKey = d ? `${d.key}|${h}` : null;
+                              const members = off ? [] : mock.cells[cellKey] || [];
                               // 개인 모드는 실제 TimeGrid와 같이 단색 1.0으로 칠한다.
                               const opacity = previewName
                                 ? members.includes(previewName)
@@ -658,7 +756,24 @@ export default function StartPage() {
                               const isGolden =
                                 !previewName && members.length > 0 && members.length === mock.maxCount;
                               return (
-                                <PreviewCell key={d ? `${d.key}-${h}` : `off-${i}-${h}`} $off={off}>
+                                <PreviewCell
+                                  key={d ? `${d.key}-${h}` : `off-${i}-${h}`}
+                                  as={members.length ? "button" : "div"}
+                                  type={members.length ? "button" : undefined}
+                                  $off={off}
+                                  $open={cellKey === openCell}
+                                  $clickable={members.length > 0}
+                                  aria-label={
+                                    members.length
+                                      ? `${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${String(h).padStart(2, "0")}시 · ${members.length}명 가능`
+                                      : undefined
+                                  }
+                                  onClick={
+                                    members.length
+                                      ? () => setOpenCell((v) => (v === cellKey ? null : cellKey))
+                                      : undefined
+                                  }
+                                >
                                   {opacity > 0 && <CellFill style={{ opacity }} />}
                                   {isGolden && <CellShine />}
                                 </PreviewCell>
@@ -668,6 +783,62 @@ export default function StartPage() {
                         ))}
                       </PreviewGrid>
                     </PreviewScroll>
+
+                    {/* 실제 /table 의 셀 팝업과 같은 정보를 담되, 좁은 카드 안에서 잘리지 않게
+                        격자 아래에 붙여 둔다. 골든타임 칸이 기본으로 열려 있다. */}
+                    <AnimatePresence initial={false}>
+                      {openCellInfo && (
+                        <CellInfo
+                          key={openCell}
+                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: theme.duration.sec.fast }}
+                        >
+                          <CellInfoHead>
+                            {openCellInfo.isGolden && <GoldenTag>최다 인원</GoldenTag>}
+                            <CellInfoTime>
+                              {openCellInfo.day.date.getMonth() + 1}월{" "}
+                              {openCellInfo.day.date.getDate()}일 (
+                              {formatDayLabel(openCellInfo.day.date)}){" "}
+                              {String(openCellInfo.hour).padStart(2, "0")}:00~
+                              {String(openCellInfo.hour + 1).padStart(2, "0")}:00
+                            </CellInfoTime>
+                            <CellInfoClose
+                              type="button"
+                              aria-label="이 시간 정보 닫기"
+                              onClick={() => setOpenCell(null)}
+                            >
+                              <FiX size={14} />
+                            </CellInfoClose>
+                          </CellInfoHead>
+                          <CellInfoRow>
+                            <CellInfoLabel $can>참여 가능 {openCellInfo.can.length}명</CellInfoLabel>
+                            <NameChips>
+                              {openCellInfo.can.length ? (
+                                openCellInfo.can.map((m) => (
+                                  <NameChip key={m} $can>
+                                    {m}
+                                  </NameChip>
+                                ))
+                              ) : (
+                                <NoName>없음</NoName>
+                              )}
+                            </NameChips>
+                          </CellInfoRow>
+                          <CellInfoRow>
+                            <CellInfoLabel>참여 불가 {openCellInfo.cannot.length}명</CellInfoLabel>
+                            <NameChips>
+                              {openCellInfo.cannot.length ? (
+                                openCellInfo.cannot.map((m) => <NameChip key={m}>{m}</NameChip>)
+                              ) : (
+                                <NoName>없음</NoName>
+                              )}
+                            </NameChips>
+                          </CellInfoRow>
+                        </CellInfo>
+                      )}
+                    </AnimatePresence>
 
                     <Legend aria-hidden="true">
                       {previewName ? (
@@ -841,14 +1012,14 @@ export default function StartPage() {
         <CtaBlock {...riseInView(reduceMotion)}>
           <CreateButton
             type="button"
-            onClick={handleCreate}
+            onClick={openLock}
             disabled={!isValid || isLoading}
             aria-describedby="start-cta-hint"
           >
             <SparkIcon $spin={isLoading} $reduce={reduceMotion}>
               <BsLightningChargeFill size={20} aria-hidden="true" />
             </SparkIcon>
-            {isLoading ? "만드는 중…" : "링크 만들기"}
+            {isLoading ? "만드는 중…" : "이대로 만들기"}
           </CreateButton>
           {/* 못 누르는 이유를 색이 아니라 글로 말한다. */}
           <Hint id="start-cta-hint" role="status" style={{ textAlign: "center" }}>
@@ -856,6 +1027,99 @@ export default function StartPage() {
           </Hint>
         </CtaBlock>
         </StartShell>
+
+        {/* 시간 잠금. quick-create 의 (선택)시간 잠금 카드를 팝업으로 옮긴 것이다.
+            건너뛰어도 되므로 접힌 채로 열리고, 펼쳐야 격자가 나온다. */}
+        <AnimatePresence>
+          {isLockOpen && (
+            <LockOverlay
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: theme.duration.sec.fast }}
+              onClick={closeLock}
+            >
+              <LockModal
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="start-lock-title"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: theme.motion.riseY }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: theme.motion.riseY }}
+                transition={{ duration: theme.duration.sec.base, ease: theme.easing.arr.out }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.key === "Escape" && closeLock()}
+              >
+                <LockBody>
+                <LockHead>
+                  <LockTitle id="start-lock-title">
+                    <FaLock size={13} aria-hidden="true" />
+                    시간 잠금
+                    <LockOptional>선택</LockOptional>
+                  </LockTitle>
+                  <CellInfoClose type="button" aria-label="닫기" onClick={closeLock}>
+                    <FiX size={16} />
+                  </CellInfoClose>
+                </LockHead>
+                <LockDesc>
+                  잠근 시간대는 참여자가 고를 수 없습니다. 회의실이 없거나 이미 일정이 잡힌
+                  시간을 미리 빼둘 때 씁니다. <b>그냥 넘어가도 됩니다.</b>
+                </LockDesc>
+
+                <LockAccordion
+                  type="button"
+                  onClick={() => setLockExpanded((v) => !v)}
+                  aria-expanded={isLockExpanded}
+                  aria-controls="start-lock-grid"
+                >
+                  <span>
+                    시간 고르기
+                    {banedCells.length > 0 && <LockCount>{banedCells.length}칸 잠금</LockCount>}
+                  </span>
+                  <Chevron $open={isLockExpanded} aria-hidden="true">
+                    <FiChevronRight size={16} />
+                  </Chevron>
+                </LockAccordion>
+
+                <AnimatePresence initial={false}>
+                  {isLockExpanded && (
+                    <LockGridWrap
+                      id="start-lock-grid"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: reduceMotion ? 0 : theme.duration.sec.base }}
+                    >
+                      <LockGridInner>
+                        <TimeGrid
+                          dates={selectedDates}
+                          startHour={startHour}
+                          endHour={endHour}
+                          selectedCells={banedCells}
+                          setSelectedCells={setBanedCells}
+                          selectedCellColor={theme.text.gamma[700]}
+                        />
+                      </LockGridInner>
+                    </LockGridWrap>
+                  )}
+                </AnimatePresence>
+                </LockBody>
+
+                <LockActions>
+                  <LockGhost type="button" onClick={closeLock} disabled={isLoading}>
+                    취소
+                  </LockGhost>
+                  <CreateButton type="button" onClick={handleCreate} disabled={isLoading}>
+                    <SparkIcon $spin={isLoading} $reduce={reduceMotion}>
+                      <BsLightningChargeFill size={18} aria-hidden="true" />
+                    </SparkIcon>
+                    {isLoading ? "만드는 중…" : banedCells.length ? "잠그고 만들기" : "그대로 만들기"}
+                  </CreateButton>
+                </LockActions>
+              </LockModal>
+            </LockOverlay>
+          )}
+        </AnimatePresence>
 
         {/* 검색엔진이 읽을 본문. 도구만 있고 텍스트가 없으면 이 페이지가 무엇인지 판단할 근거가 없다. */}
         <Explainer>
@@ -1321,7 +1585,8 @@ const WeekCount = styled.span`
    좌우 4px 여백은 셀의 히트 영역(±4px)이 삐져나와 가짜 스크롤을 만들지 않게 하는 자리다. */
 const DateGridScroll = styled.div`
   overflow-x: auto;
-  padding-inline: ${theme.space[1]};
+  /* 셀 히트 영역이 좌우로 4px 씩 삐져나온다. 여유를 줘야 1px 짜리 가짜 스크롤바가 안 생긴다. */
+  padding-inline: ${theme.space[2]};
 `;
 
 const DayHead = styled.div`
@@ -1356,6 +1621,8 @@ const DateCell = styled(motion.button, {
   cursor: pointer;
   border-radius: ${theme.radius.md};
   -webkit-tap-highlight-color: transparent;
+  /* 드래그 중 브라우저가 스크롤을 가져가지 않게 한다. 모바일에서 필수다. */
+  touch-action: none;
 
   /* 원을 키우지 않고 히트 영역만 좌우로 넓힌다. gap의 절반이라 이웃과 겹치지 않는다. */
   ${theme.styles.hitArea("0px", theme.space[1])}
@@ -1669,7 +1936,9 @@ const shine = keyframes`
 `;
 
 /**
- * 3회로 끊는다. 5초를 넘는 자동 움직임은 WCAG 2.2.2 위반이다.
+ * 사람 지시로 계속 돈다(2026-08-02). 5초를 넘는 자동 움직임이라 WCAG 2.2.2 에서는
+ * 멈춤 수단을 요구하지만, 골든타임을 계속 가리키는 것이 이 화면의 목적이라 유지한다.
+ * prefers-reduced-motion 에서는 끈다.
  *
  * 기본 opacity를 0으로 두고 `forwards`를 붙이는 게 핵심이다. 빠뜨리면 애니메이션이
  * 끝나는 순간 요소가 "애니메이션 이전 상태"로 돌아가는데, 그게 opacity 1이라
@@ -1684,7 +1953,7 @@ const CellShine = styled.div`
   height: 100%;
   opacity: 0;
   background: rgba(255, 255, 255, 0.6);
-  animation: ${shine} 1.2s ease-in-out 3 forwards;
+  animation: ${shine} 1.6s ease-in-out infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -2189,5 +2458,268 @@ const Explainer = styled.section`
   a {
     color: ${theme.color.primary};
     text-decoration: underline;
+  }
+`;
+
+/* ---- 미리보기: 칸을 눌렀을 때 나오는 명단 (실제 /table 의 셀 팝업과 같은 정보) ---- */
+
+const CellInfo = styled(motion.div)`
+  margin-top: ${theme.space[3]};
+  border: 1px solid ${theme.text.gamma[800]};
+  border-radius: ${theme.radius.md};
+  overflow: hidden;
+  background: ${theme.color.surface};
+`;
+
+const CellInfoHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.space[2]};
+  padding: ${theme.space[2]} ${theme.space[3]};
+  background: ${theme.color.primarySurface};
+  border-bottom: 1px solid ${theme.text.gamma[900]};
+`;
+
+const GoldenTag = styled.span`
+  flex-shrink: 0;
+  padding: 2px ${theme.space[2]};
+  border-radius: ${theme.radius.pill};
+  background: ${theme.color.primary};
+  color: ${theme.color.surface};
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.micro};
+`;
+
+const CellInfoTime = styled.span`
+  flex: 1;
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.footnote};
+  color: ${theme.color.primary};
+  word-break: keep-all;
+`;
+
+const CellInfoClose = styled.button`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: ${theme.radius.pill};
+  color: ${theme.text.gamma[400]};
+
+  ${theme.styles.hitArea("12px", "12px")}
+
+  &:hover {
+    background: ${theme.text.gamma[900]};
+  }
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+`;
+
+const CellInfoRow = styled.div`
+  padding: ${theme.space[2]} ${theme.space[3]};
+
+  & + & {
+    border-top: 1px solid ${theme.text.gamma[900]};
+  }
+`;
+
+const CellInfoLabel = styled.div`
+  margin-bottom: ${theme.space[1]};
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.footnote};
+  color: ${({ $can }) => ($can ? "#16a34a" : theme.text.gamma[400])};
+`;
+
+const NameChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${theme.space[1]};
+`;
+
+const NameChip = styled.span`
+  padding: 2px ${theme.space[2]};
+  border-radius: ${theme.radius.pill};
+  font-family: ${theme.font.family.medium};
+  font-size: ${theme.font.size.footnote};
+  ${({ $can }) =>
+    $can
+      ? `background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;`
+      : `background: ${theme.text.gamma[950]}; color: ${theme.text.gamma[400]}; border: 1px solid ${theme.text.gamma[900]};`}
+`;
+
+const NoName = styled.span`
+  font-family: ${theme.font.family.regular};
+  font-size: ${theme.font.size.footnote};
+  color: ${theme.text.gamma[600]};
+`;
+
+/* ---- 시간 잠금 팝업 ---- */
+
+const LockOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.space[4]};
+  background: rgba(0, 0, 0, 0.45);
+`;
+
+/* 시간표가 길어지면 본문만 스크롤하고 버튼은 바닥에 붙어 있어야 한다.
+   안 그러면 '만들기'가 화면 밖으로 밀려 안 보인다. */
+const LockModal = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - ${theme.space[8]});
+  border-radius: ${theme.radius.lg};
+  background: ${theme.color.surface};
+  box-shadow: ${theme.shadow.popover};
+  overflow: hidden;
+`;
+
+const LockBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: ${theme.space[6]} ${theme.space[6]} 0;
+
+  @media (max-width: 480px) {
+    padding: ${theme.space[5]} ${theme.space[4]} 0;
+  }
+`;
+
+const LockHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.space[2]};
+  margin-bottom: ${theme.space[2]};
+`;
+
+const LockTitle = styled.h2`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: ${theme.space[2]};
+  margin: 0;
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.title3};
+  color: ${theme.text.gamma[100]};
+`;
+
+const LockOptional = styled.span`
+  padding: 2px ${theme.space[2]};
+  border-radius: ${theme.radius.pill};
+  background: ${theme.text.gamma[900]};
+  color: ${theme.text.gamma[400]};
+  font-family: ${theme.font.family.medium};
+  font-size: ${theme.font.size.footnote};
+`;
+
+const LockDesc = styled.p`
+  margin: 0 0 ${theme.space[4]};
+  font-family: ${theme.font.family.regular};
+  font-size: ${theme.font.size.small};
+  line-height: ${theme.font.lineHeight.normal};
+  color: ${theme.text.gamma[400]};
+  word-break: keep-all;
+
+  b {
+    font-family: ${theme.font.family.bold};
+    color: ${theme.text.gamma[200]};
+  }
+`;
+
+const LockAccordion = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 ${theme.space[3]};
+  cursor: pointer;
+  border: 1px solid ${theme.text.gamma[600]};
+  border-radius: ${theme.radius.sm};
+  background: ${theme.color.surface};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.label};
+  color: ${theme.text.gamma[200]};
+  transition: background ${theme.duration.fast} ${theme.easing.standard};
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: ${theme.space[2]};
+  }
+
+  &:hover {
+    background: ${theme.color.primarySurface};
+    border-color: ${theme.color.primary};
+  }
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+`;
+
+const LockCount = styled.span`
+  padding: 2px ${theme.space[2]};
+  border-radius: ${theme.radius.pill};
+  background: ${theme.color.primary};
+  color: ${theme.color.surface};
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.footnote};
+`;
+
+const LockGridWrap = styled(motion.div)`
+  overflow: hidden;
+`;
+
+const LockGridInner = styled.div`
+  padding-top: ${theme.space[4]};
+`;
+
+const LockActions = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  gap: ${theme.space[2]};
+  padding: ${theme.space[4]} ${theme.space[6]} ${theme.space[6]};
+  border-top: 1px solid ${theme.text.gamma[900]};
+  background: ${theme.color.surface};
+
+  @media (max-width: 480px) {
+    padding: ${theme.space[3]} ${theme.space[4]} ${theme.space[4]};
+  }
+`;
+
+const LockGhost = styled.button`
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: 0 ${theme.space[5]};
+  cursor: pointer;
+  border: 1px solid ${theme.text.gamma[600]};
+  border-radius: ${theme.radius.md};
+  background: ${theme.color.surface};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.body};
+  color: ${theme.text.gamma[300]};
+
+  &:hover:not(:disabled) {
+    background: ${theme.text.gamma[950]};
+  }
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 `;
