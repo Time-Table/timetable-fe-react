@@ -49,6 +49,8 @@ const TEASER_ROWS = 8;
 /** 셀 팝업 크기. /table 의 GroupTimeGrid 와 같은 값이다. */
 const POPUP_WIDTH = 260;
 const POPUP_H_ESTIMATE = 250;
+/** 팝업이 칸을 물고 들어가는 정도(px). 칸(약 49×30)이 통째로 가려지지 않을 만큼만. */
+const POPUP_OVERLAP = 12;
 
 /**
  * Hero 요소가 차례로 올라오며 나타난다. `order`가 순번이다.
@@ -282,11 +284,14 @@ export default function StartPage() {
     const width = popupRef.current?.getBoundingClientRect().width || POPUP_WIDTH;
     const height = popupRef.current?.getBoundingClientRect().height || POPUP_H_ESTIMATE;
 
-    let left = rect.right + 8;
-    if (left + width > winW - 8) left = rect.left - width - 8;
+    // 팝업 모서리가 칸 모서리를 살짝 물게 둔다. 어느 칸을 연 것인지 붙어서 보이되,
+    // 칸이 통째로 덮이지는 않는다(가로 세로 각 OVERLAP 만큼만 겹친다).
+    let left = rect.right - POPUP_OVERLAP;
+    if (left + width > winW - 8) left = rect.left - width + POPUP_OVERLAP;
     left = Math.max(8, Math.min(left, winW - width - 8));
 
-    let top = rect.top;
+    let top = rect.bottom - POPUP_OVERLAP;
+    if (top + height > winH - 8) top = rect.top - height + POPUP_OVERLAP;
     top = Math.max(8, Math.min(top, winH - height - 8));
 
     setPopupPos((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
@@ -1024,14 +1029,15 @@ export default function StartPage() {
         {openCellInfo &&
           !isLockOpen &&
           createPortal(
-            <AnimatePresence>
+            /* AnimatePresence 를 쓰지 않는다. 조건이 꺼지면 이 블록 자체가 사라져
+               exit 애니메이션이 돌 자리가 없고, PopChild 가 ref 를 가로채 경고를 낸다. */
+            (
               <CellPopup
                 key={openCell}
                 ref={popupRef}
                 style={{ top: popupPos.top, left: popupPos.left }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 role="dialog"
                 aria-label="예시 시간대 참여 명단"
@@ -1077,7 +1083,7 @@ export default function StartPage() {
                   </NameChips>
                 </CellInfoRow>
               </CellPopup>
-            </AnimatePresence>,
+            ),
             document.body
           )}
 
@@ -1261,35 +1267,35 @@ const CtaBlock = styled(motion.div)`
 
 const Badge = styled(motion.span)`
   display: inline-block;
-  padding: 6px 16px;
+  padding: 6px ${theme.space[4]};
   background-color: ${theme.color.primarySurface};
   color: ${theme.color.primary};
   border-radius: 99px;
   font-family: "Pretendard-Bold";
-  font-size: 13px;
+  font-size: ${theme.font.size.small};
   margin-bottom: 18px;
 `;
 
 const PageTitle = styled(motion.h1)`
   font-family: ${theme.font.family.extraBold};
-  font-size: 40px;
+  font-size: ${theme.font.size.display};
   line-height: 1.25;
   color: ${theme.text.gamma[100]};
   margin-bottom: 14px;
 
   @media (max-width: 768px) {
-    font-size: 28px;
+    font-size: ${theme.font.size.title1};
   }
 `;
 
 const Lead = styled(motion.p)`
   font-family: "Pretendard-Regular";
-  font-size: 17px;
-  line-height: 1.75;
+  font-size: ${theme.font.size.bodyLg};
+  line-height: ${theme.font.lineHeight.relaxed};
   color: ${theme.text.gamma[400]};
 
   @media (max-width: 768px) {
-    font-size: 15px;
+    font-size: ${theme.font.size.body};
   }
 `;
 
@@ -1379,7 +1385,7 @@ const Builder = styled.section`
   margin: 0 auto;
   background: white;
   border: 1px solid ${theme.text.gamma[900]};
-  border-radius: 24px;
+  border-radius: ${theme.radius.xl};
   padding: 34px;
 
   /* 좌우 패딩을 space[3]으로 맞춰야 DateGridScroll의 bleed가 정확히 상쇄된다. */
@@ -1396,7 +1402,7 @@ const FieldBlock = styled(motion.div)`
 const FieldLabel = styled.label`
   display: block;
   font-family: "Pretendard-Bold";
-  font-size: 15px;
+  font-size: ${theme.font.size.body};
   color: ${theme.text.gamma[100]};
   margin-bottom: 10px;
 `;
@@ -1786,7 +1792,7 @@ const BrowserBar = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 14px;
+  padding: ${theme.space[2]} ${theme.space[3]};
   background: ${theme.text.gamma[900]};
   border-bottom: 1px solid ${theme.text.gamma[800]};
 `;
@@ -1825,8 +1831,8 @@ const PreviewLayout = styled.div`
 
 const PreviewPane = styled.div`
   background: white;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: ${theme.radius.md};
+  padding: ${theme.space[4]};
   min-width: 0;
   display: flex;
   flex-direction: column;

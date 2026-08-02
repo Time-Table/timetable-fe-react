@@ -132,10 +132,13 @@ const HeaderBackButton = styled.button`
   }
 `;
 
+/* 시간표 위에 떠 있는 버튼이라 칸을 가린다.
+   평소에는 반투명하게 두고 화면 가장자리로 붙여, 만졌을 때만 또렷해지게 한다. */
 const CloseButton = styled(motion.button)`
   position: fixed;
   bottom: 25px;
-  right: 25px;
+  right: 8px;
+  opacity: 0.55;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -148,15 +151,20 @@ const CloseButton = styled(motion.button)`
   justify-content: center;
   z-index: 2001;
   box-shadow: 0 4px 15px rgba(0, 98, 204, 0.4);
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 
-  &:hover {
+  &:hover,
+  &:focus-visible,
+  &:active {
+    opacity: 1;
     background-color: ${theme.color.primaryTint};
   }
 
   @media (max-width: 768px) {
     bottom: 25px;
-    right: 30px;
+    right: 8px;
     width: 48px;
     height: 48px;
   }

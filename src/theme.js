@@ -95,6 +95,7 @@ const radius = {
      sm: "8px",
      md: "12px",
      lg: "16px",
+     xl: "24px",
      pill: "999px",
 };
 
@@ -160,13 +161,12 @@ const easing = {
  * 순차 등장·스크롤 진입처럼 "지속 시간"이 아니라 "타이밍"인 값들.
  *
  * 규칙: 개별 트랜지션 ≤ duration.slow(300ms), 누적 지연 창 ≤ staggerMax(250ms),
- * 시퀀스 전체(마지막 요소가 멈추는 시각) ≤ sequenceMax(550ms).
+ * 시퀀스 전체(마지막 요소가 멈추는 시각) ≤ 550ms(specs/design-system.md).
  * framer-motion 에 그대로 넘길 수 있도록 전부 초 단위 숫자다.
  */
 const motion = {
      stagger: 0.05, // 항목당 지연 50ms
      staggerMax: 0.25, // 누적 지연 상한 250ms
-     sequenceMax: 0.55, // 시퀀스 전체 상한 550ms
      riseY: 8, // 진입 시 올라오는 거리(px). reduced-motion 에서는 0
      riseYLarge: 12, // 블록 단위 진입
      /** 선택 원처럼 "붙는" 느낌이 필요한 곳. 안정까지 약 267ms. */
