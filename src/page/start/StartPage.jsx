@@ -105,7 +105,7 @@ export default function StartPage() {
   // 미리보기에서 열어 둔 칸. `${dayKey}|${hour}` 또는 null.
   // 골든타임 칸을 기본으로 열어 두어 "칸을 누르면 명단이 나온다"를 먼저 보여준다.
   const [openCell, setOpenCell] = useState(null);
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0, visible: false });
   const popupRef = useRef(null);
   const [isLockOpen, setLockOpen] = useState(false);
   const [isLockExpanded, setLockExpanded] = useState(false);
@@ -281,6 +281,19 @@ export default function StartPage() {
     const rect = cell.getBoundingClientRect();
     const winW = window.innerWidth;
     const winH = window.innerHeight;
+
+    /**
+     * 칸이 화면 밖이면 팝업을 띄우지 않는다.
+     * 골든타임 칸이 기본으로 열려 있는데 미리보기는 스크롤해야 나온다.
+     * 이때 아래 clamp 가 팝업을 화면 안으로 끌어와, 칸과 상관없는 자리(모바일에서는
+     * 페이지 최상단 폼 위)에 명단이 떠 있었다.
+     */
+    const onScreen = rect.bottom > 0 && rect.top < winH && rect.right > 0 && rect.left < winW;
+    if (!onScreen) {
+      setPopupPos((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+      return;
+    }
+
     const width = popupRef.current?.getBoundingClientRect().width || POPUP_WIDTH;
     const height = popupRef.current?.getBoundingClientRect().height || POPUP_H_ESTIMATE;
 
@@ -294,7 +307,9 @@ export default function StartPage() {
     if (top + height > winH - 8) top = rect.top - height + POPUP_OVERLAP;
     top = Math.max(8, Math.min(top, winH - height - 8));
 
-    setPopupPos((prev) => (prev.top === top && prev.left === left ? prev : { top, left }));
+    setPopupPos((prev) =>
+      prev.top === top && prev.left === left && prev.visible ? prev : { top, left, visible: true }
+    );
   }, [openCell]);
 
   useEffect(() => {
@@ -1028,6 +1043,7 @@ export default function StartPage() {
         {/* 잠금 팝업이 떠 있는 동안에는 감춘다. 포털이라 모달 위로 뜬다. */}
         {openCellInfo &&
           !isLockOpen &&
+          popupPos.visible &&
           createPortal(
             /* AnimatePresence 를 쓰지 않는다. 조건이 꺼지면 이 블록 자체가 사라져
                exit 애니메이션이 돌 자리가 없고, PopChild 가 ref 를 가로채 경고를 낸다. */
@@ -1168,7 +1184,7 @@ export default function StartPage() {
                     <SparkIcon $spin={isLoading} $reduce={reduceMotion}>
                       <BsLightningChargeFill size={18} aria-hidden="true" />
                     </SparkIcon>
-                    {isLoading ? "만드는 중…" : banedCells.length ? "잠그고 만들기" : "그대로 만들기"}
+                    {isLoading ? "만드는 중…" : banedCells.length ? "잠그고 생성" : "생성"}
                   </CreateButton>
                 </LockActions>
               </LockModal>

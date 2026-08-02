@@ -106,7 +106,7 @@ export default function Header() {
 function ContactButton({ onClick }) {
      return (
           <ResponsiveButton onClick={onClick}>
-               <span className="button-text">Q&A</span>
+               <span className="button-text">문의</span>
           </ResponsiveButton>
      );
 }
