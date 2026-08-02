@@ -39,7 +39,10 @@ import {
 import { buildMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-const DAY_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
+/** 화면에 그리는 순서. 주는 월요일에 시작한다. */
+const DAY_SHORT = ["월", "화", "수", "목", "금", "토", "일"];
+/** getDay()(일=0)를 월요일 시작 열 번호(월=0)로 옮긴다. */
+const colOf = (date) => (date.getDay() + 6) % 7;
 const TOAST_MS = 3000;
 /** Hero 미끼 격자의 행 수. 아래 미리보기를 축소한 그림이므로 몇 줄만 보여준다. */
 const TEASER_ROWS = 8;
@@ -242,10 +245,10 @@ export default function StartPage() {
   const previewWeeks = useMemo(() => {
     if (!dates.length) return [];
     const out = [];
-    let week = new Array(dates[0].date.getDay()).fill(null);
+    let week = new Array(colOf(dates[0].date)).fill(null);
     dates.forEach((d) => {
       week.push(d);
-      if (d.date.getDay() === 6) {
+      if (colOf(d.date) === 6) {
         out.push(week);
         week = [];
       }
@@ -434,7 +437,7 @@ export default function StartPage() {
 
     Swal.fire({
       icon: "success",
-      title: "만들어졌습니다",
+      title: "생성 완료",
       html: `링크를 공유하면 참여자가 가능한 시간을 표시할 수 있어요.<br><br><b>${url}</b>`,
       confirmButtonText: "링크 복사",
       showCancelButton: true,
@@ -567,12 +570,12 @@ export default function StartPage() {
               <DateGridScroll>
                 <DateGrid role="group" aria-describedby="start-dates-hint start-dates-error">
                   {DAY_SHORT.map((w, i) => (
-                    <DayHead key={w} aria-hidden="true" $dow={i}>
+                    <DayHead key={w} aria-hidden="true" $col={i}>
                       {w}
                     </DayHead>
                   ))}
                   {/* 첫 날을 자기 요일 칸에 맞추기 위한 빈 칸 */}
-                  {Array.from({ length: dates.length ? dates[0].date.getDay() : 0 }, (_, i) => (
+                  {Array.from({ length: dates.length ? colOf(dates[0].date) : 0 }, (_, i) => (
                     <DatePad key={`lead-${i}`} aria-hidden="true" />
                   ))}
                   <AnimatePresence initial={false}>
@@ -628,7 +631,7 @@ export default function StartPage() {
                   </AnimatePresence>
                   {dates.length > 0 &&
                     Array.from(
-                      { length: (7 - ((dates[0].date.getDay() + dates.length) % 7)) % 7 },
+                      { length: (7 - ((colOf(dates[0].date) + dates.length) % 7)) % 7 },
                       (_, i) => <DatePad key={`trail-${i}`} aria-hidden="true" />
                     )}
                 </DateGrid>
@@ -1640,10 +1643,10 @@ const DayHead = styled.div`
   text-align: center;
   font-family: ${theme.font.family.medium};
   font-size: ${theme.font.size.label};
-  color: ${({ $dow }) =>
-    $dow === 0
+  color: ${({ $col }) =>
+    $col === 6
       ? theme.color.primary
-      : $dow === 6
+      : $col === 5
         ? theme.color.weekdaySat
         : theme.text.gamma[400]};
 `;

@@ -236,7 +236,8 @@ export default function TimeGrid({
     const weeks = {};
     datesArray.forEach((date) => {
       const current = new Date(date + "T00:00:00Z");
-      const dayOfWeek = current.getUTCDay();
+      // 월요일을 주의 첫날로 본다. getUTCDay()는 일요일이 0이라 그대로 빼면 일요일 시작이 된다.
+      const dayOfWeek = (current.getUTCDay() + 6) % 7;
       current.setUTCDate(current.getUTCDate() - dayOfWeek);
       const weekKey = current.toISOString().split("T")[0];
       if (!weeks[weekKey]) weeks[weekKey] = new Set();
@@ -333,22 +334,27 @@ export default function TimeGrid({
     <div style={{ width: "100%" }}>
       <GridHeader>
         <MonthDisplay>{monthYear}</MonthDisplay>
+        {/* 랜딩 미리보기와 같은 형태 — 좌우 화살표 사이에 몇 주 중 몇 번째인지 적는다. */}
         <WeekNavigation>
-          <ArrowLayout $disabled={currentWeekIndex === 0} onClick={prevWeek}>
-            <Arrow
-              width={10}
-              height={20}
-              color={currentWeekIndex === 0 ? theme.text.gamma[800] : "black"}
-              angle={180}
-            />
-          </ArrowLayout>
-          <ArrowLayout $disabled={currentWeekIndex >= weeks.length - 1} onClick={nextWeek}>
-            <Arrow
-              width={10}
-              height={20}
-              color={currentWeekIndex >= weeks.length - 1 ? theme.text.gamma[800] : "black"}
-            />
-          </ArrowLayout>
+          <NavButton
+            type="button"
+            onClick={prevWeek}
+            disabled={currentWeekIndex === 0}
+            aria-label="이전 주"
+          >
+            <Arrow width={9} height={16} color="currentColor" angle={180} />
+          </NavButton>
+          <WeekCount>
+            {currentWeekIndex + 1} / {Math.max(weeks.length, 1)}주
+          </WeekCount>
+          <NavButton
+            type="button"
+            onClick={nextWeek}
+            disabled={currentWeekIndex >= weeks.length - 1}
+            aria-label="다음 주"
+          >
+            <Arrow width={9} height={16} color="currentColor" />
+          </NavButton>
         </WeekNavigation>
       </GridHeader>
       <GridContainer onMouseLeave={() => setHoveredCell(null)}>
@@ -521,7 +527,47 @@ const MonthDisplay = styled.div`
 `;
 const WeekNavigation = styled.div`
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
+`;
+const WeekCount = styled.span`
+  min-width: 46px;
+  text-align: center;
+  font-family: "Pretendard-Medium";
+  font-size: 13px;
+  color: ${theme.text.gamma[400]};
+  font-variant-numeric: tabular-nums;
+`;
+const NavButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: white;
+  border: 1px solid ${theme.text.gamma[600]};
+  color: ${theme.text.gamma[300]};
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: ${theme.color.primarySurface};
+    border-color: ${theme.color.primary};
+    color: ${theme.color.primary};
+  }
+  &:focus-visible {
+    outline: 2px solid ${theme.color.primary};
+    outline-offset: 2px;
+  }
+  &:disabled {
+    border-color: ${theme.text.gamma[800]};
+    color: ${theme.text.gamma[700]};
+    cursor: not-allowed;
+  }
 `;
 const GridContainer = styled.div`
   position: relative;
@@ -784,29 +830,5 @@ const TooltipContent = styled.div`
     @media (max-width: 480px) {
       font-size: 11px;
     }
-  }
-`;
-const ArrowLayout = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid ${theme.text.gamma[800]};
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
-  pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
-  opacity: ${(props) => (props.$disabled ? 0.4 : 1)};
-  &:hover {
-    background-color: ${theme.text.gamma[900]};
-    border-color: ${theme.text.gamma[800]};
-  }
-  svg {
-    width: 8px;
-    height: 16px;
   }
 `;
