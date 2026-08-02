@@ -1912,17 +1912,37 @@ const PreviewTime = styled.div`
   }
 `;
 
+/**
+ * 실제 /table 의 Cell 과 같은 모양이다 — 오른쪽·아래 헤어라인만 있고 그 밖의 테두리는 없다.
+ *
+ * 누를 수 있는 칸은 `as="button"` 으로 그려지는데, 버튼 기본 스타일을 지우지 않으면
+ * 브라우저가 `2px outset black` 테두리와 패딩을 얹는다. 그것이 검은 테두리의 정체였다.
+ */
 const PreviewCell = styled.div`
   position: relative;
   height: 26px;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  appearance: none;
+  border: 0;
+  border-right: 1px solid ${theme.text.gamma[900]};
+  border-bottom: 1px solid ${theme.text.gamma[900]};
+  overflow: hidden;
+  background: ${({ $off }) => ($off ? theme.text.gamma[900] : theme.color.surface)};
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
+  -webkit-tap-highlight-color: transparent;
 
   @media (min-width: ${theme.breakpoint.sm}) {
     height: 30px;
   }
-  overflow: hidden;
-  background: ${({ $off }) => ($off ? theme.text.gamma[900] : "white")};
-  border-right: 1px solid ${theme.text.gamma[900]};
-  border-bottom: 1px solid ${theme.text.gamma[900]};
+
+  /* 키보드로 왔을 때만 보이는 표시. 검정 대신 브랜드색을 쓴다. */
+  &:focus-visible {
+    outline: 2px solid ${theme.color.primary};
+    outline-offset: -2px;
+    z-index: 1;
+  }
 `;
 
 const WeekNav = styled.div`
