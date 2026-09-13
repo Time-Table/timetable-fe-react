@@ -123,17 +123,22 @@ export const Select = styled.select`
   }
 `;
 
+/**
+ * $tone="critical": 0값·문제 행 표시. 배경을 surface로 두는 이유는 critical 글자가
+ * surfaceSunken 위에서 4.25:1로 AA에 못 미치기 때문이다(surface 위 4.68:1).
+ * 색이 유일한 단서가 되지 않도록 호출부에서 아이콘을 함께 넣는다.
+ */
 export const Tag = styled.span`
   display: inline-flex;
   align-items: center;
   gap: ${t.space(1)};
   padding: ${t.space(1)} ${t.space(2)};
-  border: 1px solid ${t.color.border};
+  border: 1px solid ${(p) => (p.$tone === "critical" ? `${t.color.critical}40` : t.color.border)};
   border-radius: 999px;
-  background: ${t.color.surfaceSunken};
+  background: ${(p) => (p.$tone === "critical" ? t.color.surface : t.color.surfaceSunken)};
   font-size: 0.6875rem;
   font-weight: 500;
-  color: ${t.color.ink2};
+  color: ${(p) => (p.$tone === "critical" ? t.color.critical : t.color.ink2)};
   white-space: nowrap;
 `;
 
@@ -175,8 +180,9 @@ export const DataTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
-  /* 좁은 화면에서 칸을 욱여넣는 대신 감싼 카드 안에서 가로로 스크롤시킨다. */
-  min-width: 660px;
+  /* 좁은 화면에서 칸을 욱여넣는 대신 감싼 카드 안에서 가로로 스크롤시킨다.
+     $compact는 카드 반쪽에 들어가는 2~3열 표용이다. */
+  min-width: ${(p) => (p.$compact ? 0 : "660px")};
 
   th {
     padding: ${t.space(3)} ${t.space(4)};
@@ -208,6 +214,9 @@ export const DataTable = styled.table`
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.75rem;
     color: ${t.color.muted};
+  }
+  td.nowrap {
+    white-space: nowrap;
   }
 
   tbody tr:hover td {

@@ -1,4 +1,5 @@
 import { sendEvent } from "../api/event";
+import { sendBlogView } from "../api/blogView";
 import { isAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
 
@@ -92,4 +93,29 @@ export const trackEvent = (name, tableId) => {
     source: getSource(),
     device: getDevice(),
   });
+};
+
+/**
+ * 블로그 글 조회를 기록한다. 퍼널 이벤트가 아니라 별도 컬렉션(BlogView)에 쌓인다.
+ * 관리자 브라우저는 제외한다.
+ *
+ * getSource()를 여기서 불러 블로그로 처음 들어온 사람의 출처(구글·네이버 등)를 first-touch로
+ * 저장한다. 앱 안 <Link> 이동은 document.referrer를 바꾸지 않아 대부분 랜딩에서도 같은 출처가
+ * 잡히지만, 새 탭이나 전체 로드로 서비스에 들어오면 referrer가 사이트 내부가 되어 "direct"로
+ * 남는다. 블로그에서 먼저 저장해 두면 그 경우에도 출처가 보존된다.
+ */
+export const trackBlogView = (slug) => {
+  // localStorage 접근이 막힌 브라우저(사생활 모드·정책)에서는 isAdmin·getVisitorId가 예외를 던진다.
+  // 계측 실패가 글 읽기를 깨뜨리면 안 되므로 전부 삼킨다.
+  try {
+    if (isAdmin()) return;
+    sendBlogView({
+      slug,
+      visitorId: getVisitorId(),
+      source: getSource(),
+      device: getDevice(),
+    });
+  } catch (error) {
+    // 조용히 넘어간다.
+  }
 };

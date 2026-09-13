@@ -24,7 +24,8 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error.response && error.response.status === 429) {
+    // 계측(조회 기록 등)처럼 사용자 흐름과 무관한 요청은 429가 와도 모달을 띄우지 않는다.
+    if (error.response && error.response.status === 429 && !error.config?.silent) {
       Swal.fire({
         icon: "warning",
         title: "요청이 너무 많습니다",

@@ -17,6 +17,8 @@ import {
   FiSearch,
   FiBarChart2,
   FiTable,
+  FiBookOpen,
+  FiAlertCircle,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -31,6 +33,7 @@ import {
   getAudience,
   getChatFeed,
   getTableDetail,
+  getBlogStats,
 } from "../api/admin";
 import { isAdmin, grantAdmin, revokeAdmin } from "../utils/admin";
 
@@ -57,6 +60,9 @@ import {
 } from "./manager/ui";
 import StatTile from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
+import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
+import { createRequestSequence } from "./manager/latestRequest";
+import { blogPosts } from "../data/blogPosts";
 import { TrendChart, BarList } from "./manager/charts";
 
 const Toast = Swal.mixin({
@@ -71,6 +77,7 @@ const TABS = [
   { key: "dashboard", label: "대시보드", icon: FiGrid, scoped: true },
   { key: "funnel", label: "퍼널 분석", icon: FiFilter, scoped: true },
   { key: "audience", label: "사용자 분석", icon: FiUsers, scoped: true },
+  { key: "blog", label: "블로그", icon: FiBookOpen, scoped: true },
   { key: "tables", label: "테이블 관리", icon: FiLayers, scoped: false },
   { key: "chats", label: "채팅 모니터링", icon: FiMessageSquare, scoped: false },
 ];
@@ -121,6 +128,15 @@ const ManagerPage = () => {
   const [loading, setLoading] = useState(false);
 
   const [showTrendTable, setShowTrendTable] = useState(false);
+
+  // 블로그 탭
+  const [blogStats, setBlogStats] = useState(null);
+  const [showBlogTable, setShowBlogTable] = useState(false);
+  const [blogSort, setBlogSort] = useState("views");
+  const [blogOnlyZero, setBlogOnlyZero] = useState(false);
+  // 기간·탭을 빠르게 바꾸면 이전 요청의 응답이 나중에 도착해 최신 화면을 덮거나 로딩을 조기에 끈다.
+  // 모든 탭의 요청에 순번을 주고, 마지막 요청만 화면과 로딩 상태를 바꾼다.
+  const requestSeq = useRef(createRequestSequence());
 
   // 테이블 관리 필터
   const [query, setQuery] = useState("");
@@ -193,27 +209,39 @@ const ManagerPage = () => {
 
   const loadTab = useCallback(async () => {
     if (!authed) return;
+    const isLatest = requestSeq.current.next();
     setLoading(true);
     try {
       if (activeTab === "dashboard") {
         const [trendRes, visitRes] = await Promise.all([getTrends(period), getTrackVisit()]);
+        if (!isLatest()) return;
         setTrends(trendRes);
         setVisitRaw(Array.isArray(visitRes?.data) ? visitRes.data : []);
       } else if (activeTab === "funnel") {
         const res = await getFunnels(period);
+        if (!isLatest()) return;
         setFunnelReport(res?.data || null);
       } else if (activeTab === "audience") {
         const [audienceRes, tableRes] = await Promise.all([getAudience(period), getAllTables()]);
+        if (!isLatest()) return;
         setAudience(audienceRes);
         setTables(tableRes?.data || []);
+      } else if (activeTab === "blog") {
+        const res = await getBlogStats(period);
+        if (!isLatest()) return;
+        setBlogStats(res);
       } else if (activeTab === "tables") {
         const res = await getAllTables();
+        if (!isLatest()) return;
         setTables(res?.data || []);
       } else if (activeTab === "chats") {
-        setChatFeed(await getChatFeed(200));
+        const res = await getChatFeed(200);
+        if (!isLatest()) return;
+        setChatFeed(res);
       }
     } finally {
-      setLoading(false);
+      // 더 새 요청이 진행 중이면 로딩 표시를 끄지 않는다. 옛 응답이 "완료된 것처럼" 보이면 안 된다.
+      if (isLatest()) setLoading(false);
     }
   }, [authed, activeTab, period]);
 
@@ -317,9 +345,20 @@ const ManagerPage = () => {
     );
   }, [chatFeed, chatQuery]);
 
+  const blogRows = useMemo(() => {
+    if (!blogStats || blogStats.error) return [];
+    const rows = joinBlogStats(blogPosts, blogStats);
+    return sortBlogRows(blogOnlyZero ? rows.filter((row) => row.views === 0) : rows, blogSort);
+  }, [blogStats, blogSort, blogOnlyZero]);
+
   if (!authed) return null;
 
   const currentTab = TABS.find((tab) => tab.key === activeTab);
+
+  // 블로그 조회수는 누적치가 의미 있어서 이 탭에만 "전체" 기간을 둔다.
+  // 다른 탭은 0을 각자 다르게 해석하므로(추이는 30일, 퍼널은 전체) 탭을 나가면 30일로 되돌린다.
+  const periodOptions = activeTab === "blog" ? [...PERIODS, { label: "전체", value: 0 }] : PERIODS;
+  const blogPeriodLabel = period ? `최근 ${period}일` : "전체 기간";
 
   /* ---------------------------------------------------------------- 렌더 */
 
@@ -355,6 +394,7 @@ const ManagerPage = () => {
               onClick={() => {
                 setActiveTab(tab.key);
                 setSidebarOpen(false);
+                if (tab.key !== "blog" && period === 0) setPeriod(30);
               }}
             >
               <tab.icon size={15} />
@@ -386,6 +426,7 @@ const ManagerPage = () => {
               {activeTab === "dashboard" && "핵심 지표와 일별 추이"}
               {activeTab === "funnel" && "사용자가 어디서 이탈하는지"}
               {activeTab === "audience" && "누가, 어디서, 어떤 기기로 오는지"}
+              {activeTab === "blog" && "어떤 글이 읽히고, 읽은 사람이 서비스까지 오는지"}
               {activeTab === "tables" && `전체 ${tables.length.toLocaleString()}개`}
               {activeTab === "chats" && `전체 메시지 ${chatFeed?.total?.toLocaleString() || 0}건`}
             </SectionCaption>
@@ -393,7 +434,7 @@ const ManagerPage = () => {
 
           {currentTab?.scoped && (
             <Segmented>
-              {PERIODS.map((option) => (
+              {periodOptions.map((option) => (
                 <SegmentedItem
                   key={option.value}
                   $active={period === option.value}
@@ -407,7 +448,7 @@ const ManagerPage = () => {
         </TopBar>
 
         <Content $dim={loading}>
-          {loading && !trends && !funnelReport && !audience && !chatFeed && !tables.length ? (
+          {loading && !trends && !funnelReport && !audience && !chatFeed && !tables.length && !blogStats ? (
             <Loading>
               <Spinner />
               데이터를 불러오는 중입니다
@@ -600,6 +641,255 @@ const ManagerPage = () => {
                         <BarList items={meetingPattern.days} unit="회" />
                       </div>
                     </Card>
+                  )}
+                </Stack>
+              )}
+
+              {/* ------------------------------------------------ 블로그 */}
+              {activeTab === "blog" && blogStats && (
+                <Stack>
+                  {blogStats.error === "notDeployed" && (
+                    <Notice>
+                      <NoticeIcon aria-hidden="true">
+                        <FiAlertCircle size={14} />
+                      </NoticeIcon>
+                      <strong>블로그 통계 API가 아직 배포되지 않았습니다.</strong> GET /api/blog-views/stats 가
+                      404를 돌려줍니다. 백엔드를 먼저 배포한 뒤 다시 확인하세요.
+                      <NoticeAction>
+                        <Button onClick={loadTab}>다시 확인</Button>
+                      </NoticeAction>
+                    </Notice>
+                  )}
+
+                  {blogStats.error === "failed" && (
+                    <Notice>
+                      <NoticeIcon aria-hidden="true">
+                        <FiAlertCircle size={14} />
+                      </NoticeIcon>
+                      <strong>블로그 통계를 불러오지 못했습니다.</strong> 잠시 후 다시 시도해 주세요.
+                      <NoticeAction>
+                        <Button onClick={loadTab}>다시 시도</Button>
+                      </NoticeAction>
+                    </Notice>
+                  )}
+
+                  {!blogStats.error && (
+                    <>
+                      <Grid $min="200px">
+                        <StatTile
+                          label="조회수"
+                          value={blogStats.total.views}
+                          hint="글 페이지가 열린 횟수. 같은 사람이 다시 열어도 셉니다"
+                        />
+                        <StatTile
+                          label="방문자"
+                          value={blogStats.total.visitors}
+                          hint="글을 한 번 이상 연 브라우저 수"
+                        />
+                        <StatTile
+                          label="블로그 → 랜딩 도달"
+                          value={
+                            blogStats.conversion.blogVisitors
+                              ? `${blogStats.conversion.reachedLandingPercent}%`
+                              : "—"
+                          }
+                          hint={
+                            blogStats.conversion.blogVisitors
+                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.reachedLanding.toLocaleString()}명이 서비스 첫 화면까지 왔습니다`
+                              : "아직 블로그 방문자가 없습니다"
+                          }
+                        />
+                        <StatTile
+                          label="블로그 → 테이블 생성"
+                          value={
+                            blogStats.conversion.blogVisitors
+                              ? `${blogStats.conversion.createdTablePercent}%`
+                              : "—"
+                          }
+                          hint={
+                            blogStats.conversion.blogVisitors
+                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.createdTable.toLocaleString()}명이 테이블을 만들었습니다`
+                              : "아직 블로그 방문자가 없습니다"
+                          }
+                        />
+                      </Grid>
+
+                      {blogStats.total.views === 0 ? (
+                        <Card>
+                          <Empty>
+                            {blogPeriodLabel} 동안 기록된 블로그 조회가 없습니다. 기간을 늘려 보거나, 측정을
+                            방금 시작했다면 누군가 글을 연 뒤 다시 확인하세요.
+                          </Empty>
+                        </Card>
+                      ) : (
+                        <>
+                          <Grid $min="320px">
+                            <Card>
+                              <SectionHeader style={{ marginBottom: 0 }}>
+                                <div>
+                                  <CardTitle>일별 조회</CardTitle>
+                                  <CardSubtitle>
+                                    {blogPeriodLabel}. 모든 글의 조회수를 날짜별로 합쳤습니다.
+                                  </CardSubtitle>
+                                </div>
+                                <Button
+                                  aria-pressed={showBlogTable}
+                                  onClick={() => setShowBlogTable((v) => !v)}
+                                >
+                                  {showBlogTable ? (
+                                    <>
+                                      <FiBarChart2 size={13} /> 그래프로 보기
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FiTable size={13} /> 표로 보기
+                                    </>
+                                  )}
+                                </Button>
+                              </SectionHeader>
+                              <div style={{ marginTop: t.space(4) }}>
+                                {blogStats.series.length === 0 ? (
+                                  <Empty>아직 일별 데이터가 없습니다.</Empty>
+                                ) : showBlogTable ? (
+                                  <ScrollBox tabIndex={0} aria-label="일별 조회 표">
+                                    <DataTable $compact>
+                                      <thead>
+                                        <tr>
+                                          <th scope="col">날짜</th>
+                                          <th scope="col">조회</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {[...blogStats.series].reverse().map((row) => (
+                                          <tr key={row.date}>
+                                            <td className="mono">{row.date}</td>
+                                            <td className="num strong">{row.views.toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </DataTable>
+                                  </ScrollBox>
+                                ) : (
+                                  <TrendChart
+                                    series={blogStats.series}
+                                    valueKey="views"
+                                    color={t.color.series1}
+                                    label="조회"
+                                  />
+                                )}
+                              </div>
+                            </Card>
+
+                            <Card>
+                              <CardTitle>유입 출처</CardTitle>
+                              <CardSubtitle>
+                                블로그 글을 연 방문자가 어디서 왔는지. 상위 8개만 보입니다.
+                              </CardSubtitle>
+                              <div style={{ marginTop: t.space(5) }}>
+                                <BarList
+                                  items={blogStats.sources.slice(0, 8)}
+                                  unit="명"
+                                  emptyText="아직 유입 출처 데이터가 없습니다."
+                                />
+                              </div>
+                            </Card>
+                          </Grid>
+
+                          <SectionHeader>
+                            <div>
+                              <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
+                                글별 조회
+                              </SectionTitle>
+                              <SectionCaption>
+                                조회가 0인 글은 교체 후보입니다. 발행한 지 오래됐는데도 0이면 제목이나 주제를
+                                바꿔 보세요.
+                              </SectionCaption>
+                            </div>
+                            <FilterRow>
+                              <Select
+                                aria-label="글 정렬"
+                                value={blogSort}
+                                onChange={(e) => setBlogSort(e.target.value)}
+                              >
+                                <option value="views">조회순</option>
+                                <option value="recent">최신순</option>
+                              </Select>
+                              <Toggle
+                                $active={blogOnlyZero}
+                                aria-pressed={blogOnlyZero}
+                                onClick={() => setBlogOnlyZero((v) => !v)}
+                              >
+                                조회 0인 글만
+                              </Toggle>
+                              <ResultCount>{blogRows.length.toLocaleString()}개 글</ResultCount>
+                            </FilterRow>
+                          </SectionHeader>
+
+                          <Card style={{ padding: 0, overflowX: "auto" }}>
+                            {blogRows.length === 0 ? (
+                              <Empty>조회가 0인 글이 없습니다. 모든 글이 최소 한 번은 읽혔습니다.</Empty>
+                            ) : (
+                              <DataTable>
+                                <thead>
+                                  <tr>
+                                    <th scope="col" style={{ minWidth: 260 }}>
+                                      제목
+                                    </th>
+                                    <th scope="col">카테고리</th>
+                                    <th scope="col">조회</th>
+                                    <th scope="col">방문자</th>
+                                    <th scope="col">마지막 조회</th>
+                                    <th scope="col">발행일</th>
+                                    <th scope="col">열기</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {blogRows.map((row) => (
+                                    <tr key={row.slug}>
+                                      <td className={row.listed ? "strong" : "mono"}>
+                                        {row.listed ? (
+                                          row.title
+                                        ) : (
+                                          <>
+                                            {row.slug} <Tag>목록에 없음</Tag>
+                                          </>
+                                        )}
+                                      </td>
+                                      <td>{row.listed ? <Tag>{row.category}</Tag> : "—"}</td>
+                                      <td className="num">
+                                        {row.views === 0 ? (
+                                          <Tag $tone="critical">
+                                            <FiAlertCircle size={11} /> 0회
+                                          </Tag>
+                                        ) : (
+                                          <Tag>{row.views.toLocaleString()}회</Tag>
+                                        )}
+                                      </td>
+                                      <td className="num">{row.visitors.toLocaleString()}</td>
+                                      <td className="mono nowrap">{formatDateTime(row.lastViewedAt)}</td>
+                                      <td className="mono nowrap">{row.listed ? row.date : "—"}</td>
+                                      <td>
+                                        {row.listed && (
+                                          <IconButton
+                                            as="a"
+                                            href={`/blog/${row.slug}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            aria-label={`${row.title} 새 탭에서 열기`}
+                                          >
+                                            <FiExternalLink size={13} />
+                                          </IconButton>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </DataTable>
+                            )}
+                          </Card>
+                        </>
+                      )}
+                    </>
                   )}
                 </Stack>
               )}
@@ -1103,6 +1393,25 @@ const Notice = styled.p`
     font-weight: 600;
     color: ${t.color.ink};
   }
+`;
+
+// Notice 안에서 아이콘은 critical(4.68:1)을 쓴다. warning은 1.79:1이라 아이콘으로도 안 보인다.
+const NoticeIcon = styled.span`
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: ${t.space(1)};
+  color: ${t.color.critical};
+`;
+
+const NoticeAction = styled.span`
+  display: inline-block;
+  margin-left: ${t.space(2)};
+`;
+
+// 표/그래프 토글 시 카드 높이가 튀지 않도록 차트 높이(150 + 16 + 26)에 맞춘다.
+const ScrollBox = styled.div`
+  max-height: 192px;
+  overflow-y: auto;
 `;
 
 const TotalsRow = styled.div`
