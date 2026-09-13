@@ -4,21 +4,31 @@
 /blog/2    /blog/weekly-work-schedule-guide    301!
 /blog/3    /blog/remote-meeting-time-scheduling    301!
 /blog/4    /blog/leader-time-management-philosophy    301!
-/blog/5    /blog/stop-procrastination-time-management    301!
-/blog/6    /blog/burnout-prevention-rest-time    301!
+/blog/5    /blog/club-meeting-date-scheduling    301!
+/blog/6    /blog/team-dinner-date-scheduling    301!
 /blog/7    /blog/university-free-period-timetable    301!
 /blog/8    /blog/meeting-agenda-and-time-limits    301!
 /blog/9    /blog/family-trip-itinerary-planning    301!
-/blog/10    /blog/evening-self-development-schedule    301!
+/blog/10    /blog/study-group-time-scheduling    301!
 /blog/11    /blog/remote-work-energy-management    301!
 /blog/12    /blog/spaced-repetition-2-2-2-method    301!
 /blog/13    /blog/large-event-schedule-checklist    301!
-/blog/14    /blog/miracle-morning-chronotype    301!
+/blog/14    /blog/schedule-coordination-spreadsheet-vs-tool    301!
 /blog/15    /blog/notion-team-dashboard-schedule    301!
-/blog/16    /blog/sleep-deprivation-and-creativity    301!
-/blog/17    /blog/why-schedule-exercise    301!
-/blog/18    /blog/weekend-active-rest-planning    301!
-/blog/19    /blog/business-email-time-saving    301!
+/blog/16    /blog/team-schedule-coordination-5-people    301!
+/blog/17    /blog/friends-gathering-scheduling-tips    301!
+/blog/18    /blog/family-gathering-date-scheduling    301!
+/blog/19    /blog/meeting-scheduler-app-vs-web    301!
+
+# 2026-09 교체된 글(서비스 무관 8편 → 약속 잡기 주제). 옛 slug는 새 글로 직접 301, 체인 없음.
+/blog/stop-procrastination-time-management    /blog/club-meeting-date-scheduling    301!
+/blog/burnout-prevention-rest-time    /blog/team-dinner-date-scheduling    301!
+/blog/evening-self-development-schedule    /blog/study-group-time-scheduling    301!
+/blog/miracle-morning-chronotype    /blog/schedule-coordination-spreadsheet-vs-tool    301!
+/blog/sleep-deprivation-and-creativity    /blog/team-schedule-coordination-5-people    301!
+/blog/why-schedule-exercise    /blog/friends-gathering-scheduling-tips    301!
+/blog/weekend-active-rest-planning    /blog/family-gathering-date-scheduling    301!
+/blog/business-email-time-saving    /blog/meeting-scheduler-app-vs-web    301!
 
 # 랜딩을 /start 내용으로 바꾸면서 옛 주소를 정본(/)으로 보낸다.
 # 같은 화면이 세 주소로 열리면 검색 신호가 쪼개진다.
