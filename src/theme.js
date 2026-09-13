@@ -5,6 +5,10 @@ const color = {
      // 브랜드색을 글자·경계로 쓰면 흰 배경에서 2.72:1 이다(AA 미달).
      // 2026-08-01 사람이 브랜드 톤을 우선해 그대로 쓰기로 결정했다.
      // 근거와 실측값은 specs/design-system.md 의 예외 절에 있다.
+     // 브랜드색을 글자·경계에 써야 할 때의 어두운 단계. 흰 배경 5.18:1, primarySurface 위 4.71:1.
+     // /start 밖(블로그·가이드 등)에서는 글자·경계에 primary 대신 이것을 쓴다(specs/design-system.md).
+     primaryText: "#CE2E2E",
+     primaryBorder: "#F05252", // 선택 테두리·강조선. 흰 배경 3.48:1, primarySurface 위 3.17:1
      primarySurface: "#FFF1F1", // 선택·활성 칩/셀의 옅은 배경
      primarySurfaceHover: "#FFE6E6", // primarySurface 위 hover 한 단계
      appSurface: "#F8F9FA", // 화면 바탕 (/table 의 PageWrapper 와 같은 값)
