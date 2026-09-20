@@ -2,7 +2,7 @@
 
 > 로그인 없이 링크 하나로 여러 사람의 가능한 시간을 모아 가장 많이 겹치는 시간(골든타임)을 찾는 무료 약속 조율 서비스. 한국어, 웹 기반, 설치 불필요.
 
-주최자가 30초 만에 테이블을 만들어 링크를 공유하면, 참여자는 회원가입 없이 이름만 입력하고 가능한 시간을 드래그로 표시한다. 색이 진할수록 많은 사람이 가능한 시간이며, 순위 화면이 최적 시간을 1위부터 보여준다.
+주최자가 테이블을 만들어 링크를 공유하면, 참여자는 회원가입 없이 이름과 비밀번호를 입력하고 가능한 시간을 드래그로 표시한 뒤 저장한다. 색이 진할수록 많은 사람이 가능한 시간이며, 순위 화면이 최적 시간을 1위부터 보여준다.
 
 ## 핵심 페이지
 
@@ -14,20 +14,20 @@
 
 ## 블로그 글 (최신순)
 
-- [약속 잡기 앱 vs 웹: 설치 없이 링크로 끝내는 방법 비교](https://timetable2.com/blog/meeting-scheduler-app-vs-web): 약속 잡기 앱은 모두가 설치해야 쓸 수 있습니다. 앱과 웹 방식의 차이, 참여율에 미치는 영향, 상황별로 무엇을 고를지 정리했습니다.
+- [약속 잡기 앱 vs 웹: 설치 없이 링크로 끝내는 방법 비교](https://timetable2.com/blog/meeting-scheduler-app-vs-web): 설치가 필요한 앱과 브라우저로 참여하는 웹 도구는 진입 과정이 다릅니다. 앱과 웹 방식의 차이, 참여율에 미치는 영향, 상황별로 무엇을 고를지 정리했습니다.
 - [가족 모임 날짜 정하기: 명절·생신 일정 한 번에 맞추는 방법](https://timetable2.com/blog/family-gathering-date-scheduling): 형제자매 가족이 늘면 가족 모임 날짜는 전화 릴레이가 됩니다. 후보 주말을 정하고 가족별로 가능한 시간을 한 화면에 모아 정하는 방법입니다.
 - [약속 잡기 사이트 고르는 기준 5가지와 시간 조율 사이트 사용법](https://timetable2.com/blog/how-to-choose-meeting-scheduler-site): 약속 잡기 사이트를 검색하면 종류가 많습니다. 예약형과 조율형의 차이, 고르는 기준 5가지, 처음 쓰는 사람을 위한 사용 순서를 정리했습니다.
 - [친구 모임 약속 잡는 법: 단톡방에서 흐지부지되지 않게](https://timetable2.com/blog/friends-gathering-scheduling-tips): "언제 보자"로 시작해 아무 날도 정해지지 않는 친구 모임. 후보를 던지는 사람, 마감, 링크 하나로 끝내는 순서를 정리했습니다.
 - [5명 이상 스케줄 조율 방법: 한 사람이 다 맞추지 않는 규칙](https://timetable2.com/blog/team-schedule-coordination-5-people): 인원이 5명을 넘으면 한 사람이 모두의 스케줄을 받아 맞추는 방식은 무너집니다. 각자 입력하고 자동으로 겹치는 시간을 찾는 규칙을 정리했습니다.
 - [일정 조율 시트(엑셀·구글 시트)로 약속 잡는 법과 한계](https://timetable2.com/blog/schedule-coordination-spreadsheet-vs-tool): 구글 시트로 일정 조율 표를 만드는 방법, 시트가 잘 맞는 경우와 막히는 지점, 그리고 전용 도구로 넘어갈 때를 정리했습니다.
-- [카카오톡 투표 대신 일정 투표 사이트로 약속 잡는 법](https://timetable2.com/blog/kakaotalk-vote-alternative-schedule-poll): 단톡방 투표는 날짜 하나씩만 고를 수 있어 시간대가 갈립니다. 일정 투표 사이트로 가능한 시간을 전부 모아 한 번에 정하는 방법을 정리했습니다.
+- [카카오톡 투표 대신 일정 투표 사이트로 약속 잡는 법](https://timetable2.com/blog/kakaotalk-vote-alternative-schedule-poll): 날짜만 후보로 올린 단톡방 투표는 날짜를 정한 뒤에도 시간 조율이 남을 수 있습니다. 일정 투표 사이트로 가능한 시간을 전부 모아 한 번에 정하는 방법을 정리했습니다.
 - [스터디 모임 시간 정하기: 매주 흔들리지 않는 고정 시간 만드는 법](https://timetable2.com/blog/study-group-time-scheduling): 스터디는 첫 모임 시간을 잘못 정하면 매주 조율하다 끝납니다. 고정 시간을 만드는 순서와 인원이 바뀔 때 다시 맞추는 방법을 정리했습니다.
-- [회식 날짜 정하기, 눈치 안 보고 끝내는 법: 참석률 높이는 4단계](https://timetable2.com/blog/team-dinner-date-scheduling): 회식 날짜를 단톡방에서 정하면 누가 안 되는지 다 보입니다. 눈치 없이 가능한 날을 모아 참석률을 높이는 4단계를 정리했습니다.
+- [회식 날짜 정하기, 눈치 안 보고 끝내는 법: 참석률 높이는 4단계](https://timetable2.com/blog/team-dinner-date-scheduling): 회식 후보를 좁히고 가능한 시간을 모은 뒤 마감과 확정 공지를 정하는 4단계입니다. 응답 공개 범위를 안내하고 불참 사유를 요구하지 않는 방법도 함께 설명합니다.
 - [When2meet 한국어 대안: 가입 없이 쓰는 일정 조율 사이트 비교](https://timetable2.com/blog/when2meet-korean-alternative): When2meet의 장점은 살리고 영어 화면·좁은 모바일 칸이 불편하다면, 한국어로 같은 방식을 쓰는 대안을 비교합니다.
 - [동호회 모임 날짜 정하기: 20명 넘는 모임도 한 번에 잡는 순서](https://timetable2.com/blog/club-meeting-date-scheduling): 인원이 많을수록 단톡방 투표는 흐지부지됩니다. 동호회 정모 날짜를 후보 좁히기, 마감, 링크 공유 순서로 한 번에 정하는 방법입니다.
 - [노션(Notion)으로 팀 대시보드 만들기: 실시간 공유 일정의 힘](https://timetable2.com/blog/notion-team-dashboard-schedule): 메신저로 묻고 답하는 비효율을 끝내세요. 팀 전체가 한눈에 파악하는 중앙 집중형 일정 관리 시스템.
-- [대규모 행사 일정을 조율할 때 실패하지 않는 체크리스트](https://timetable2.com/blog/large-event-schedule-checklist): 컨퍼런스, 워크숍, 대가족 행사 등 수십 명의 인원을 한자리에 모으기 위한 전문 기획자의 노하우.
-- [벼락치기 방지를 위한 '2-2-2 복습법' 활용 가이드](https://timetable2.com/blog/spaced-repetition-2-2-2-method): 망각곡선을 이기는 과학적인 복습 주기 설정으로 시험 기간 스트레스를 절반으로 줄이는 방법.
+- [대규모 행사 일정을 조율할 때 실패하지 않는 체크리스트](https://timetable2.com/blog/large-event-schedule-checklist): 컨퍼런스, 워크숍, 가족 행사에서 후보 날짜, 응답 취합, 확정 공지와 진행 시간을 점검하는 체크리스트.
+- [벼락치기 방지를 위한 '2-2-2 복습법' 활용 가이드](https://timetable2.com/blog/spaced-repetition-2-2-2-method): 2시간 뒤, 2일 뒤, 2주 뒤를 출발점으로 복습 일정을 나누어 보고, 과목과 기억 상태에 맞게 간격을 조정하는 방법.
 - [재택근무자의 에너지 관리: 업무와 휴식의 완벽한 분리법](https://timetable2.com/blog/remote-work-energy-management): 집이라는 공간에서 효율을 극대화하면서도 삶의 질을 유지하는 재택근무 스케줄링 노하우.
 - [가족 여행 일정을 짤 때 고려해야 할 5가지 핵심 요소](https://timetable2.com/blog/family-trip-itinerary-planning): 싸우지 않는 여행의 시작은 배려 있는 일정표입니다. 세대별 취향을 저격하는 계획법.
 - [효율적인 회의를 위한 아젠다 설정과 시간 제한 기술](https://timetable2.com/blog/meeting-agenda-and-time-limits): 끝나지 않는 회의에 지쳤나요? 짧고 굵은 회의를 만드는 3단계 공식.

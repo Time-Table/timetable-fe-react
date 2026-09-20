@@ -12,7 +12,7 @@ export default function BlogListPage() {
     <>
       <Seo
         title="일정 관리 칼럼 - 타임테이블"
-        description="효율적인 일정 조율과 시간 관리를 위한 전문가들의 칼럼을 확인해보세요."
+        description="타임테이블 운영팀이 작성·검수한 일정 조율과 시간 관리 가이드를 확인해보세요."
       />
       <PageWrapper>
         <Header>

@@ -54,9 +54,10 @@ export default function BlogDetailPage() {
     inLanguage: "ko-KR",
     image: post.images?.[0]?.url,
     author: {
-      "@type": "Person",
+      "@type": "Organization",
       name: post.author,
       description: post.authorBio,
+      url: `${SITE_URL}/about`,
     },
     publisher: {
       "@type": "Organization",
@@ -276,16 +277,20 @@ const MetaDivider = styled.span`
 const MetaAuthor = styled.div`
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
 `;
 
 const AuthorName = styled.span`
+  white-space: nowrap;
   font-family: "Pretendard-SemiBold";
   font-size: 14px;
   color: ${theme.text.gamma[200]};
 `;
 
 const AuthorBio = styled.span`
+  word-break: keep-all;
   font-family: "Pretendard-Regular";
   font-size: 13px;
   color: ${theme.text.gamma[400]};

@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
+import theme from "../theme";
 
 /**
  * Google AdSense Component
@@ -72,9 +74,9 @@ const AdSense = ({
           data-ad-layout={layout}
         />
       </div>
-      <p style={{ fontSize: "12px", color: "#ccc", marginTop: "8px", fontFamily: "Pretendard-Regular" }}>
-        타임테이블의 무료 서비스 유지를 위해 광고가 노출될 수 있습니다.
-        개인정보를 수집하지 않으며, 효율적인 일정 관리를 돕는 도구입니다.
+      <p style={{ fontSize: theme.font.size.footnote, color: theme.text.gamma[400], marginTop: theme.space[2], fontFamily: theme.font.family.regular }}>
+        광고 및 이용 분석에 관한 자세한 내용은{" "}
+        <Link to="/privacy" style={{ color: theme.color.primaryText }}>개인정보처리방침</Link>을 확인해 주세요.
       </p>
     </div>
   );
