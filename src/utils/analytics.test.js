@@ -12,9 +12,43 @@ const setReferrer = (value) =>
 
 beforeEach(() => {
   localStorage.clear();
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   setReferrer("");
   window.history.replaceState({}, "", "/");
+  delete window.clarity;
+});
+
+describe("Clarity 생성 전환", () => {
+  test.each(["landing", "quick_create"])("%s 경로 성공은 공통·경로별 이벤트로 기록한다", (path) => {
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.CREATE_SUCCESS, "private-table-id", path);
+    expect(window.clarity.mock.calls).toEqual([
+      ["event", "tt_create_success"],
+      ["event", `tt_create_success_${path}`],
+    ]);
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ name: EVENTS.CREATE_SUCCESS }));
+  });
+
+  test("관리자 활동은 자체 계측과 Clarity 이벤트에서 모두 제외한다", () => {
+    window.clarity = jest.fn();
+    grantAdmin("test-token");
+    trackEvent(EVENTS.CREATE_SUCCESS, "test-table", "landing");
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(window.clarity).not.toHaveBeenCalled();
+  });
+
+  test("Clarity가 없거나 예외를 던져도 자체 계측과 호출 흐름은 유지된다", () => {
+    expect(() => trackEvent(EVENTS.CREATE_SUCCESS, "one", "landing")).not.toThrow();
+    window.clarity = () => { throw new Error("blocked"); };
+    expect(() => trackEvent(EVENTS.CREATE_SUCCESS, "two", "quick_create")).not.toThrow();
+    expect(sendEvent).toHaveBeenCalledTimes(2);
+  });
+
+  test("참여자·표 식별자를 Clarity로 전송하지 않는다", () => {
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.JOIN_SUCCESS, "private-table-id");
+    expect(window.clarity.mock.calls).toEqual([["event", "tt_join_success"]]);
+  });
 });
 
 describe("방문자 식별자", () => {
@@ -166,5 +200,68 @@ describe("저장소 접근이 막힌 브라우저", () => {
     } finally {
       Storage.prototype.getItem = original;
     }
+  });
+});
+
+describe("표별 역할을 Clarity에 연결", () => {
+  test.each(["creator", "participant", "unknown"])("서버의 %s 역할만 행동별 태그로 보내고 ID는 보내지 않는다", async (tableRole) => {
+    sendEvent.mockResolvedValue({ success: true, tableRole });
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.JOIN_SUCCESS, "private-table-id");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity.mock.calls).toEqual([
+      ["event", "tt_join_success"],
+      ["set", "tt_join_success_role", tableRole],
+    ]);
+  });
+
+  test("여러 표의 응답이 역순으로 와도 각 행동의 역할이 뒤바뀌지 않는다", async () => {
+    let finishFirst;
+    sendEvent.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValueOnce({ success: true, tableRole: "participant" });
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.CREATE_SUCCESS, "my-table", "landing");
+    trackEvent(EVENTS.SCHEDULE_SAVE, "invited-table");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity).toHaveBeenCalledWith("set", "tt_schedule_save_role", "participant");
+    finishFirst({ success: true, tableRole: "creator" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity).toHaveBeenCalledWith("set", "tt_create_success_role", "creator");
+    expect(window.clarity).not.toHaveBeenCalledWith("set", "tt_schedule_save_role", "creator");
+  });
+
+  test.each([{ success: true }, { success: true, tableRole: "arbitrary-input" }])("구 서버·잘못된 역할은 unknown으로만 표시한다", async (response) => {
+    sendEvent.mockResolvedValue(response);
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.TABLE_VIEW, "table");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity).toHaveBeenCalledWith("set", "tt_table_view_role", "unknown");
+  });
+
+  test.each([null, { success: false }, { success: true, skipped: true, tableRole: "creator" }])("수집 실패·제외 응답은 역할을 추측하지 않는다", async (response) => {
+    sendEvent.mockResolvedValue(response);
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.TABLE_VIEW, "table");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity.mock.calls.filter(([method]) => method === "set")).toEqual([]);
+  });
+
+  test("요청 뒤 관리자 모드가 되면 뒤늦은 역할 태그도 제외한다", async () => {
+    sendEvent.mockResolvedValue({ success: true, tableRole: "creator" });
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.TABLE_VIEW, "table");
+    grantAdmin("admin");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(window.clarity.mock.calls.filter(([method]) => method === "set")).toEqual([]);
+  });
+
+  test("역할 태그 전송 오류와 수집 거절을 밖으로 전파하지 않는다", async () => {
+    sendEvent.mockResolvedValueOnce({ success: true, tableRole: "participant" })
+      .mockRejectedValueOnce(new Error("offline"));
+    window.clarity = jest.fn(() => { throw new Error("blocked"); });
+    expect(() => trackEvent(EVENTS.TABLE_VIEW, "table")).not.toThrow();
+    expect(() => trackEvent(EVENTS.SCHEDULE_SAVE, "table")).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });

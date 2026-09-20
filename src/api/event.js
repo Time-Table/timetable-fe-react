@@ -2,7 +2,7 @@ import { instance as axios } from "./interceptors";
 
 export const sendEvent = async (payload) => {
   try {
-    const res = await axios.post("/api/events", payload);
+    const res = await axios.post("/api/events", payload, { silent: true });
     return res;
   } catch (error) {
     // 수집 실패가 사용자 흐름을 막으면 안 되므로 조용히 넘어간다.

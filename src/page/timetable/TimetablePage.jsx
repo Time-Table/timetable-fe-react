@@ -140,7 +140,7 @@ export default function TimetablePage() {
     return localStorage.getItem("hasClickedMembers") === "true";
   });
 
-  const hasTrackedVisit = useRef(false);
+  const trackedTableId = useRef(null);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [isTipsOpen, setIsTipsOpen] = useState(() => {
@@ -186,10 +186,10 @@ export default function TimetablePage() {
   }, [tableId]);
 
   useEffect(() => {
-    if (!hasTrackedVisit.current) {
+    if (tableId && trackedTableId.current !== tableId) {
+      trackedTableId.current = tableId;
       trackVisit("table");
       trackEvent(EVENTS.TABLE_VIEW, tableId);
-      hasTrackedVisit.current = true;
     }
   }, [tableId]);
 

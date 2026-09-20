@@ -84,15 +84,48 @@ const getDevice = () => {
  * 퍼널 이벤트를 기록한다. 관리자 브라우저는 집계에서 제외된다.
  * 응답을 기다리지 않는 fire-and-forget 방식이라 호출부에서 await할 필요가 없다.
  */
-export const trackEvent = (name, tableId) => {
-  if (isAdmin()) return;
-  sendEvent({
-    name,
-    visitorId: getVisitorId(),
-    tableId,
-    source: getSource(),
-    device: getDevice(),
-  });
+export const trackEvent = (name, tableId, creationPath) => {
+  let pending;
+  // 저장소 차단·수집 장애가 생성 요청이나 성공 화면을 막으면 안 된다.
+  try {
+    if (isAdmin()) return;
+    pending = sendEvent({
+      name,
+      visitorId: getVisitorId(),
+      tableId,
+      source: getSource(),
+      device: getDevice(),
+    });
+  } catch (error) {
+    return;
+  }
+
+  if ([EVENTS.CREATE_SUCCESS, EVENTS.TABLE_VIEW, EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE].includes(name)) {
+    // 역할은 현재 URL이나 마지막으로 만든 표가 아니라, 요청한 표의 서버 응답에 묶는다.
+    // 태그는 행동별로 구분한다. Clarity 세션에는 여러 표의 역할이 공존할 수 있다.
+    Promise.resolve(pending).then((result) => {
+      if (!result?.success || result.skipped || isAdmin() || typeof window.clarity !== "function") return;
+      const role = ["creator", "participant", "unknown"].includes(result.tableRole)
+        ? result.tableRole : "unknown";
+      window.clarity("set", `tt_${name}_role`, role);
+    }).catch(() => {
+      // 계측 응답·저장소·Clarity 오류를 사용자 동작에 전파하지 않는다.
+    });
+  }
+
+  // 기존 버튼 텍스트 기반 스마트 이벤트와 구분한다. 식별자/입력값은 보내지 않는다.
+  if (![EVENTS.LANDING_VIEW, EVENTS.CREATE_VIEW, EVENTS.CREATE_CTA_CLICK,
+    EVENTS.CREATE_SUBMIT, EVENTS.CREATE_SUCCESS, EVENTS.TABLE_VIEW,
+    EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE].includes(name)) return;
+  try {
+    if (typeof window.clarity !== "function") return;
+    window.clarity("event", `tt_${name}`);
+    if (creationPath === "landing" || creationPath === "quick_create") {
+      window.clarity("event", `tt_${name}_${creationPath}`);
+    }
+  } catch (error) {
+    // Clarity 차단·오류는 자체 계측과 서비스 동작에 영향을 주지 않는다.
+  }
 };
 
 /**

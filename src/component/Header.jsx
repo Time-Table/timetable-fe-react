@@ -4,6 +4,7 @@ import theme from "../theme";
 import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { trackEvent, EVENTS } from "../utils/analytics";
 
 export default function Header() {
      const email = "timetable2official@gmail.com";
@@ -80,6 +81,7 @@ export default function Header() {
           });
      };
      const handleCreateClick = () => {
+          trackEvent(EVENTS.CREATE_CTA_CLICK, undefined, "quick_create");
           navigate("/quick-create");
           window.scrollTo(0, 0);
      };

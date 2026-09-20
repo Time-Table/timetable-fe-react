@@ -1,6 +1,14 @@
 import { instance as axios } from "./interceptors";
+import { getVisitorId } from "../utils/analytics";
+import { isAdmin } from "../utils/admin";
 
 export const createTable = async (title, dates, startHour, endHour, banedCells) => {
+  let creatorVisitorId;
+  try {
+    if (!isAdmin()) creatorVisitorId = getVisitorId();
+  } catch {
+    // 저장소를 쓸 수 없어도 표 생성은 계속 진행한다.
+  }
   try {
     const res = await axios.post("/api/tables", {
       title,
@@ -8,6 +16,7 @@ export const createTable = async (title, dates, startHour, endHour, banedCells) 
       startHour,
       endHour,
       banedCells,
+      ...(creatorVisitorId ? { creatorVisitorId } : {}),
     });
     return res;
   } catch (error) {

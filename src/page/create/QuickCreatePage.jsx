@@ -34,14 +34,10 @@ export default function QuickCreatePage() {
   const hasTrackedVisit = useRef(false);
 
   useEffect(() => {
-    const getVisitLog = async () => {
-      if (!hasTrackedVisit.current) {
-        await trackVisit("create");
-        trackEvent(EVENTS.CREATE_VIEW);
-        hasTrackedVisit.current = true;
-      }
-    };
-    getVisitLog();
+    if (hasTrackedVisit.current) return;
+    hasTrackedVisit.current = true;
+    trackVisit("create");
+    trackEvent(EVENTS.CREATE_VIEW, undefined, "quick_create");
   }, []);
 
   useEffect(() => {
@@ -60,16 +56,17 @@ export default function QuickCreatePage() {
       Swal.fire("입력 오류", "날짜와 모임 이름을 먼저 입력해주세요.", "error");
       return;
     }
-    trackEvent(EVENTS.CREATE_SUBMIT);
+    if (isLoading) return;
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "quick_create");
     setIsLoading(true);
     const res = await createTable(title, selectedDates, startHour, endHour, banedCells);
     setIsLoading(false);
-    if (res.isRateLimit) return;
-    if (res.success) {
+    if (res?.isRateLimit) return;
+    if (res?.success && res.data?.tableId) {
+      trackEvent(EVENTS.CREATE_SUCCESS, res.data.tableId, "quick_create");
       localStorage.setItem("title", title);
       const newTableId = res.data.tableId;
       const url = `${window.location.origin}/table/${newTableId}`;
-      trackEvent(EVENTS.CREATE_SUCCESS, newTableId);
       Swal.fire({
         icon: "success",
         title: "생성 완료!",
@@ -88,7 +85,7 @@ export default function QuickCreatePage() {
         }
       });
     } else {
-      Swal.fire("생성 실패", res.message || "테이블 생성 중 오류가 발생했습니다.", "error");
+      Swal.fire("생성 실패", res?.message || "테이블 생성 중 오류가 발생했습니다.", "error");
     }
   };
 

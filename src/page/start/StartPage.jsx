@@ -126,11 +126,8 @@ export default function StartPage() {
     hasTracked.current = true;
     trackVisit("landing");
     trackEvent(EVENTS.LANDING_VIEW);
-    // 이 페이지는 랜딩이자 생성 폼이다. 백엔드 퍼널은 앞 단계를 모두 거친 방문자만
-    // 세므로(services/eventService.js), 두 단계를 빠뜨리면 여기서 만든 사람이
-    // 생성 퍼널 완료에서 전원 0으로 집계된다.
-    trackEvent(EVENTS.CREATE_CTA_CLICK);
-    trackEvent(EVENTS.CREATE_VIEW);
+    // 랜딩 자체가 생성 폼이다. 실제 클릭은 openLock에서만 기록한다.
+    trackEvent(EVENTS.CREATE_VIEW, undefined, "landing");
   }, []);
 
   useEffect(() => {
@@ -424,6 +421,7 @@ export default function StartPage() {
   /** 버튼을 눌러도 바로 만들지 않는다. 시간 잠금을 한 번 물어본 뒤 만든다. */
   const openLock = () => {
     if (!isValid || isLoading) return;
+    trackEvent(EVENTS.CREATE_CTA_CLICK, undefined, "landing");
     setBanedCells((prev) => prev.filter((c) => selectedDates.includes(c.slice(0, c.lastIndexOf("-")))));
     setLockOpen(true);
   };
@@ -435,9 +433,14 @@ export default function StartPage() {
 
   const handleCreate = async () => {
     if (!isValid || isLoading) return;
-    trackEvent(EVENTS.CREATE_SUBMIT);
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing");
     setIsLoading(true);
     const res = await createTable(title.trim(), selectedDates, startHour, endHour, banedCells);
+    // 화면을 떠났더라도 성공 응답은 기록한다. 화면 갱신은 아래에서 중단한다.
+    const tableId = res?.data?.tableId;
+    if (res?.success && tableId) {
+      trackEvent(EVENTS.CREATE_SUCCESS, tableId, "landing");
+    }
     // 응답을 기다리는 사이에 사용자가 페이지를 떠났으면 여기서 끝낸다.
     // 아니면 다른 화면 위에 성공 모달이 뜨고, 확인을 누르면 엉뚱한 곳으로 이동한다.
     if (!isMounted.current) return;
@@ -445,15 +448,13 @@ export default function StartPage() {
     closeLock();
 
     if (res?.isRateLimit) return;
-    if (!res?.success) {
+    if (!res?.success || !tableId) {
       Swal.fire("생성 실패", res?.message || "테이블 생성 중 오류가 발생했습니다.", "error");
       return;
     }
 
-    const tableId = res.data.tableId;
     const url = `${window.location.origin}/table/${tableId}`;
     localStorage.setItem("title", title.trim());
-    trackEvent(EVENTS.CREATE_SUCCESS, tableId);
 
     Swal.fire({
       icon: "success",

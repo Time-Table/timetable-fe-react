@@ -59,7 +59,8 @@ export default function PersonalSchedule({
           }
           setIsSaving(true);
           try {
-               await addSchedule(tableId, name, selectedCells);
+               const result = await addSchedule(tableId, name, selectedCells);
+               if (!result?.success) throw new Error("일정 저장이 확인되지 않았습니다.");
                trackEvent(EVENTS.SCHEDULE_SAVE, tableId);
                Swal.fire({
                     icon: "success",
