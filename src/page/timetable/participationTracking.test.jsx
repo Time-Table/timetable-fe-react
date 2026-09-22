@@ -62,6 +62,7 @@ test("StrictMode에서 표 방문 1회, 같은 컴포넌트의 표 ID 변경 시
   expect(sendEvent.mock.calls.filter(([e]) => e.name === "table_view")).toHaveLength(1);
   mockTableId = "mock-only-second-table";
   view.rerender(wrap(<TimetablePage />));
+  await screen.findByText("Table-Not Found");
   await waitFor(() => expect(getTableInfo).toHaveBeenCalledWith(mockTableId));
   expect(sendEvent.mock.calls.filter(([e]) => e.name === "table_view").map(([e]) => e.tableId))
     .toEqual(["313fcb21-583e-4e82-942c-713eeb3d607d", "mock-only-second-table"]);

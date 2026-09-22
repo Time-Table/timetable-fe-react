@@ -31,6 +31,7 @@ const TimeGridModal = ({
   setTableInfo,
   tableId,
   usersSchedule,
+  onRefresh,
 }) => {
   return (
     <AnimatePresence>
@@ -68,6 +69,7 @@ const TimeGridModal = ({
               setTableInfo={setTableInfo}
               tableId={tableId}
               usersSchedule={usersSchedule}
+              onRefresh={onRefresh}
             />
           </ModalContainer>
         </Backdrop>

@@ -93,19 +93,19 @@ const TOGGLE_TIPS = {
   default: {
     emoji: "🚀",
     description:
-      "이름만 입력하면 바로 참여할 수 있습니다. 회원가입이나 개인정보 입력은 필요 없어요.",
+      "회원가입 없이 이름(닉네임)과 비밀번호를 입력해 참여할 수 있습니다. 링크를 가진 사람은 참여자의 이름과 가능 시간을 볼 수 있어요.",
     tips: [
       {
-        title: "닉네임만으로 익명 참여",
-        desc: "이메일이나 전화번호 없이 이름(닉네임)만으로 참여가 가능합니다. 원하는 이름을 자유롭게 입력해보세요.",
+        title: "공유할 이름을 정해주세요",
+        desc: "이메일이나 전화번호는 입력하지 않습니다. 함께 일정을 조율할 사람들이 알아볼 수 있는 이름이나 닉네임을 사용하세요.",
       },
       {
         title: "비밀번호로 내 일정 관리",
         desc: "비밀번호를 설정하면 나중에 다시 로그인해 일정을 수정하거나 삭제할 수 있습니다.",
       },
       {
-        title: "참여 후 시간 입력까지 30초",
-        desc: "이름 입력 → 시간 드래그 → 저장. 단 3단계로 내 일정 등록이 완료됩니다.",
+        title: "가능한 시간을 선택하고 저장하세요",
+        desc: "이름과 비밀번호 입력 → 시간 선택 → 저장 순서로 일정을 등록하세요. 저장한 시간이 전체 시간표에 반영됩니다.",
       },
     ],
     lastP:
@@ -120,6 +120,8 @@ export default function TimetablePage() {
   const { startHour, endHour, dates, title, banedCells } = tableInfo || {};
   const [saveButtonState, setSaveButtonState] = useState(true);
   const [timeInfo, setTimeInfo] = useState([]);
+  const [scheduleStatus, setScheduleStatus] = useState("loading");
+  const [tableLoadError, setTableLoadError] = useState(false);
   const [rightScreen, setRightScreen] = useState(() => {
     const storedName =
       localStorage.getItem("tableId") === tableId ? localStorage.getItem("name") : null;
@@ -141,6 +143,8 @@ export default function TimetablePage() {
   });
 
   const trackedTableId = useRef(null);
+  const tableRequestId = useRef(0);
+  const scheduleRequestId = useRef(0);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [isTipsOpen, setIsTipsOpen] = useState(() => {
@@ -152,38 +156,85 @@ export default function TimetablePage() {
     localStorage.setItem("isTipsOpen", JSON.stringify(isTipsOpen));
   }, [isTipsOpen]);
 
-  const fetchAllData = useCallback(async () => {
-    const res = await getTableInfo(tableId);
-    if (!res || res.status === 404) {
-      setIsValidTableId(false);
-      return;
-    }
-
-    const tableData = res.data || res;
-    setTableInfo(tableData);
-    setIsValidTableId(true);
-
-    const [membersSchedule, timeData] = await Promise.all([
-      getAllSchedule(tableId),
-      getSchedule(tableId),
-    ]);
-    if (membersSchedule.code === 200) {
-      setUsersScheduleList(membersSchedule.data);
-    }
-    setTimeInfo(timeData);
-  }, [tableId]);
-
   // 저장 후 테이블 구조 제외, 일정 데이터만 갱신
   const refreshScheduleData = useCallback(async () => {
-    const [membersSchedule, timeData] = await Promise.all([
-      getAllSchedule(tableId),
-      getSchedule(tableId),
-    ]);
-    if (membersSchedule.code === 200) {
-      setUsersScheduleList(membersSchedule.data);
+    const requestId = ++scheduleRequestId.current;
+    setScheduleStatus("loading");
+    try {
+      const [membersSchedule, timeData] = await Promise.all([
+        getAllSchedule(tableId),
+        getSchedule(tableId),
+      ]);
+      if (requestId !== scheduleRequestId.current) return;
+
+      const members = membersSchedule?.code === 201 ? [] : membersSchedule?.data;
+      if (
+        membersSchedule?.success === false ||
+        ![200, 201].includes(membersSchedule?.code) ||
+        !Array.isArray(members) ||
+        !Array.isArray(timeData)
+      ) {
+        throw new Error("Schedule data unavailable");
+      }
+      setUsersScheduleList(members);
+      setTimeInfo(members.length > 0 ? timeData : []);
+      setScheduleStatus("ready");
+    } catch {
+      if (requestId !== scheduleRequestId.current) return;
+      setUsersScheduleList([]);
+      setTimeInfo([]);
+      setScheduleStatus("error");
     }
-    setTimeInfo(timeData);
   }, [tableId]);
+
+  const fetchAllData = useCallback(async () => {
+    const requestId = ++tableRequestId.current;
+    ++scheduleRequestId.current;
+    setIsValidTableId(null);
+    setTableLoadError(false);
+    setScheduleStatus("loading");
+    setSelectedName(null);
+    try {
+      const res = await getTableInfo(tableId);
+      if (requestId !== tableRequestId.current) return;
+      if (res?.status === 404) {
+        setTableInfo(null);
+        setIsValidTableId(false);
+        return;
+      }
+      const tableData = res?.data;
+      if (
+        res?.success !== true ||
+        tableData?.tableId !== tableId ||
+        !Array.isArray(tableData?.dates) ||
+        tableData.dates.length === 0
+      ) {
+        throw new Error("Table data unavailable");
+      }
+      setTableInfo(tableData);
+      setIsValidTableId(true);
+      await refreshScheduleData();
+    } catch {
+      if (requestId !== tableRequestId.current) return;
+      setTableInfo(null);
+      setUsersScheduleList([]);
+      setTimeInfo([]);
+      setTableLoadError(true);
+      setIsValidTableId(false);
+    }
+  }, [tableId, refreshScheduleData]);
+
+  useEffect(() => () => {
+    ++tableRequestId.current;
+    ++scheduleRequestId.current;
+  }, [tableId]);
+
+  const isAdReady =
+    isValidTableId === true &&
+    scheduleStatus === "ready" &&
+    usersScheduleList.length >= 2 &&
+    usersScheduleList.some((user) => Array.isArray(user.availableTimes) && user.availableTimes.length > 0) &&
+    timeInfo.length > 0;
 
   useEffect(() => {
     if (tableId && trackedTableId.current !== tableId) {
@@ -244,6 +295,16 @@ export default function TimetablePage() {
   }, [tableId]);
 
   const renderContent = () => {
+    if (scheduleStatus === "error") {
+      return (
+        <DataNotice role="alert">
+          <p>참여자와 일정을 불러오지 못했습니다.</p>
+          <p>연결 상태를 확인하고 다시 시도해 주세요.</p>
+          <RetryButton type="button" onClick={refreshScheduleData}>다시 불러오기</RetryButton>
+        </DataNotice>
+      );
+    }
+    if (scheduleStatus === "loading") return <Loader />;
     switch (rightScreen) {
       case "JoinForm":
         return (
@@ -267,7 +328,6 @@ export default function TimetablePage() {
             usersSchedule={usersScheduleList}
             name={name}
             tableId={tableId}
-            onViewTimetable={!isDesktop ? () => setIsGridModalOpen(true) : undefined}
           />
         );
       case "PersonalSchedule":
@@ -284,7 +344,6 @@ export default function TimetablePage() {
             banedCells={banedCells}
             bgTimeInfo={timeInfo}
             onSaveSuccess={refreshScheduleData}
-            onViewTimetable={!isDesktop ? () => setIsGridModalOpen(true) : undefined}
           />
         ) : (
           <Loader />
@@ -434,6 +493,16 @@ export default function TimetablePage() {
     );
   };
 
+  if (tableLoadError) {
+    return (
+      <LoaderLayout role="alert">
+        <h1>표 정보를 불러오지 못했습니다.</h1>
+        <p>연결 상태를 확인하고 다시 시도해 주세요.</p>
+        <RetryButton type="button" onClick={fetchAllData}>다시 불러오기</RetryButton>
+      </LoaderLayout>
+    );
+  }
+
   if (isValidTableId === null) {
     return (
       <LoaderLayout>
@@ -468,6 +537,7 @@ export default function TimetablePage() {
                 setTableInfo={setTableInfo}
                 tableId={tableId}
                 usersSchedule={usersScheduleList}
+                onRefresh={fetchAllData}
               />
             )}
           </LeftPanel>
@@ -482,7 +552,7 @@ export default function TimetablePage() {
               slot="7512892307"
               layout="in-article"
               format="fluid"
-              isReady={!!tableInfo && usersScheduleList.length >= 2}
+              isReady={isAdReady}
             />
           </RightPanel>
         </DesktopContainer>
@@ -491,6 +561,15 @@ export default function TimetablePage() {
           <MainContent>
             <HeaderContent />
             <ResultCard />
+            <ViewTimetableButton
+              id="guide-view-timetable"
+              type="button"
+              disabled={scheduleStatus !== "ready" || usersScheduleList.length === 0}
+              onClick={() => setIsGridModalOpen(true)}
+            >
+              <FiGrid size={20} />
+              전체 시간표 보기
+            </ViewTimetableButton>
             <StepBar />
             <ContentPanel>
               <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
@@ -499,16 +578,9 @@ export default function TimetablePage() {
               slot="7512892307"
               layout="in-article"
               format="fluid"
-              isReady={!!tableInfo && usersScheduleList.length >= 2}
+              isReady={isAdReady}
             />
           </MainContent>
-          <IconFab
-            id="guide-view-timetable"
-            $disabled={usersScheduleList.length === 0}
-            onClick={() => usersScheduleList.length > 0 && setIsGridModalOpen(true)}
-          >
-            <FiGrid size={22} />
-          </IconFab>
         </>
       )}
 
@@ -568,6 +640,7 @@ export default function TimetablePage() {
           setTableInfo={setTableInfo}
           tableId={tableId}
           usersSchedule={usersScheduleList}
+          onRefresh={fetchAllData}
         />
       )}
 
@@ -1021,42 +1094,57 @@ const CopyBtn = styled.button`
   `}
 `;
 
-const IconFab = styled.button`
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
+const ViewTimetableButton = styled.button`
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
-  transition: all 0.2s ease;
+  gap: ${theme.space[2]};
+  padding: ${theme.space[4]};
+  border: 1px solid ${theme.color.primaryBorder};
+  border-radius: ${theme.radius.lg};
+  background: ${theme.color.primarySurface};
+  color: ${theme.color.primaryText};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.body};
+  cursor: pointer;
 
-  ${(p) =>
-    p.$disabled
-      ? `
+  &:hover:not(:disabled) { background: ${theme.color.surface}; }
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+  &:disabled {
+    border-color: ${theme.text.gamma[800]};
     background: ${theme.text.gamma[900]};
-    color: ${theme.text.gamma[600]};
+    color: ${theme.text.gamma[400]};
     cursor: not-allowed;
-    pointer-events: none;
-  `
-      : `
-    background: linear-gradient(45deg, ${theme.color.primaryTint}, ${theme.color.primary});
-    color: white;
-    box-shadow: 0 6px 20px ${theme.color.primary}40;
-    &:hover { transform: scale(1.1); box-shadow: 0 8px 28px ${theme.color.primary}55; }
-    &:active { transform: scale(0.93); }
-  `}
+  }
+`;
 
-  @media (max-width: 480px) {
-    bottom: 20px;
-    right: 20px;
-    width: 48px;
-    height: 48px;
+const DataNotice = styled.div`
+  padding: ${theme.space[6]};
+  border-radius: ${theme.radius.lg};
+  background: ${theme.color.surface};
+  color: ${theme.text.gamma[300]};
+  font-family: ${theme.font.family.regular};
+  font-size: ${theme.font.size.body};
+  line-height: ${theme.font.lineHeight.normal};
+  p { margin: 0 0 ${theme.space[3]}; }
+`;
+
+const RetryButton = styled.button`
+  padding: ${theme.space[3]} ${theme.space[5]};
+  border: 1px solid ${theme.color.primaryBorder};
+  border-radius: ${theme.radius.md};
+  background: ${theme.color.primarySurface};
+  color: ${theme.color.primaryText};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.body};
+  cursor: pointer;
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
   }
 `;
 

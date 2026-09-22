@@ -38,6 +38,7 @@ export default function GroupTimeGrid({
   setTableInfo,
   tableId,
   usersSchedule,
+  onRefresh,
 }) {
   const Toast = Swal.mixin({
     toast: true,
@@ -116,8 +117,13 @@ export default function GroupTimeGrid({
         <NoteText>{selectedName ? `${selectedName} 님의` : "전체"} 시간표</NoteText>
         <ButtonBox
           className={isRotating ? "rotating" : ""}
+          aria-label="시간표 새로고침"
           onClick={async () => {
             handleClick();
+            if (onRefresh) {
+              await onRefresh();
+              return;
+            }
             const res = await getTableInfo(tableId);
             const tableData = res?.data || res;
             if (tableData?._id) {
