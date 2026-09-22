@@ -63,34 +63,34 @@ export default function AboutPage() {
     <AboutPageDiv>
       <Seo
         title="서비스 소개 — 약속 조율 도구 타임테이블"
-        description="타임테이블은 로그인 없이 약속 조율을 끝내는 무료 도구입니다. 드래그로 가능한 시간을 모으고 골든타임을 자동으로 계산하는 방식을 소개합니다."
+        description="타임테이블은 회원가입 없이 가능한 시간을 모아 약속을 조율하는 무료 도구입니다. 이름과 비밀번호로 참여하고, 저장된 응답을 바탕으로 만날 시간을 찾아보세요."
       />
       <PageHeading>약속 조율 도구, 타임테이블 소개</PageHeading>
       <ContentDiv>
         <div>
-          <AnimatedText ref={addToRefs}>도대체 다들..</AnimatedText>
-          <AnimatedText ref={addToRefs}>언제 시간되세요 ?</AnimatedText>
+          <AnimatedText ref={addToRefs}>다 같이 만나고 싶은데,</AnimatedText>
+          <AnimatedText ref={addToRefs}>언제 시간 되세요?</AnimatedText>
         </div>
         <div>
           <AnimatedSubtitle ref={addToRefs} data-animation="slide">
-            각자 다른 스케줄
+            각자 다른 일정, 한곳에 모아 보세요
           </AnimatedSubtitle>
           <div>
             <Talk />
           </div>
         </div>
         <AnimatedText ref={addToRefs}>
-          . . <span style={{ color: theme.color.primary }}>시간 맞추기</span> 힘드시죠?
+          여러 사람의 <span style={{ color: theme.color.primary }}>시간 맞추기</span>, 타임테이블로 시작하세요
         </AnimatedText>
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
           <AnimatedText>
-            1대1 약속부터 대규모 회식까지 시간 / 인원{" "}
+            친구와의 약속부터 단체 모임까지 가능한 시간{" "}
             <span style={{ color: theme.color.primary }}>체크 </span>
           </AnimatedText>
         </RedBackgroundDiv>{" "}
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
           <AnimatedSubtitle>
-            내가 가능한 시간 or 불가능한 시간{" "}
+            내가 가능한 시간을 드래그로{" "}
             <span style={{ color: theme.color.primary }}>선택 </span>
           </AnimatedSubtitle>
 
@@ -99,47 +99,47 @@ export default function AboutPage() {
           </AnimatedSVG>
         </RedBackgroundDiv>
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
-          <AnimatedText>간단하게 만들고</AnimatedText>
+          <AnimatedText>모임 표를 만들고 링크로 공유하세요</AnimatedText>
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
             <Preview2 />
           </AnimatedSVG>
         </RedBackgroundDiv>
         <RedBackgroundDiv ref={addToRefs} data-animation="slide">
-          <AnimatedText>디테일하게 확인 !</AnimatedText>
+          <AnimatedText>시간대별로 누가 가능한지 확인하세요</AnimatedText>
           <AnimatedSVG ref={addToRefs} data-animation="fade-up">
             <Preview3 />
           </AnimatedSVG>
         </RedBackgroundDiv>
         <div>
           <AnimatedText ref={addToRefs} style={{ color: theme.color.primary }}>
-            30초 만에 템플릿 제작하고 공유하세요.
+            가능한 시간을 모아, 함께 만날 때를 정하세요.
           </AnimatedText>
 
           <AnimatedNotes ref={addToRefs} data-animation="slide">
-            Mobile / Tab / PC 이용{" "}
+            스마트폰·태블릿·PC에서 이용할 수 있어요
           </AnimatedNotes>
         </div>
 
         <DescriptionSection ref={addToRefs} data-animation="fade-up" style={{ opacity: 1, transform: "translateY(0)" }}>
-          <h3>왜 타임테이블 인가요?</h3>
+          <h3>타임테이블은 어떤 서비스인가요?</h3>
           <p>
-            타임테이블은 복잡한 일정 조율 과정을 간소화하기 위해 만들어진 무료 서비스입니다.
-            회원가입이나 번거로운 로그인 과정 없이, 단 30초 만에 약속을 제안하고
-            구성원들의 가능한 시간을 한눈에 파악할 수 있는 가장 효율적인 시스템을 제공합니다.
+            타임테이블은 여러 사람의 가능한 시간을 모아 약속을 정하는 무료 서비스입니다.
+            회원가입 없이 모임 표를 만들고 링크를 공유할 수 있습니다.
+            참여자는 이름(닉네임)과 비밀번호를 입력한 뒤 가능한 시간을 선택하고 저장합니다.
           </p>
           <p>
-            우리는 일상 속에서 빈번하게 일어나는 "언제 시간 돼?"라는 질문에 대한
-            가장 빠르고 명확한 답변을 찾을 수 있도록 돕는 것을 목표로 합니다.
-            직관적인 인터페이스와 실시간 데이터 동기화를 통해 불필요한 대화 시간을 줄이고,
-            더욱 즐거운 모임을 준비하는 데 집중할 수 있도록 지원합니다.
+            채팅방에 흩어진 답변을 하나씩 비교하는 대신, 저장된 응답을 전체 시간표에서
+            확인할 수 있습니다. 가능한 인원이 많은 시간대를 골든타임으로 추천하므로,
+            참여자들과 결과를 확인하고 모임 시간을 정해 보세요.
           </p>
           <h3>주요 기능 및 장점</h3>
           <ul style={{ textAlign: "left", display: "inline-block", padding: "0 20px" }}>
-            <li><strong>직관적인 드래그 방식:</strong> 모바일과 PC 어디서나 손쉽게 시간을 선택할 수 있습니다.</li>
-            <li><strong>실시간 그룹 시간표:</strong> 모든 구성원의 응답이 실시간으로 취합되어 한눈에 보여집니다.</li>
-            <li><strong style={{ color: "#D4AF37" }}>골든타임 자동 추천:</strong> 알고리즘을 통해 가장 많은 인원이 모일 수 있는 최적의 시간을 자동으로 찾아줍니다.</li>
-            <li><strong>완벽한 익명성 보장:</strong> 로그인 없이 이름만으로 참여가 가능하며, 개인정보를 요구하지 않습니다.</li>
-            <li><strong>반응형 디자인:</strong> 다양한 디바이스(스마트폰, 태블릿, PC)에 최적화된 사용자 경험을 제공합니다.</li>
+            <li><strong>드래그로 시간 선택:</strong> 모바일과 PC에서 가능한 시간을 선택하고 저장할 수 있습니다.</li>
+            <li><strong>전체 시간표:</strong> 참여자가 저장한 응답을 한 화면에서 비교할 수 있습니다. 다른 사람의 최신 응답은 새로고침하여 확인하세요.</li>
+            <li><strong style={{ color: "#D4AF37" }}>골든타임 추천:</strong> 저장된 응답을 기준으로 가능한 인원이 많은 시간대부터 보여줍니다.</li>
+            <li><strong>회원가입 없이 참여:</strong> 이름(닉네임)과 비밀번호를 사용합니다. 참여를 위해 이메일이나 전화번호를 입력할 필요는 없습니다.</li>
+            <li><strong>링크로 결과 공유:</strong> 모임 링크를 가진 사람은 참여자의 이름과 가능한 시간, 채팅 내용을 볼 수 있습니다. 공개해도 되는 닉네임을 사용하고 민감한 정보는 입력하지 마세요.</li>
+            <li><strong>여러 기기에서 이용:</strong> 스마트폰, 태블릿, PC의 웹 브라우저에서 이용할 수 있습니다.</li>
           </ul>
           <h3>이런 분들께 추천합니다</h3>
           <p>
@@ -153,7 +153,7 @@ export default function AboutPage() {
         <PageWrapper>
           <PrimaryButtonLarge onClick={() => navigate("/quick-create")}>
             <BsLightningChargeFill size={24} />
-            로그인 없이 생성하기
+            회원가입 없이 표 만들기
           </PrimaryButtonLarge>
         </PageWrapper>
         <AdSense isReady={true} />
