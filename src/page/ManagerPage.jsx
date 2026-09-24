@@ -60,6 +60,7 @@ import {
 } from "./manager/ui";
 import StatTile from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
+import ActivationCard from "./manager/ActivationCard";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
 import { createRequestSequence } from "./manager/latestRequest";
 import { blogPosts } from "../data/blogPosts";
@@ -564,8 +565,10 @@ const ManagerPage = () => {
               {/* ------------------------------------------------ 퍼널 */}
               {activeTab === "funnel" && (
                 <Stack>
+                  <ActivationCard report={funnelReport?.metricsV2} />
                   <Notice>
-                    각 단계는 <strong>앞 단계를 모두 거친 사람</strong>만 세는 순서 퍼널입니다.
+                    아래 기존 퍼널은 <strong>기간 내 이벤트를 남긴 브라우저</strong> 기준의 참고 지표입니다.
+                    같은 표에서 시간 순서대로 진행했음을 보장하지 않습니다.
                     관리자로 인증한 브라우저의 활동은 집계에서 제외됩니다.
                     {funnelReport?.startDate && ` (${funnelReport.startDate} ~ 오늘)`}
                   </Notice>

@@ -15,7 +15,7 @@ const compact = (value) => {
  * delta는 색만으로 방향을 말하지 않는다. 적록색각에서 초록/빨강은 구분되지 않으므로
  * 화살표 아이콘과 부호를 항상 함께 붙인다.
  */
-const StatTile = ({ label, value, delta, deltaLabel, higherIsBetter = true, hint }) => {
+const StatTile = ({ label, value, delta, deltaLabel, higherIsBetter = true, hint, showComparison = true }) => {
   const hasDelta = typeof delta === "number";
   const flat = hasDelta && delta === 0;
   const positive = hasDelta && delta > 0;
@@ -27,7 +27,7 @@ const StatTile = ({ label, value, delta, deltaLabel, higherIsBetter = true, hint
     <Tile>
       <Label>{label}</Label>
       <Value>{compact(value)}</Value>
-      <Foot>
+      {showComparison && <Foot>
         {hasDelta ? (
           <Delta $tone={flat ? "flat" : good ? "good" : "bad"}>
             <Icon size={13} />
@@ -40,7 +40,7 @@ const StatTile = ({ label, value, delta, deltaLabel, higherIsBetter = true, hint
           </Delta>
         )}
         {deltaLabel && <Compare>{deltaLabel}</Compare>}
-      </Foot>
+      </Foot>}
       {hint && <Hint>{hint}</Hint>}
     </Tile>
   );
