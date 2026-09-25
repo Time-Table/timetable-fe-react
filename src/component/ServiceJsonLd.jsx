@@ -17,7 +17,7 @@ const jsonLd = {
   alternateName: "Timetable",
   url: `${SITE_URL}/`,
   description:
-    "약속 조율을 링크 하나로 끝내는 무료 웹 서비스. 로그인 없이 30초 만에 만들고, 참여자들이 가능한 시간을 드래그로 표시하면 가장 많이 겹치는 골든타임을 자동으로 계산한다.",
+    "약속 조율을 링크 하나로 끝내는 무료 웹 서비스. 10초 만에 테이블을 만들고, 참여자들이 가능한 시간을 드래그로 표시하면 가장 많이 겹치는 골든타임을 자동으로 계산한다.",
   applicationCategory: "BusinessApplication",
   operatingSystem: "All",
   browserRequirements: "최신 웹 브라우저",
