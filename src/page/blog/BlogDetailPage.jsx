@@ -31,7 +31,9 @@ export default function BlogDetailPage() {
   }, [trackedSlug]);
 
   // 교체된 글의 옛 slug는 새 글로 보낸다. 운영은 _redirects 301이 먼저 처리하고, 여기는 그 뒤의 안전망이다.
-  if (!post && LEGACY_SLUGS[id]) return <Navigate to={`/blog/${LEGACY_SLUGS[id]}`} replace />;
+  if (!post && Object.prototype.hasOwnProperty.call(LEGACY_SLUGS, id)) {
+    return <Navigate to={`/blog/${LEGACY_SLUGS[id]}`} replace />;
+  }
   if (!post) return <NotFound />;
   if (isLegacyId) return <Navigate to={`/blog/${post.slug}`} replace />;
 
