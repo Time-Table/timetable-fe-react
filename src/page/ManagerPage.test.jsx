@@ -4,14 +4,14 @@ import ManagerPage from "./ManagerPage";
 import Swal from "sweetalert2";
 import { getAllTables, deleteTable } from "../api/table";
 import { getFunnels } from "../api/event";
-import { adminVerify, getTrends } from "../api/admin";
+import { adminVerify, getTrends, getBlogStats } from "../api/admin";
 import { getTrackVisit } from "../api/visit";
 
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("../Seo", () => () => null);
 jest.mock("./manager/charts", () => ({ TrendChart: () => null, BarList: () => null }));
 jest.mock("../api/event", () => ({ getFunnels: jest.fn() }));
-jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn() }));
+jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn() }));
 jest.mock("../api/visit", () => ({ getTrackVisit: jest.fn() }));
 jest.mock("../api/table", () => ({ getAllTables: jest.fn(), updateTable: jest.fn(), deleteTable: jest.fn() }));
 jest.mock("../utils/admin", () => ({ isAdmin: () => true }));
@@ -44,6 +44,11 @@ beforeEach(() => {
   getTrackVisit.mockResolvedValue({ data: [] });
   getTrends.mockResolvedValue({ days: 30, metrics: [{ key: "signUps", total: 123 }], series: [] });
   getFunnels.mockResolvedValue(report());
+  getBlogStats.mockResolvedValue({
+    total: { views: 0, visitors: 0 },
+    conversion: { blogVisitors: 0 },
+    posts: [], series: [], sources: [],
+  });
 });
 
 const flushUpdates = async () => { await act(async () => { await Promise.resolve(); }); };
@@ -148,6 +153,17 @@ test("전체 보관 표와 기존 카운터를 각 탭에서 보존한다",async
   expect(screen.getByText("기존 표 생성 카운터")).toBeTruthy();
   await openParticipation(); expect(await screen.findByText("384")).toBeTruthy();
   expect(screen.getByText("전체 보관 표")).toBeTruthy();
+});
+
+test("블로그 조회가 0건이어도 글별 목록을 보여주고 전체 기간의 기록 한계를 알린다", async () => {
+  render(<ManagerPage />); await flushUpdates();
+  await click(screen.getByText("블로그", { selector: "div" }));
+  expect(await screen.findByRole("heading", { name: "글별 조회" })).toBeTruthy();
+  expect(screen.getByRole("table")).toBeTruthy();
+  expect(screen.queryByText(/전환 기록은 최근 180일까지만 보관됩니다/)).toBeNull();
+  await click(within(screen.getByRole("group", { name: "조회 기간" })).getByRole("button", { name: "전체" }));
+  expect(await screen.findByText(/전환 기록은 최근 180일까지만 보관됩니다/)).toBeTruthy();
+  expect(getBlogStats).toHaveBeenCalledWith(0);
 });
 
 

@@ -801,7 +801,7 @@ const ManagerPage = () => {
                           }
                           hint={
                             blogStats.conversion.blogVisitors
-                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.reachedLanding.toLocaleString()}명이 서비스 첫 화면까지 왔습니다`
+                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.reachedLanding.toLocaleString()}명의 서비스 첫 화면 방문이 보존된 기록에서 확인됐습니다`
                               : "아직 블로그 방문자가 없습니다"
                           }
                         />
@@ -814,11 +814,19 @@ const ManagerPage = () => {
                           }
                           hint={
                             blogStats.conversion.blogVisitors
-                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.createdTable.toLocaleString()}명이 테이블을 만들었습니다`
+                              ? `블로그 방문자 ${blogStats.conversion.blogVisitors.toLocaleString()}명 중 ${blogStats.conversion.createdTable.toLocaleString()}명의 테이블 생성이 보존된 기록에서 확인됐습니다`
                               : "아직 블로그 방문자가 없습니다"
                           }
                         />
                       </Grid>
+
+                      {(!period || period > 180) && (
+                        <Notice>
+                          <strong>전환 기록은 최근 180일까지만 보관됩니다.</strong> 조회수와 방문자 수는
+                          선택한 전체 기간을 포함하지만, 180일이 지난 전환 기록은 제외되어 전환율이
+                          실제보다 낮게 표시될 수 있습니다.
+                        </Notice>
+                      )}
 
                       {blogStats.total.views === 0 ? (
                         <Card>
@@ -900,101 +908,101 @@ const ManagerPage = () => {
                               </div>
                             </Card>
                           </Grid>
-
-                          <SectionHeader>
-                            <div>
-                              <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
-                                글별 조회
-                              </SectionTitle>
-                              <SectionCaption>
-                                조회가 0인 글은 교체 후보입니다. 발행한 지 오래됐는데도 0이면 제목이나 주제를
-                                바꿔 보세요.
-                              </SectionCaption>
-                            </div>
-                            <FilterRow>
-                              <Select
-                                aria-label="글 정렬"
-                                value={blogSort}
-                                onChange={(e) => setBlogSort(e.target.value)}
-                              >
-                                <option value="views">조회순</option>
-                                <option value="recent">최신순</option>
-                              </Select>
-                              <Toggle
-                                $active={blogOnlyZero}
-                                aria-pressed={blogOnlyZero}
-                                onClick={() => setBlogOnlyZero((v) => !v)}
-                              >
-                                조회 0인 글만
-                              </Toggle>
-                              <ResultCount>{blogRows.length.toLocaleString()}개 글</ResultCount>
-                            </FilterRow>
-                          </SectionHeader>
-
-                          <Card style={{ padding: 0, overflowX: "auto" }}>
-                            {blogRows.length === 0 ? (
-                              <Empty>조회가 0인 글이 없습니다. 모든 글이 최소 한 번은 읽혔습니다.</Empty>
-                            ) : (
-                              <DataTable>
-                                <thead>
-                                  <tr>
-                                    <th scope="col" style={{ minWidth: 260 }}>
-                                      제목
-                                    </th>
-                                    <th scope="col">카테고리</th>
-                                    <th scope="col">조회</th>
-                                    <th scope="col">방문자</th>
-                                    <th scope="col">마지막 조회</th>
-                                    <th scope="col">발행일</th>
-                                    <th scope="col">열기</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {blogRows.map((row) => (
-                                    <tr key={row.slug}>
-                                      <td className={row.listed ? "strong" : "mono"}>
-                                        {row.listed ? (
-                                          row.title
-                                        ) : (
-                                          <>
-                                            {row.slug} <Tag>목록에 없음</Tag>
-                                          </>
-                                        )}
-                                      </td>
-                                      <td>{row.listed ? <Tag>{row.category}</Tag> : "—"}</td>
-                                      <td className="num">
-                                        {row.views === 0 ? (
-                                          <Tag $tone="critical">
-                                            <FiAlertCircle size={11} /> 0회
-                                          </Tag>
-                                        ) : (
-                                          <Tag>{row.views.toLocaleString()}회</Tag>
-                                        )}
-                                      </td>
-                                      <td className="num">{row.visitors.toLocaleString()}</td>
-                                      <td className="mono nowrap">{formatDateTime(row.lastViewedAt)}</td>
-                                      <td className="mono nowrap">{row.listed ? row.date : "—"}</td>
-                                      <td>
-                                        {row.listed && (
-                                          <IconButton
-                                            as="a"
-                                            href={`/blog/${row.slug}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            aria-label={`${row.title} 새 탭에서 열기`}
-                                          >
-                                            <FiExternalLink size={13} />
-                                          </IconButton>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </DataTable>
-                            )}
-                          </Card>
                         </>
                       )}
+
+                      <SectionHeader>
+                        <div>
+                          <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
+                            글별 조회
+                          </SectionTitle>
+                          <SectionCaption>
+                            조회가 0인 글은 교체 후보입니다. 발행한 지 오래됐는데도 0이면 제목이나 주제를
+                            바꿔 보세요.
+                          </SectionCaption>
+                        </div>
+                        <FilterRow>
+                          <Select
+                            aria-label="글 정렬"
+                            value={blogSort}
+                            onChange={(e) => setBlogSort(e.target.value)}
+                          >
+                            <option value="views">조회순</option>
+                            <option value="recent">최신순</option>
+                          </Select>
+                          <Toggle
+                            $active={blogOnlyZero}
+                            aria-pressed={blogOnlyZero}
+                            onClick={() => setBlogOnlyZero((v) => !v)}
+                          >
+                            조회 0인 글만
+                          </Toggle>
+                          <ResultCount>{blogRows.length.toLocaleString()}개 글</ResultCount>
+                        </FilterRow>
+                      </SectionHeader>
+
+                      <Card style={{ padding: 0, overflowX: "auto" }}>
+                        {blogRows.length === 0 ? (
+                          <Empty>조회가 0인 글이 없습니다. 모든 글이 최소 한 번은 읽혔습니다.</Empty>
+                        ) : (
+                          <DataTable>
+                            <thead>
+                              <tr>
+                                <th scope="col" style={{ minWidth: 260 }}>
+                                  제목
+                                </th>
+                                <th scope="col">카테고리</th>
+                                <th scope="col">조회</th>
+                                <th scope="col">방문자</th>
+                                <th scope="col">마지막 조회</th>
+                                <th scope="col">발행일</th>
+                                <th scope="col">열기</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {blogRows.map((row) => (
+                                <tr key={row.slug}>
+                                  <td className={row.listed ? "strong" : "mono"}>
+                                    {row.listed ? (
+                                      row.title
+                                    ) : (
+                                      <>
+                                        {row.slug} <Tag>목록에 없음</Tag>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td>{row.listed ? <Tag>{row.category}</Tag> : "—"}</td>
+                                  <td className="num">
+                                    {row.views === 0 ? (
+                                      <Tag $tone="critical">
+                                        <FiAlertCircle size={11} /> 0회
+                                      </Tag>
+                                    ) : (
+                                      <Tag>{row.views.toLocaleString()}회</Tag>
+                                    )}
+                                  </td>
+                                  <td className="num">{row.visitors.toLocaleString()}</td>
+                                  <td className="mono nowrap">{formatDateTime(row.lastViewedAt)}</td>
+                                  <td className="mono nowrap">{row.listed ? row.date : "—"}</td>
+                                  <td>
+                                    {row.listed && (
+                                      <IconButton
+                                        as="a"
+                                        href={`/blog/${row.slug}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        aria-label={`${row.title} 새 탭에서 열기`}
+                                      >
+                                        <FiExternalLink size={13} />
+                                      </IconButton>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </DataTable>
+                        )}
+                      </Card>
                     </>
                   )}
                 </Stack>
