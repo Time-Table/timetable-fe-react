@@ -44,7 +44,8 @@ beforeEach(() => {
   getFunnels.mockResolvedValue(report());
 });
 
-const click = async (element) => { await act(async () => { fireEvent.click(element); }); };
+const flushUpdates = async () => { await act(async () => { await Promise.resolve(); }); };
+const click = async (element) => { fireEvent.click(element); await flushUpdates(); };
 
 const openParticipation = async () => {
   await screen.findByText("123");
@@ -52,7 +53,7 @@ const openParticipation = async () => {
 };
 
 test("참여 달성률은 별도 탭에서만 조회하고 대시보드는 표로 시작한다", async () => {
-  await act(async () => { render(<ManagerPage />); });
+  render(<ManagerPage />); await flushUpdates();
   expect(await screen.findByText("123")).toBeTruthy();
   expect(screen.getByRole("button", {name: "그래프로 보기"})).toBeTruthy();
   expect(screen.getByRole("table")).toBeTruthy();
@@ -73,7 +74,7 @@ test("오늘 한국시간 날짜의 네 수치를 일별 추이 위에 표시하
     {date:today,visits:17,tables:3,signUps:8,logins:4},
     {date:"2020-01-01",visits:99,tables:99,signUps:99,logins:99},
   ]});
-  await act(async () => { render(<ManagerPage />); });
+  render(<ManagerPage />); await flushUpdates();
   const summary=await screen.findByRole("region",{name:"오늘 통계"});
   expect(within(summary).getByText(`오늘 · ${today}`)).toBeTruthy();
   for(const value of [17,3,8,4]) expect(within(summary).getByText(String(value))).toBeTruthy();
@@ -85,7 +86,7 @@ test("오늘 한국시간 날짜의 네 수치를 일별 추이 위에 표시하
 });
 
 test("오늘 기록이 없으면 과거 값이나 가짜 0 대신 미조회 상태로 표시한다", async()=>{
-  await act(async () => { render(<ManagerPage />); });
+  render(<ManagerPage />); await flushUpdates();
   const summary=await screen.findByRole("region",{name:"오늘 통계"});
   expect(within(summary).getByText(/오늘 통계를 불러오지 못했습니다/)).toBeTruthy();
   expect(within(summary).getAllByText("—")).toHaveLength(4);
@@ -93,7 +94,7 @@ test("오늘 기록이 없으면 과거 값이나 가짜 0 대신 미조회 상�
 
 test("KPI 조회 실패를 표시하고 재시도로 회복한다", async () => {
   const pending=deferred(); getFunnels.mockReturnValueOnce(pending.promise);
-  await act(async () => { render(<ManagerPage />); }); await openParticipation();
+  render(<ManagerPage />); await flushUpdates(); await openParticipation();
   expect(screen.getByText("참여 달성 지표를 불러오는 중입니다.")).toBeTruthy();
   await act(async()=>pending.resolve(null));
   expect(await screen.findByText(/통계 조회에 실패했습니다/)).toBeTruthy();
@@ -102,7 +103,7 @@ test("KPI 조회 실패를 표시하고 재시도로 회복한다", async () => 
 });
 
 test("방문 통계가 실패해도 참여 탭은 독립적으로 조회된다",async()=>{
-  getTrends.mockResolvedValue(null); await act(async () => { render(<ManagerPage />); });
+  getTrends.mockResolvedValue(null); render(<ManagerPage />); await flushUpdates();
   expect(await screen.findByText("방문·등록 통계를 불러오지 못했습니다.")).toBeTruthy();
   await click(screen.getByText("3인 참여 달성률",{selector:"div"}));
   expect(await screen.findByText("75%")).toBeTruthy();
@@ -110,7 +111,7 @@ test("방문 통계가 실패해도 참여 탭은 독립적으로 조회된다",
 
 test("기간 변경 후 늦은 이전 응답이 최신 KPI를 덮지 않는다",async()=>{
   const old=deferred(); getFunnels.mockReturnValueOnce(old.promise).mockResolvedValueOnce(report(50));
-  await act(async () => { render(<ManagerPage />); }); await openParticipation();
+  render(<ManagerPage />); await flushUpdates(); await openParticipation();
   await waitFor(()=>expect(getFunnels).toHaveBeenCalledWith(0));
   await click(within(screen.getByRole("group",{name:"참여 달성 집계 기간"})).getByRole("button",{name:"7일",exact:true}));
   expect(await screen.findByText("50%")).toBeTruthy();
@@ -120,14 +121,14 @@ test("기간 변경 후 늦은 이전 응답이 최신 KPI를 덮지 않는다",
 
 test("구 입력 지표를 참여 지표로 표시하지 않는다",async()=>{
   const response=report(); response.data.metricsV2=response.data.participationMetrics; delete response.data.participationMetrics;
-  getFunnels.mockResolvedValue(response); await act(async () => { render(<ManagerPage />); }); await openParticipation();
+  getFunnels.mockResolvedValue(response); render(<ManagerPage />); await flushUpdates(); await openParticipation();
   expect(await screen.findByText(/새 지표 수집이 아직 연결되지/)).toBeTruthy();
   expect(screen.queryByText("75%")).toBeNull();
 });
 
 test("참여 기간과 대시보드 기간은 탭 이동에도 독립적으로 유지된다",async()=>{
   getFunnels.mockImplementation(async(days)=>report(days===0?17.2:48.6));
-  await act(async () => { render(<ManagerPage />); }); await screen.findByText("123");
+  render(<ManagerPage />); await flushUpdates(); await screen.findByText("123");
   await click(within(screen.getByRole("group",{name:"조회 기간"})).getByRole("button",{name:"7일",exact:true}));
   await waitFor(()=>expect(getTrends).toHaveBeenCalledWith(7));
   await openParticipation(); expect(await screen.findByText("17.2%")).toBeTruthy();
@@ -141,7 +142,7 @@ test("참여 기간과 대시보드 기간은 탭 이동에도 독립적으로 �
 test("전체 보관 표와 기존 카운터를 각 탭에서 보존한다",async()=>{
   const response=report(17.2); response.data.participationMetrics.quality.existingTables=384;
   getFunnels.mockResolvedValue(response); getTrackVisit.mockResolvedValue({data:[{totalTableCreateCount:402}]});
-  await act(async () => { render(<ManagerPage />); }); expect(await screen.findByText("402")).toBeTruthy();
+  render(<ManagerPage />); await flushUpdates(); expect(await screen.findByText("402")).toBeTruthy();
   expect(screen.getByText("기존 표 생성 카운터")).toBeTruthy();
   await openParticipation(); expect(await screen.findByText("384")).toBeTruthy();
   expect(screen.getByText("전체 보관 표")).toBeTruthy();
