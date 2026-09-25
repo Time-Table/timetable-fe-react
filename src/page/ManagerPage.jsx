@@ -76,6 +76,7 @@ const Toast = Swal.mixin({
 
 const TABS = [
   { key: "dashboard", label: "대시보드", icon: FiGrid, scoped: true },
+  { key: "participation", label: "3인 참여 달성률", icon: FiBarChart2, scoped: false },
   { key: "funnel", label: "퍼널 분석", icon: FiFilter, scoped: true },
   { key: "audience", label: "사용자 분석", icon: FiUsers, scoped: true },
   { key: "blog", label: "블로그", icon: FiBookOpen, scoped: true },
@@ -92,7 +93,7 @@ const PERIODS = [
 const METRIC_LABELS = {
   visits: "페이지 방문",
   tables: "테이블 생성",
-  signUps: "신규 참여",
+  signUps: "참여 등록 건수",
   logins: "재로그인",
 };
 
@@ -119,16 +120,24 @@ const ManagerPage = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period, setPeriod] = useState(30);
+  const [participationPeriod, setParticipationPeriod] = useState(0);
+  const [participationReport, setParticipationReport] = useState(null);
+  const [participationLoading, setParticipationLoading] = useState(false);
+  const [participationFailed, setParticipationFailed] = useState(false);
+  const [participationRefresh, setParticipationRefresh] = useState(0);
 
   const [trends, setTrends] = useState(null);
   const [funnelReport, setFunnelReport] = useState(null);
+  const [funnelLoading, setFunnelLoading] = useState(false);
+  const [funnelFailed, setFunnelFailed] = useState(false);
+  const [funnelRefresh, setFunnelRefresh] = useState(0);
   const [audience, setAudience] = useState(null);
   const [tables, setTables] = useState([]);
   const [chatFeed, setChatFeed] = useState(null);
   const [visitRaw, setVisitRaw] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [showTrendTable, setShowTrendTable] = useState(false);
+  const [showTrendTable, setShowTrendTable] = useState(true);
 
   // 블로그 탭
   const [blogStats, setBlogStats] = useState(null);
@@ -194,7 +203,7 @@ const ManagerPage = () => {
       Toast.fire({
         icon: "success",
         title: "관리자 인증 완료",
-        text: "이 브라우저의 활동은 통계에서 제외됩니다.",
+        text: "관리자 인증 중인 브라우저는 자체 방문·행동·생성·참여 계측에서 제외됩니다. GA·Clarity 자동 수집은 별도입니다.",
       });
     } else {
       await Swal.fire("인증 실패", res?.message || "비밀번호가 틀렸습니다.", "error");
@@ -208,6 +217,51 @@ const ManagerPage = () => {
 
   /* ---------------------------------------------------------------- 데이터 */
 
+  const showsActivation = activeTab === "participation";
+  useEffect(() => {
+    if (!authed || !showsActivation) return;
+    let cancelled = false;
+    setParticipationLoading(true);
+    setParticipationFailed(false);
+    setParticipationReport(null);
+    const load = async () => {
+      try {
+        const res = await getFunnels(participationPeriod);
+        if (cancelled) return;
+        setParticipationReport(res?.data?.participationMetrics || null);
+        setParticipationFailed(!res?.data);
+      } catch {
+        if (!cancelled) setParticipationFailed(true);
+      } finally {
+        if (!cancelled) setParticipationLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [authed, showsActivation, participationPeriod, participationRefresh]);
+
+  useEffect(() => {
+    if (!authed || activeTab !== "funnel") return;
+    let cancelled = false;
+    setFunnelLoading(true);
+    setFunnelFailed(false);
+    setFunnelReport(null);
+    const load = async () => {
+      try {
+        const res = await getFunnels(period);
+        if (cancelled) return;
+        setFunnelReport(res?.data || null);
+        setFunnelFailed(!res?.data);
+      } catch {
+        if (!cancelled) setFunnelFailed(true);
+      } finally {
+        if (!cancelled) setFunnelLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [authed, activeTab, period, funnelRefresh]);
+
   const loadTab = useCallback(async () => {
     if (!authed) return;
     const isLatest = requestSeq.current.next();
@@ -218,10 +272,6 @@ const ManagerPage = () => {
         if (!isLatest()) return;
         setTrends(trendRes);
         setVisitRaw(Array.isArray(visitRes?.data) ? visitRes.data : []);
-      } else if (activeTab === "funnel") {
-        const res = await getFunnels(period);
-        if (!isLatest()) return;
-        setFunnelReport(res?.data || null);
       } else if (activeTab === "audience") {
         const [audienceRes, tableRes] = await Promise.all([getAudience(period), getAllTables()]);
         if (!isLatest()) return;
@@ -261,7 +311,7 @@ const ManagerPage = () => {
   const handleDelete = (table) => {
     Swal.fire({
       title: "테이블을 삭제할까요?",
-      text: `"${table.title}" · 참여자 ${table.participantCount || 0}명`,
+      text: `"${table.title}" · 등록 인원 ${table.participantCount || 0}명`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "삭제",
@@ -355,6 +405,8 @@ const ManagerPage = () => {
   if (!authed) return null;
 
   const currentTab = TABS.find((tab) => tab.key === activeTab);
+  const todayDate = formatDateTime(new Date()).slice(0, 10);
+  const todayStats = trends?.series.find((row) => row.date === todayDate);
 
   // 블로그 조회수는 누적치가 의미 있어서 이 탭에만 "전체" 기간을 둔다.
   // 다른 탭은 0을 각자 다르게 해석하므로(추이는 30일, 퍼널은 전체) 탭을 나가면 30일로 되돌린다.
@@ -405,7 +457,7 @@ const ManagerPage = () => {
         </Nav>
 
         <SidebarFoot>
-          <ExcludedNote>이 브라우저는 통계에서 제외됩니다</ExcludedNote>
+          <ExcludedNote>자체 행동 계측 제외 · GA·Clarity 별도</ExcludedNote>
           <NavItem
             as="button"
             onClick={() => {
@@ -425,7 +477,8 @@ const ManagerPage = () => {
             <SectionTitle>{currentTab?.label}</SectionTitle>
             <SectionCaption>
               {activeTab === "dashboard" && "핵심 지표와 일별 추이"}
-              {activeTab === "funnel" && "사용자가 어디서 이탈하는지"}
+              {activeTab === "participation" && "현재 보관 기록으로 보는 마감 전 참여 등록"}
+              {activeTab === "funnel" && "행동 기록·등록 현황"}
               {activeTab === "audience" && "누가, 어디서, 어떤 기기로 오는지"}
               {activeTab === "blog" && "어떤 글이 읽히고, 읽은 사람이 서비스까지 오는지"}
               {activeTab === "tables" && `전체 ${tables.length.toLocaleString()}개`}
@@ -434,22 +487,25 @@ const ManagerPage = () => {
           </div>
 
           {currentTab?.scoped && (
-            <Segmented>
-              {periodOptions.map((option) => (
-                <SegmentedItem
-                  key={option.value}
-                  $active={period === option.value}
-                  onClick={() => setPeriod(option.value)}
-                >
-                  {option.label}
-                </SegmentedItem>
-              ))}
-            </Segmented>
+            <div>
+              {showsActivation && <SectionCaption>보조 지표 기간</SectionCaption>}
+              <Segmented role="group" aria-label={showsActivation ? "보조 지표 기간" : "조회 기간"}>
+                {periodOptions.map((option) => (
+                  <SegmentedItem
+                    key={option.value}
+                    $active={period === option.value}
+                    onClick={() => setPeriod(option.value)}
+                  >
+                    {option.label}
+                  </SegmentedItem>
+                ))}
+              </Segmented>
+            </div>
           )}
         </TopBar>
 
         <Content $dim={loading}>
-          {loading && !trends && !funnelReport && !audience && !chatFeed && !tables.length && !blogStats ? (
+          {loading && activeTab !== "dashboard" && activeTab !== "participation" && !trends && !funnelReport && !audience && !chatFeed && !tables.length && !blogStats ? (
             <Loading>
               <Spinner />
               데이터를 불러오는 중입니다
@@ -457,8 +513,10 @@ const ManagerPage = () => {
           ) : (
             <>
               {/* ------------------------------------------------ 대시보드 */}
-              {activeTab === "dashboard" && trends && (
+              {activeTab === "dashboard" && (
                 <Stack>
+                  {trends ? <>
+                  <SectionCaption>보조 지표 · 선택 기간에 발생한 방문·생성·참여 등록 기록입니다. 참여 등록은 사람 수나 시간 입력 완료를 뜻하지 않습니다.</SectionCaption>
                   <Grid $min="200px">
                     {trends.metrics.map((metric) => (
                       <StatTile
@@ -471,14 +529,24 @@ const ManagerPage = () => {
                     ))}
                   </Grid>
 
+                  <Card as="section" aria-label="오늘 통계">
+                    <CardTitle>오늘 · {todayDate}</CardTitle>
+                    <CardSubtitle>한국시간 기준 · 조회 시점까지의 누적 수치입니다.</CardSubtitle>
+                    {!todayStats && <SectionCaption>오늘 통계를 불러오지 못했습니다. 다시 조회해 주세요.</SectionCaption>}
+                    <Grid $min="180px" style={{ marginTop: t.space(4) }}>
+                      {["visits", "tables", "signUps", "logins"].map((key) => (
+                        <StatTile key={key} label={METRIC_LABELS[key]} value={todayStats?.[key]} showComparison={false} />
+                      ))}
+                    </Grid>
+                  </Card>
+
                   <SectionHeader>
                     <div>
                       <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
                         일별 추이
                       </SectionTitle>
                       <SectionCaption>
-                        지표마다 자릿수가 달라 하나씩 나눠 그립니다. 축이 두 개인 그래프는 없는
-                        상관관계를 만들어냅니다.
+                        한국시간 기준 · 최신 날짜부터 표시합니다. 그래프 보기로 전환할 수 있습니다.
                       </SectionCaption>
                     </div>
                     <Button onClick={() => setShowTrendTable((v) => !v)}>
@@ -502,7 +570,7 @@ const ManagerPage = () => {
                             <th>날짜</th>
                             <th>방문</th>
                             <th>생성</th>
-                            <th>참여</th>
+                            <th>참여 등록</th>
                             <th>로그인</th>
                           </tr>
                         </thead>
@@ -542,14 +610,19 @@ const ManagerPage = () => {
                     </Grid>
                   )}
 
+                  </> : <Card>
+                    <CardTitle>방문·등록 통계</CardTitle>
+                    <CardSubtitle>{loading ? "통계를 불러오는 중입니다." : "방문·등록 통계를 불러오지 못했습니다."}</CardSubtitle>
+                    {!loading && <Button onClick={loadTab}>방문·등록 통계 다시 조회</Button>}
+                  </Card>}
                   <Card>
-                    <CardTitle>누적 지표</CardTitle>
-                    <CardSubtitle>서비스 시작 이후 전체</CardSubtitle>
+                    <CardTitle>기존 누적 기록</CardTitle>
+                    <CardSubtitle>기존 카운터를 보존한 값입니다. 생성 카운터는 과거 집계 방식이 변경되어 전체 보관 표 수와 다를 수 있습니다.</CardSubtitle>
                     <TotalsRow>
                       {[
-                        { label: "누적 참여자", value: visitRaw[0]?.totalSignUp },
-                        { label: "누적 테이블", value: visitRaw[0]?.totalTableCreateCount },
-                        { label: "누적 방문", value: visitRaw[0]?.totalVisitLandingPage },
+                        { label: "누적 참여 등록 건수", value: visitRaw[0]?.totalSignUp },
+                        { label: "기존 표 생성 카운터", value: visitRaw[0]?.totalTableCreateCount },
+                        { label: "누적 랜딩 방문 수", value: visitRaw[0]?.totalVisitLandingPage },
                         { label: "기록된 일수", value: visitRaw.length },
                       ].map((item) => (
                         <Total key={item.label}>
@@ -562,19 +635,37 @@ const ManagerPage = () => {
                 </Stack>
               )}
 
+              {activeTab === "participation" && (
+                <ActivationCard report={participationReport} loading={participationLoading} failed={participationFailed}
+                  periodDays={participationPeriod} onPeriodChange={setParticipationPeriod}
+                  onRetry={() => setParticipationRefresh((n) => n + 1)} />
+              )}
+
               {/* ------------------------------------------------ 퍼널 */}
               {activeTab === "funnel" && (
                 <Stack>
-                  <ActivationCard report={funnelReport?.metricsV2} />
-                  <Notice>
-                    아래 기존 퍼널은 <strong>기간 내 이벤트를 남긴 브라우저</strong> 기준의 참고 지표입니다.
-                    같은 표에서 시간 순서대로 진행했음을 보장하지 않습니다.
-                    관리자로 인증한 브라우저의 활동은 집계에서 제외됩니다.
-                    {funnelReport?.startDate && ` (${funnelReport.startDate} ~ 오늘)`}
-                  </Notice>
-                  {funnelReport?.funnels?.map((funnel) => (
-                    <FunnelCard key={funnel.key} funnel={funnel} />
-                  ))}
+                  {(funnelLoading || funnelFailed) && <Card>
+                    <CardTitle>행동 기록·등록 현황</CardTitle>
+                    <CardSubtitle>{funnelLoading ? "보조 지표를 불러오는 중입니다." : "보조 지표를 불러오지 못했습니다."}</CardSubtitle>
+                    {funnelFailed && <Button onClick={() => setFunnelRefresh((n) => n + 1)}>보조 지표 다시 조회</Button>}
+                  </Card>}
+                  {!funnelLoading && !funnelFailed && funnelReport && <>
+                    <Notice>
+                      행동 기록은 <strong>선택 기간에 이벤트를 남긴 브라우저</strong> 기준입니다.
+                      같은 표·실제 행동 순서를 보장하지 않으며 차이만으로 이탈 원인을 확정할 수 없습니다.
+                      관리자 인증 중인 브라우저의 자체 행동 기록은 제외합니다. GA·Clarity 자동 수집은 별도 설정입니다.
+                    </Notice>
+                    {funnelReport.funnels?.filter((funnel) => funnel.key !== "maturity").map((funnel) => (
+                      <FunnelCard key={funnel.key} funnel={funnel} startDate={funnelReport.startDate} />
+                    ))}
+                    <Notice>
+                      등록 인원 현황은 <strong>선택 기간에 생성되어 현재 남아 있는 표</strong> 기준입니다.
+                      현재 등록 이름 수를 보므로 참여 취소·표 삭제에 따라 줄어들며, 마감까지의 참여 달성률과 다릅니다.
+                    </Notice>
+                    {funnelReport.funnels?.filter((funnel) => funnel.key === "maturity").map((funnel) => (
+                      <FunnelCard key={funnel.key} funnel={funnel} startDate={funnelReport.startDate} />
+                    ))}
+                  </>}
                 </Stack>
               )}
 
@@ -900,6 +991,7 @@ const ManagerPage = () => {
               {/* ------------------------------------------------ 테이블 관리 */}
               {activeTab === "tables" && (
                 <Stack>
+                  <Notice>등록 인원은 현재 표에 남아 있는 이름 수입니다. 시간 입력 여부나 마감 전 등록 여부를 구분하지 않으므로 3인 참여 달성률의 집계 인원과 다를 수 있습니다.</Notice>
                   <FilterRow>
                     <SearchBox>
                       <FiSearch size={14} />
@@ -912,11 +1004,11 @@ const ManagerPage = () => {
                     <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                       <option value="recent">최신순</option>
                       <option value="oldest">오래된순</option>
-                      <option value="participants">참여자 많은순</option>
+                      <option value="participants">등록 인원 많은순</option>
                       <option value="title">제목순</option>
                     </Select>
                     <Toggle $active={onlyEmpty} onClick={() => setOnlyEmpty((v) => !v)}>
-                      참여자 0명만
+                      등록 인원 0명만
                     </Toggle>
                     <ResultCount>{visibleTables.length.toLocaleString()}개</ResultCount>
                   </FilterRow>
@@ -929,7 +1021,7 @@ const ManagerPage = () => {
                         <thead>
                           <tr>
                             <th>제목</th>
-                            <th>참여</th>
+                            <th>등록 인원</th>
                             <th>기간</th>
                             <th>생성일</th>
                             <th>ID</th>

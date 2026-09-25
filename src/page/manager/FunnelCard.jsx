@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "@emotion/styled";
 import { FiChevronDown, FiAlertCircle } from "react-icons/fi";
 import t from "./tokens";
-import { Card, CardTitle } from "./ui";
+import { Card, CardTitle, CardSubtitle } from "./ui";
 
 /**
  * 퍼널 하나를 단계별 막대로 보여준다.
@@ -10,36 +10,41 @@ import { Card, CardTitle } from "./ui";
  *
  * 막대 색은 한 계열이므로 하나만 쓴다. 값은 막대 길이가 이미 말하고 있어서
  * 단계마다 색을 바꾸면 같은 정보를 두 번 칠하는 셈이 된다.
- * 예외는 이탈이 가장 큰 구간으로, 여기만 상태색 + 배지로 표시한다.
+ * 예외는 행동 기록 차이가 가장 큰 구간으로, 여기만 상태색 + 배지로 표시한다.
  */
-const FunnelCard = ({ funnel }) => {
+const FunnelCard = ({ funnel, startDate }) => {
   const [openStep, setOpenStep] = useState(null);
-  const unit = funnel.unit || "명";
+  const isMaturity = funnel.key === "maturity";
+  const unit = isMaturity ? "개" : "개 브라우저";
 
   const worstIndex = funnel.steps.reduce(
     (worst, step, i) => (i > 0 && step.dropFromPrev > funnel.steps[worst].dropFromPrev ? i : worst),
     0,
   );
-  const hasWorst = worstIndex > 0 && funnel.steps[worstIndex].dropFromPrev > 0;
+  const hasWorst = !isMaturity && worstIndex > 0 && funnel.steps[worstIndex].dropFromPrev > 0;
 
   return (
     <Card>
       <Head>
         <div>
           <CardTitle>{funnel.title}</CardTitle>
+          <CardSubtitle>{isMaturity ? "표 생성일 기준" : "행동 발생일 기준"} · {startDate || "전체 기간"}{startDate ? " ~ 오늘" : ""} (한국시간)</CardSubtitle>
           <Question>{funnel.question}</Question>
         </div>
         <Summary>
-          <span>최종 전환</span>
-          <strong>{funnel.overallConversion}%</strong>
+          <span>{isMaturity ? "5명 이상 등록 표 비율" : "모든 행동 기록 비율"}</span>
+          <strong>{funnel.entered === 0 ? "—" : `${funnel.overallConversion}%`}</strong>
         </Summary>
       </Head>
 
-      <Meaning>{funnel.meaning}</Meaning>
+      <Meaning>
+        {funnel.meaning}
+        {!isMaturity && " 각 막대는 해당 줄까지의 행동이 모두 기록된 브라우저 수입니다. 표시 순서는 실제 행동 순서가 아닙니다."}
+      </Meaning>
 
       {funnel.entered === 0 ? (
         <EmptyNote>
-          아직 이 기간에 쌓인 데이터가 없습니다. 사용자가 첫 단계를 밟으면 집계가 시작됩니다.
+          {isMaturity ? "선택 기간에 생성되어 현재 남아 있는 표가 없습니다." : "선택 기간에 첫 행동이 기록된 브라우저가 없습니다."}
         </EmptyNote>
       ) : (
         funnel.steps.map((step, i) => {
@@ -48,19 +53,19 @@ const FunnelCard = ({ funnel }) => {
 
           return (
             <div key={`${funnel.key}-${i}`}>
-              {i > 0 && (
+              {i > 0 && !isMaturity && (
                 <Connector $warn={isWorst}>
                   <FiChevronDown size={12} />
-                  <span>{step.conversionFromPrev}% 통과</span>
+                  <span>이전 조건 중 {step.conversionFromPrev}%가 모두 기록</span>
                   {step.dropFromPrev > 0 && (
                     <em>
                       · {step.dropFromPrev.toLocaleString()}
-                      {unit} 이탈
+                      {unit} 기록 없음
                     </em>
                   )}
                   {isWorst && (
                     <Badge>
-                      <FiAlertCircle size={11} /> 최대 이탈
+                      <FiAlertCircle size={11} /> 기록 차이 최대
                     </Badge>
                   )}
                 </Connector>
@@ -97,7 +102,7 @@ const FunnelCard = ({ funnel }) => {
                   )}
                   {step.reached !== step.completed && (
                     <p className="note">
-                      앞 단계를 거치지 않고 이 행동만 한 경우까지 포함하면{" "}
+                      다른 줄의 기록 유무와 관계없이 이 행동이 기록된 브라우저는{" "}
                       {step.reached.toLocaleString()}
                       {unit}입니다.
                     </p>
@@ -111,7 +116,7 @@ const FunnelCard = ({ funnel }) => {
 
       {typeof funnel.averageParticipants === "number" && (
         <Foot>
-          테이블당 평균 참여 인원 <strong>{funnel.averageParticipants}명</strong>
+          표당 평균 등록 인원 <strong>{funnel.averageParticipants}명</strong>
         </Foot>
       )}
     </Card>
@@ -176,6 +181,7 @@ const StepRow = styled.button`
 const StepMeta = styled.div`
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: ${t.space(3)};
   margin-bottom: ${t.space(2)};
@@ -226,6 +232,7 @@ const Fill = styled.div`
 
 const Connector = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${t.space(1)};
   padding: ${t.space(2)} 0 ${t.space(2)} ${t.space(2)};
