@@ -1,6 +1,8 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import ManagerPage from "./ManagerPage";
+import Swal from "sweetalert2";
+import { getAllTables, deleteTable } from "../api/table";
 import { getFunnels } from "../api/event";
 import { adminVerify, getTrends } from "../api/admin";
 import { getTrackVisit } from "../api/visit";
@@ -146,4 +148,40 @@ test("전체 보관 표와 기존 카운터를 각 탭에서 보존한다",async
   expect(screen.getByText("기존 표 생성 카운터")).toBeTruthy();
   await openParticipation(); expect(await screen.findByText("384")).toBeTruthy();
   expect(screen.getByText("전체 보관 표")).toBeTruthy();
+});
+
+
+const localTable = { tableId: "local-delete-target", title: "로컬 삭제 검증 표", participantCount: 1,
+  dates: ["2099-01-01"], startHour: "09:00", endHour: "18:00", createdAt: "2026-09-25T00:00:00Z" };
+const openTableDeletion = async () => {
+  getAllTables.mockResolvedValue({ data: [localTable] });
+  render(<ManagerPage />); await flushUpdates();
+  await click(screen.getByText("테이블 관리", { selector: "div" }));
+  await screen.findByText(localTable.title);
+  await click(screen.getByRole("button", { name: "삭제" }));
+};
+test("삭제 범위와 복구 불가·통계 영향을 고지하고 취소하면 요청하지 않는다", async () => {
+  Swal.fire.mockResolvedValue({ isConfirmed: false });
+  await openTableDeletion();
+  expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
+    html: expect.stringContaining("삭제 후에는 복구할 수 없습니다."),
+    confirmButtonText: "표와 참여 기록 삭제",
+  }));
+  expect(Swal.fire.mock.calls[0][0].html).toContain("카운터는 유지됩니다.");
+  expect(deleteTable).not.toHaveBeenCalled();
+  expect(screen.getByText(localTable.title)).toBeTruthy();
+});
+test("확인한 표만 삭제하고 성공 응답 후 목록에서 제거한다", async () => {
+  Swal.fire.mockResolvedValue({ isConfirmed: true });
+  deleteTable.mockResolvedValue({ success: true });
+  await openTableDeletion();
+  expect(deleteTable).toHaveBeenCalledTimes(1);
+  expect(deleteTable).toHaveBeenCalledWith(localTable.tableId);
+  expect(screen.queryByText(localTable.title)).toBeNull();
+});
+test("삭제 실패 시 표를 목록에 유지한다", async () => {
+  Swal.fire.mockResolvedValue({ isConfirmed: true });
+  deleteTable.mockResolvedValue({ success: false });
+  await openTableDeletion();
+  expect(screen.getByText(localTable.title)).toBeTruthy();
 });

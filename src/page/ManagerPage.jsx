@@ -310,11 +310,23 @@ const ManagerPage = () => {
 
   const handleDelete = (table) => {
     Swal.fire({
-      title: "테이블을 삭제할까요?",
-      text: `"${table.title}" · 등록 인원 ${table.participantCount || 0}명`,
+      html: `
+        <div style="text-align: left">
+          <p style="margin: 0">다음 내용이 함께 삭제됩니다.</p>
+          <ul style="margin: ${t.space(3)} 0 ${t.space(4)}; padding-left: ${t.space(6)}; line-height: 1.8">
+            <li>모임 표</li>
+            <li>참여자 정보</li>
+            <li>가능 시간과 일정 집계</li>
+            <li>참여 취소 기록</li>
+            <li>채팅</li>
+          </ul>
+          <p style="margin: 0 0 ${t.space(4)}"><strong>삭제 후에는 복구할 수 없습니다.</strong></p>
+          <p style="margin: 0">누적 방문·생성·참여 카운터는 유지됩니다.<br>현재 자료로 계산하는 현황·달성률은 바뀝니다.</p>
+        </div>
+      `,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "삭제",
+      confirmButtonText: "표와 참여 기록 삭제",
       cancelButtonText: "취소",
       confirmButtonColor: t.color.critical,
     }).then(async (res) => {
