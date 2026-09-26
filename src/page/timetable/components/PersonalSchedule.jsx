@@ -8,7 +8,7 @@ import { addSchedule } from "../../../api/schedule";
 import { trackEvent, EVENTS } from "../../../utils/analytics";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiGrid } from "react-icons/fi";
+import { FiArrowDown, FiGrid } from "react-icons/fi";
 
 export default function PersonalSchedule({
      setSaveButtonState,
@@ -115,22 +115,22 @@ export default function PersonalSchedule({
                               전체 시간표
                          </ViewTimetableBtn>
                     )}
-                    {hasNoSchedule && (
-                         <SelectPrompt
-                              initial={{ opacity: 0, y: -6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.35, delay: 0.1 }}
-                         >
-                              <PromptDot />
-                              드래그해서 가능한 시간을 선택해주세요
-                         </SelectPrompt>
-                    )}
                     <SaveButton
                          onClick={handleSave}
                          disabled={isSaving || areArraysEqual(userScheduleInfo?.availableTimes || [], selectedCells)}
                     >
                          저장하기
                     </SaveButton>
+                    {hasNoSchedule && (
+                         <SelectPrompt
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.35, delay: 0.1 }}
+                         >
+                              <span>드래그해서 가능한 시간을 선택해주세요</span>
+                              <FiArrowDown size={20} aria-hidden="true" />
+                         </SelectPrompt>
+                    )}
                     <TimeGrid
                          dates={dates}
                          startHour={startHour}
@@ -186,8 +186,9 @@ const NoteText = styled.p`
 const SelectPrompt = styled(motion.div)`
      width: 100%;
      display: flex;
+     flex-direction: column;
      align-items: center;
-     gap: 10px;
+     gap: 4px;
      padding: 12px 16px;
      background: ${theme.color.primary}0a;
      border: 1.5px solid ${theme.color.primary}30;
@@ -197,6 +198,7 @@ const SelectPrompt = styled(motion.div)`
      color: ${theme.color.primary};
      box-sizing: border-box;
      line-height: 1.5;
+     text-align: center;
      animation: promptBorderPulse 2.2s ease-in-out infinite;
 
      @keyframes promptBorderPulse {
@@ -208,20 +210,6 @@ const SelectPrompt = styled(motion.div)`
                border-color: ${theme.color.primary}90;
                box-shadow: 0 0 0 4px ${theme.color.primary}12;
           }
-     }
-`;
-
-const PromptDot = styled.span`
-     flex-shrink: 0;
-     width: 8px;
-     height: 8px;
-     border-radius: 50%;
-     background: ${theme.color.primary};
-     animation: promptPulse 1.8s ease-in-out infinite;
-
-     @keyframes promptPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.75); }
      }
 `;
 
