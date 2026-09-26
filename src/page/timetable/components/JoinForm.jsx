@@ -85,6 +85,7 @@ export default function JoinForm({
 
   const handleSuccess = async (userName) => {
     trackEvent(EVENTS.JOIN_SUCCESS, tableId);
+    sessionStorage.setItem(`hasCompletedTimetableGuide:${tableId}`, "true");
     if (refreshData) {
       await refreshData();
     }

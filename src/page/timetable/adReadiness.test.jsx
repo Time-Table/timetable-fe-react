@@ -29,9 +29,10 @@ jest.mock("../NotFoundTable", () => () => <div>표를 불러올 수 없습니다
 jest.mock("./components/InviteSection", () => () => null);
 jest.mock("./components/GuideOverlay", () => () => null);
 jest.mock("./components/DashboardPanel", () => () => null);
-jest.mock("./components/GroupTimeGrid", () => ({ usersSchedule, onRefresh }) => (
+jest.mock("./components/GroupTimeGrid", () => ({ usersSchedule, startHour, endHour, onRefresh }) => (
   <>
     <div data-testid="member-count">{usersSchedule.length}</div>
+    <div data-testid="table-hours">{startHour}-{endHour}</div>
     <button onClick={onRefresh}>전체 시간표 새로고침</button>
   </>
 ));
@@ -168,6 +169,23 @@ test.each([
   await settleRequests();
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
   expect(screen.getByTestId("member-count")).toHaveTextContent("0");
+});
+
+test("참여 후에는 관리자가 수정했을 수 있는 표 시간도 다시 가져온다", async () => {
+  await renderSettledPage();
+  const tableReads = getTableInfo.mock.calls.length;
+  const memberReads = getAllSchedule.mock.calls.length;
+  const scheduleReads = getSchedule.mock.calls.length;
+  getTableInfo.mockResolvedValue({ success: true, data: { ...table, startHour: "10:00", endHour: "13:00" } });
+
+  fireEvent.click(screen.getByRole("button", { name: "참여자 변경 후 갱신" }));
+  await settleRequests();
+
+  expect(getTableInfo).toHaveBeenCalledTimes(tableReads + 1);
+  expect(getAllSchedule).toHaveBeenCalledTimes(memberReads + 1);
+  expect(getSchedule).toHaveBeenCalledTimes(scheduleReads + 1);
+  expect(screen.getByTestId("table-hours")).toHaveTextContent("10:00-13:00");
+  expect(screen.getByTestId("member-count")).toHaveTextContent("2");
 });
 
 test("일정 저장 후 집계 조회 실패 시 이전 광고를 숨기고, 정상 재조회 후 복구한다", async () => {

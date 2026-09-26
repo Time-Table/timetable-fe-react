@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { motion, AnimatePresence } from "framer-motion";
 import theme from "../../../theme";
 
-const GuideOverlay = ({ isDesktop }) => {
+const GuideOverlay = ({ isDesktop, tableId }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
@@ -45,11 +45,12 @@ const GuideOverlay = ({ isDesktop }) => {
 
   useEffect(() => {
     const hasSeenGuide = localStorage.getItem("hasSeenTimetableGuide");
-    if (!hasSeenGuide) {
+    const hasCompletedThisSession = sessionStorage.getItem(`hasCompletedTimetableGuide:${tableId}`);
+    if (!hasSeenGuide && !hasCompletedThisSession) {
       const timer = setTimeout(() => setIsVisible(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [tableId]);
 
   const updatePosition = useCallback(() => {
     if (!isVisible || step >= steps.length) return;
@@ -133,6 +134,7 @@ const GuideOverlay = ({ isDesktop }) => {
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
+      sessionStorage.setItem(`hasCompletedTimetableGuide:${tableId}`, "true");
       setIsVisible(false);
     }
   };

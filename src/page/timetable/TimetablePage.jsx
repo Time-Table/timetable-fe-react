@@ -515,7 +515,7 @@ export default function TimetablePage() {
 
   return isValidTableId ? (
     <PageWrapper>
-      <GuideOverlay isDesktop={isDesktop} />
+      <GuideOverlay isDesktop={isDesktop} tableId={tableId} />
       <Seo
         title={`${title || "테이블"}`}
         description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."

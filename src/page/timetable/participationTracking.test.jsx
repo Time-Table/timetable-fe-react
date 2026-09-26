@@ -47,6 +47,7 @@ const wrap = (element) => <StrictMode><MemoryRouter future={{ v7_startTransition
 beforeEach(() => {
   jest.resetAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
   mockTableId = "313fcb21-583e-4e82-942c-713eeb3d607d";
   window.clarity = jest.fn();
   sendEvent.mockResolvedValue({ success: true, tableRole: "participant" });
@@ -80,6 +81,8 @@ test.each([200, 201, 401])("참여 API code %s: 성공 응답에서만 참여 �
   const expectedTags = code === 401 ? [] : [["set", "tt_join_success_role", "participant"]];
   expect(window.clarity.mock.calls.filter(([method]) => method === "set")).toEqual(expectedTags);
   expect(sendEvent.mock.calls.filter(([e]) => e.name === "join_success")).toHaveLength(code === 401 ? 0 : 1);
+  expect(sessionStorage.getItem(`hasCompletedTimetableGuide:${mockTableId}`))
+    .toBe(code === 401 ? null : "true");
 });
 
 test.each(["success", "failed-response", "rejected"])("일정 저장 %s: 실제 성공에서만 저장 역할을 기록한다", async (result) => {
