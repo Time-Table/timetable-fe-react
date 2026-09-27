@@ -129,6 +129,27 @@ export const trackEvent = (name, tableId, creationPath) => {
 };
 
 /**
+ * Clarity에만 남기는 보조 이벤트. 자체 API(서버 이벤트 11개)로는 보내지 않는다.
+ * 서버 퍼널은 합계만 보면 되고, 세부 구분(예: 휴대폰 공유 창 vs 링크 복사)은 Clarity에서 본다.
+ * 이름은 `tt_`로 시작해야 한다. 관리자는 제외하고, Clarity 부재·차단·예외는 흐름을 막지 않는다.
+ * 표 ID·방문자 ID·입력값은 보내지 않는다.
+ */
+export const CLARITY_EVENTS = {
+  INVITE_SHARE_NATIVE: "tt_invite_share_native",
+  INVITE_SHARE_COPY: "tt_invite_share_copy",
+};
+
+export const trackClarityEvent = (name) => {
+  try {
+    if (!Object.values(CLARITY_EVENTS).includes(name)) return;
+    if (isAdmin() || typeof window.clarity !== "function") return;
+    window.clarity("event", name);
+  } catch (error) {
+    // Clarity 차단·저장소 오류는 서비스 동작에 영향을 주지 않는다.
+  }
+};
+
+/**
  * 블로그 글 조회를 기록한다. 퍼널 이벤트가 아니라 별도 컬렉션(BlogView)에 쌓인다.
  * 관리자 브라우저는 제외한다.
  *

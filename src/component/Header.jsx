@@ -3,12 +3,14 @@ import styled from "@emotion/styled/macro";
 import theme from "../theme";
 import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { trackEvent, EVENTS } from "../utils/analytics";
 
 export default function Header() {
      const email = "timetable2official@gmail.com";
      const navigate = useNavigate();
+     // 랜딩(`/`)에서만 버튼을 단색으로 그린다(2026-09-27 새 랜딩 채택). 다른 페이지는 아직 기존 모양이다.
+     const isFlatCta = useLocation().pathname === "/";
 
      const [isScrolled, setIsScrolled] = useState(false);
 
@@ -87,7 +89,11 @@ export default function Header() {
      };
 
      return (
-          <HeaderWrapper $scrolled={isScrolled}>
+          <HeaderWrapper
+               $scrolled={isScrolled}
+               // 랜딩(`/`) 휴대폰 화면이 스크롤에 맞춰 헤더를 밀어 올릴 때 찾는 표시(StartPage).
+               data-site-header
+          >
                <HeaderContainer>
                     <Logo onClick={handleLogoClick}>
                          <span className="logo-time">Time</span>
@@ -98,7 +104,7 @@ export default function Header() {
                               <IoHelpCircleOutline />
                          </IconButton>
                          <ContactButton onClick={handleContactClick} />
-                         <PrimaryButton onClick={handleCreateClick}>새 테이블</PrimaryButton>
+                         <PrimaryButton $flat={isFlatCta} onClick={handleCreateClick}>새 테이블</PrimaryButton>
                     </ActionContainer>
                </HeaderContainer>
           </HeaderWrapper>
@@ -203,6 +209,19 @@ const PrimaryButton = styled(BaseButton)`
           padding: 0 16px;
           font-size: 14px;
      }
+
+     ${({ $flat }) =>
+          $flat &&
+          `
+          background: ${theme.color.primary};
+          box-shadow: none;
+
+          &:hover {
+               transform: none;
+               box-shadow: none;
+               filter: brightness(0.95);
+          }
+     `}
 `;
 
 const IconButton = styled(BaseButton)`

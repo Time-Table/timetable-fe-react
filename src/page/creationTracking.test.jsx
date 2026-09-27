@@ -24,8 +24,13 @@ jest.mock("../component/Calendar.jsx", () => ({ setSelectedDates }) => (
 jest.mock("framer-motion", () => {
   const React = require("react");
   const components = {};
+  // 랜딩의 스크롤 연출(useScroll 등)은 jsdom에 스크롤이 없어 0에 머무는 값으로 둔다.
+  const still = { get: () => 0, on: () => () => {} };
   return {
     useReducedMotion: () => true,
+    useScroll: () => ({ scrollYProgress: still }),
+    useTransform: () => still,
+    useMotionValueEvent: () => {},
     AnimatePresence: ({ children }) => children,
     motion: new Proxy({}, { get: (_, tag) => {
       if (!components[tag]) {
@@ -52,14 +57,17 @@ const mount = (Page) => render(
   <StrictMode><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><Page /></MemoryRouter></StrictMode>,
 );
 
+// 랜딩은 폼 끝과 휴대폰 하단 막대에 같은 만들기 버튼이 있다. 첫 번째(폼 끝)를 누른다.
+const landingCta = () => screen.getAllByRole("button", { name: "이대로 만들기" })[0];
+
 const submit = (path) => {
   if (path === "landing") {
-    fireEvent.click(screen.getByRole("button", { name: "이대로 만들기" }));
+    fireEvent.click(landingCta());
   } else {
     fireEvent.click(screen.getByRole("button", { name: "테스트 날짜 선택" }));
     fireEvent.change(screen.getByPlaceholderText("예: 캡스톤 디자인 3조 회의"), { target: { value: "테스트 모임" } });
   }
-  fireEvent.click(screen.getByRole("button", { name: path === "landing" ? "생성" : "생성하기" }));
+  fireEvent.click(screen.getByRole("button", { name: path === "landing" ? "링크 만들기" : "생성하기" }));
 };
 
 describe.each([["landing", StartPage], ["quick_create", QuickCreatePage]])("%s 생성 계측", (path, Page) => {
@@ -86,7 +94,7 @@ describe.each([["landing", StartPage], ["quick_create", QuickCreatePage]])("%s �
     createTable.mockResolvedValue(response);
     mount(Page);
     submit(path);
-    await waitFor(() => expect(screen.getByRole("button", { name: path === "landing" ? "이대로 만들기" : "생성하기" })).toBeEnabled());
+    await waitFor(() => expect(path === "landing" ? landingCta() : screen.getByRole("button", { name: "생성하기" })).toBeEnabled());
     expect(sendEvent.mock.calls.some(([e]) => e.name === "create_success")).toBe(false);
     expect(window.clarity).not.toHaveBeenCalledWith("event", "tt_create_success");
   });
@@ -94,7 +102,7 @@ describe.each([["landing", StartPage], ["quick_create", QuickCreatePage]])("%s �
 
 test("랜딩 생성 확인창을 취소하면 생성 요청과 전환은 발생하지 않는다", () => {
   mount(StartPage);
-  fireEvent.click(screen.getByRole("button", { name: "이대로 만들기" }));
+  fireEvent.click(landingCta());
   fireEvent.click(screen.getByRole("button", { name: "취소" }));
   expect(createTable).not.toHaveBeenCalled();
   expect(window.clarity).not.toHaveBeenCalledWith("event", "tt_create_success");

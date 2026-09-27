@@ -7,7 +7,7 @@ import { formatDayLabel } from "./presets";
  * 히트맵인데, 빈 격자만 보면 "무엇이 만들어지는지"가 전달되지 않는다.
  * 그래서 실제 화면과 같은 구성을 가짜 데이터로 재현한다.
  *
- * 값은 난수가 아니라 문자열 해시로 만든다. 리렌더마다 격자가 바뀌면
+ * 값은 난수 없이 규칙으로만 만든다. 리렌더마다 격자가 바뀌면
  * 미리보기가 아니라 소음이 되기 때문이다. 같은 날짜·시간이면 언제나 같은 그림이 나온다.
  */
 
@@ -19,67 +19,55 @@ export const MOCK_TABLE_ID = "a1b2c3d4";
 /** 순위 목록에 보여줄 개수. 좁은 미리보기 폭에서 3개를 넘으면 읽히지 않는다. */
 const RANKING_LIMIT = 3;
 
-/** FNV-1a. 암호용이 아니라 "같은 입력이면 같은 그림"만 보장하면 된다. */
-const hash = (seed) => {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i += 1) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
-
-const pick = (seed, max) => hash(seed) % max;
-
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const pad = (n) => String(n).padStart(2, "0");
 
 /**
- * 선택된 날짜/시간 범위에 맞춰 가짜 참여 현황을 만든다.
+ * 정돈된 예시 분포. 랜딩(`/`) 미리보기가 쓴다.
  *
+ * 이전 분포(사람·날짜마다 시작 시각과 길이를 해시로 흔들고 일부를 통째로 뺌)는 칸이 흩어져 보여
+ * 2026-09-27 새 랜딩 채택과 함께 지웠다. 여기서는 두 가지 규칙만 쓴다.
+ * - 하루 안: 사람마다 폭이 다른 가용 시간을 같은 중심에 겹친다. 가운데가 가장 진하고 위아래로 옅어진다.
+ *   가장 좁은 두 사람은 폭이 같고(= 모두가 되는 핵심 구간), 그다음부터 한 사람마다 한 칸씩 넓힌다.
+ * - 날짜 사이: 골든타임 날(후보 중 첫 금요일, 없으면 가운데 날)에서 하루 멀어질 때마다
+ *   넓게 되는 사람부터 두 명씩 빠진다. 후보 기간 밖으로 밀려나는 부분은 그대로 잘린다.
+ *   끝쪽 날은 아무도 없는 빈 열이 된다. 칸이 다 차 있으면 어디가 겹치는지 오히려 안 보인다.
+ * 그래서 골든타임을 꼭짓점으로 한 언덕 하나와 빈칸이 남는다. 기본 시간 범위(10~20시)에서
+ * 골든타임은 금요일 14~17시(14·15·16시 칸)다(2026-09-26 사람 지정).
  * @param {{key: string, date: Date}[]} days 선택된 날짜
  * @param {string} startHour "10:00"
  * @param {string} endHour   "20:00"
- * @returns {null | {
- *   hours: number[],
- *   cells: Record<string, string[]>,
- *   maxCount: number,
- *   total: number,
- *   ranking: Block[],
- *   golden: null | Block,
- * }}
+ * @returns {null | { hours: number[], cells: Record<string, string[]>, maxCount: number, total: number, ranking: Block[], golden: null | Block }}
  */
-export function buildMockTimetable(days, startHour, endHour) {
+export function buildTidyMockTimetable(days, startHour, endHour) {
   const from = parseInt(startHour, 10);
   const to = parseInt(endHour, 10);
   if (!days.length || !Number.isFinite(from) || !Number.isFinite(to) || to <= from) return null;
 
   const hours = Array.from({ length: to - from }, (_, i) => from + i);
+  const len = hours.length;
+  const center = Math.floor(len / 2);
+  // 모두가 되는 핵심 구간 폭. 시간 범위 길이에 비례한다(10시간이면 3시간).
+  const core = clamp(Math.round(len * 0.3), 1, len);
+  const windows = MOCK_MEMBERS.map((_, k) => {
+    const width = Math.min(core + Math.max(0, k - 1), len);
+    const start = clamp(center - Math.floor(width / 2), 0, len - width);
+    return [start, start + width];
+  });
+
+  const friday = days.findIndex((d) => d.date.getDay() === 5);
+  const hero = friday >= 0 ? friday : Math.floor((days.length - 1) / 2);
   const cells = {};
-
-  // 사람이 몰리는 지점. 범위 앞쪽 45% 언저리에 두면 저녁 모임이든 낮 회의든 자연스럽다.
-  const anchor = Math.floor(hours.length * 0.45);
-
-  // 하루는 "다들 되는 날"로 만든다. 그래야 골든타임이 또렷하게 하나 잡힌다.
-  const heroIndex = days.length > 1 ? pick(days.map((d) => d.key).join(), days.length) : 0;
-
-  days.forEach((day, dayIndex) => {
-    const isHero = dayIndex === heroIndex;
-    // 날마다 몰리는 시간을 조금씩 흔들어 같은 그림이 반복되지 않게 한다.
-    const dayShift = isHero ? 0 : pick(`${day.key}|shift`, 5) - 2;
-
-    MOCK_MEMBERS.forEach((member) => {
-      const seed = `${day.key}|${member}`;
-      // 그날 아예 안 되는 사람. 다 되는 그림은 오히려 가짜처럼 보인다.
-      if (!isHero && pick(`${seed}|skip`, 100) < 22) return;
-
-      const spread = isHero ? 3 : 5;
-      const offset = pick(`${seed}|offset`, spread) - Math.floor(spread / 2);
-      const start = clamp(anchor + dayShift + offset, 0, Math.max(hours.length - 2, 0));
-      const span = (isHero ? 3 : 2) + pick(`${seed}|span`, 4);
-      const end = Math.min(start + span, hours.length);
-
+  // 거리는 선택된 날짜의 순서가 아니라 실제 달력 날짜 차이로 센다.
+  // 후보에서 뺀 날이 있어도 모양이 달력 위에서 그대로 유지된다.
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const heroTime = days[hero].date.getTime();
+  days.forEach((day) => {
+    const distance = Math.round(Math.abs(day.date.getTime() - heroTime) / DAY_MS);
+    const present = Math.max(0, MOCK_MEMBERS.length - 2 * distance);
+    MOCK_MEMBERS.slice(0, present).forEach((member, k) => {
+      const [start, end] = windows[k];
       for (let i = start; i < end; i += 1) {
         const cellKey = `${day.key}|${hours[i]}`;
         if (!cells[cellKey]) cells[cellKey] = [];

@@ -1,4 +1,4 @@
-import { EVENTS, getVisitorId, getSource, trackEvent, trackBlogView } from "./analytics";
+import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackClarityEvent, trackBlogView } from "./analytics";
 import { grantAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
 import { sendEvent } from "../api/event";
@@ -263,5 +263,27 @@ describe("표별 역할을 Clarity에 연결", () => {
     expect(() => trackEvent(EVENTS.SCHEDULE_SAVE, "table")).not.toThrow();
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+});
+
+describe("Clarity 전용 보조 이벤트", () => {
+  test("정해진 이름만 Clarity로 보내고 자체 API로는 보내지 않는다", () => {
+    window.clarity = jest.fn();
+    trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_NATIVE);
+    trackClarityEvent("tt_unknown_event");
+    expect(window.clarity.mock.calls).toEqual([["event", "tt_invite_share_native"]]);
+    expect(sendEvent).not.toHaveBeenCalled();
+  });
+
+  test("관리자는 제외하고, Clarity가 없거나 예외를 던져도 흐름을 막지 않는다", () => {
+    grantAdmin("test-token");
+    window.clarity = jest.fn();
+    trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_COPY);
+    expect(window.clarity).not.toHaveBeenCalled();
+    localStorage.clear();
+    window.clarity = () => { throw new Error("blocked"); };
+    expect(() => trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_COPY)).not.toThrow();
+    delete window.clarity;
+    expect(() => trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_COPY)).not.toThrow();
   });
 });
