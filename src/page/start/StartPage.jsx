@@ -285,7 +285,7 @@ export default function StartPage() {
   const [openCell, setOpenCell] = useState(null);
   // 골든타임 첫 칸의 "눌러서 명단 보기" 안내. 칸을 한 번 누르거나 명단을 닫으면 다시 띄우지 않는다.
   const [isTapHintDismissed, setTapHintDismissed] = useState(false);
-  // corner: 칸을 향한 팝업 모서리(tl·tr·bl·br). 그 모서리만 뾰족하게 그린다.
+  // corner: 칸을 향한 팝업 모서리(tl·tr·bl·br). 그 모서리만 뾰족하게 그린다. 칸에 닿지 않으면 "none".
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0, corner: "tl", visible: false });
   const popupRef = useRef(null);
   // 마지막으로 잰 팝업 높이. 팝업을 감춘 동안에도 이 값으로 자리를 판단해야 보였다 숨었다를 반복하지 않는다.
@@ -656,9 +656,17 @@ export default function StartPage() {
 
     // 팝업이 칸의 어느 쪽에 붙었는지로 칸을 향한 모서리를 정한다. 화면 끝에 밀려 자리가 바뀌어도 맞게
     // 붙인 방향이 아니라 둘의 가운데 위치를 비교한다. (팝업이 위면 아래 모서리, 왼쪽이면 오른쪽 모서리)
-    const corner =
+    // 그 모서리가 칸 위에 실제로 닿을 때만 뾰족하게 한다. 좁은 휴대폰에서 가운데 열을 열면 팝업이
+    // 화면 끝에 밀려 모서리가 빈 곳을 가리켰다(2026-09-28 운영 점검). 그때는 네 모서리 모두 둥글게 둔다.
+    const side =
       (top + height / 2 < rect.top + rect.height / 2 ? "b" : "t") +
       (left + width / 2 < rect.left + rect.width / 2 ? "r" : "l");
+    const tipX = side[1] === "l" ? left : left + width;
+    const tipY = side[0] === "t" ? top : top + height;
+    const corner =
+      tipX >= rect.left - 1 && tipX <= rect.right + 1 && tipY >= rect.top - 1 && tipY <= rect.bottom + 1
+        ? side
+        : "none";
 
     if (popupRef.current) {
       popupRef.current.style.top = `${top}px`;
@@ -690,6 +698,16 @@ export default function StartPage() {
       window.removeEventListener("resize", placePopup);
     };
   }, [openCell, placePopup]);
+
+  // 글꼴이 늦게 들어오면 팝업 높이가 바뀐다(운영에서 215→208px). 칸 위쪽에 띄운 팝업은 아래 모서리가
+  // 칸에서 떨어지므로, 팝업 크기가 바뀔 때도 다시 붙인다.
+  useEffect(() => {
+    const el = popupRef.current;
+    if (!el || !popupPos.visible || typeof ResizeObserver !== "function") return undefined;
+    const observer = new ResizeObserver(() => placePopup());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [openCell, placePopup, popupPos.visible]);
 
   /**
    * 넓은 화면에서 미리보기 칸은 폼 옆에 붙어 따라온다(sticky). 칸이 화면보다 길면(00~24시 등)
