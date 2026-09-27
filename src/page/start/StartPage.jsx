@@ -285,7 +285,8 @@ export default function StartPage() {
   const [openCell, setOpenCell] = useState(null);
   // 골든타임 첫 칸의 "눌러서 명단 보기" 안내. 칸을 한 번 누르거나 명단을 닫으면 다시 띄우지 않는다.
   const [isTapHintDismissed, setTapHintDismissed] = useState(false);
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0, visible: false });
+  // corner: 칸을 향한 팝업 모서리(tl·tr·bl·br). 그 모서리만 뾰족하게 그린다.
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0, corner: "tl", visible: false });
   const popupRef = useRef(null);
   // 마지막으로 잰 팝업 높이. 팝업을 감춘 동안에도 이 값으로 자리를 판단해야 보였다 숨었다를 반복하지 않는다.
   const popupHeightRef = useRef(POPUP_H_ESTIMATE);
@@ -653,13 +654,22 @@ export default function StartPage() {
     if (top + height > floor) top = rect.top - height + POPUP_OVERLAP;
     top = Math.max(ceiling, Math.min(top, floor - height));
 
+    // 팝업이 칸의 어느 쪽에 붙었는지로 칸을 향한 모서리를 정한다. 화면 끝에 밀려 자리가 바뀌어도 맞게
+    // 붙인 방향이 아니라 둘의 가운데 위치를 비교한다. (팝업이 위면 아래 모서리, 왼쪽이면 오른쪽 모서리)
+    const corner =
+      (top + height / 2 < rect.top + rect.height / 2 ? "b" : "t") +
+      (left + width / 2 < rect.left + rect.width / 2 ? "r" : "l");
+
     if (popupRef.current) {
       popupRef.current.style.top = `${top}px`;
       popupRef.current.style.left = `${left}px`;
       popupRef.current.style.visibility = "";
+      popupRef.current.dataset.corner = corner;
     }
     setPopupPos((prev) =>
-      prev.top === top && prev.left === left && prev.visible ? prev : { top, left, visible: true }
+      prev.top === top && prev.left === left && prev.corner === corner && prev.visible
+        ? prev
+        : { top, left, corner, visible: true }
     );
   }, [openCell]);
 
@@ -1584,6 +1594,7 @@ export default function StartPage() {
                 key={openCell}
                 ref={popupRef}
                 style={{ top: popupPos.top, left: popupPos.left }}
+                data-corner={popupPos.corner}
                 role="dialog"
                 aria-label="예시 시간대 참여 명단"
               >
@@ -3616,6 +3627,20 @@ const CellPopup = styled.div`
   background: ${theme.color.surface};
   box-shadow: ${theme.shadow.card};
   animation: ${popupIn} 150ms ease-out both;
+
+  /* 칸을 향한 모서리 하나만 뾰족하게 둬 어느 칸의 명단인지 가리킨다(2026-09-28 사람 지시). */
+  &[data-corner="tl"] {
+    border-top-left-radius: 0;
+  }
+  &[data-corner="tr"] {
+    border-top-right-radius: 0;
+  }
+  &[data-corner="bl"] {
+    border-bottom-left-radius: 0;
+  }
+  &[data-corner="br"] {
+    border-bottom-right-radius: 0;
+  }
 `;
 
 const CellInfoHead = styled.div`
