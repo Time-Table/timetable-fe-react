@@ -621,14 +621,29 @@ export default function StartPage() {
     if (left + width > winW - 8) left = rect.left - width + POPUP_OVERLAP;
     left = Math.max(8, Math.min(left, winW - width - 8));
 
+    // 팝업은 미리보기 카드 아래로 넘어가지 않는다. 넘어가면 카드 바로 아래 "이대로 만들기" 버튼을 덮어
+    // 버튼을 눌러도 팝업이 클릭을 가져갔다(2026-09-28 E2E: 기본 날짜가 달력 2주에 걸쳐 주 넘김이 생기는 날).
+    // 아래 자리가 모자라면 칸 위쪽에 띄운다.
+    const card = cell.closest("[data-preview-card]");
+    const floor = Math.min(winH, card ? card.getBoundingClientRect().bottom : winH) - 8;
+    // 스크롤로 카드가 거의 밀려 올라가 팝업 둘 자리가 없으면 숨긴다(칸이 화면 밖일 때와 같다). 되돌리면 다시 뜬다.
+    if (floor - height < 8) {
+      setPopupPos((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+      return;
+    }
     let top = rect.bottom - POPUP_OVERLAP;
-    if (top + height > winH - 8) top = rect.top - height + POPUP_OVERLAP;
-    top = Math.max(8, Math.min(top, winH - height - 8));
+    if (top + height > floor) top = rect.top - height + POPUP_OVERLAP;
+    top = Math.max(8, Math.min(top, floor - height));
 
     setPopupPos((prev) =>
       prev.top === top && prev.left === left && prev.visible ? prev : { top, left, visible: true }
     );
   }, [openCell]);
+
+  // 날짜·시간·주를 바꾸면 스크롤 없이도 미리보기 모양이 바뀐다. 그때도 팝업을 칸에 다시 붙인다.
+  useEffect(() => {
+    if (openCell) placePopup();
+  }, [openCell, placePopup, mock, shownHours, previewIndex]);
 
   useEffect(() => {
     if (!openCell) return;
@@ -999,6 +1014,7 @@ export default function StartPage() {
                 격자는 장식으로 감추고, 격자가 말하는 내용은 아래 요약에 글로 남긴다. */}
             <PreviewCard
               as="section"
+              data-preview-card
               aria-labelledby="start-preview-heading"
               aria-describedby="start-preview-summary"
               onKeyDown={handlePreviewKeyDown}
