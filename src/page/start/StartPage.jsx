@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import styled from "@emotion/styled";
 import isPropValid from "@emotion/is-prop-valid";
@@ -82,6 +82,8 @@ const COMPACT_ROWS = 5;
 /** 사이트 헤더(Header.jsx HeaderWrapper) 높이. 헤더가 위에 붙어 있어 고정 미리보기를 그 아래에 둔다. */
 const HEADER_PX = 72;
 const HEADER_HEIGHT = `${HEADER_PX}px`;
+/** 넓은 화면에서 미리보기 칸이 헤더 아래에 붙는 간격(px). theme.space[6]과 같다. */
+const PREVIEW_STICKY_GAP = 24;
 /** 한 줄로 쌓이는 화면에서 스크롤해 단톡방이 사라지면 제목 자리에 보여 줄 입력 유도 문구(2026-09-27 사람 선택). */
 const TITLE_PROMPT = "모임 이름부터 바꿔 보세요";
 
@@ -285,6 +287,9 @@ export default function StartPage() {
   const [isTapHintDismissed, setTapHintDismissed] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0, visible: false });
   const popupRef = useRef(null);
+  // 마지막으로 잰 팝업 높이. 팝업을 감춘 동안에도 이 값으로 자리를 판단해야 보였다 숨었다를 반복하지 않는다.
+  const popupHeightRef = useRef(POPUP_H_ESTIMATE);
+  const previewColumnRef = useRef(null);
   const [isLockOpen, setLockOpen] = useState(false);
   const [isLockExpanded, setLockExpanded] = useState(false);
   const [banedCells, setBanedCells] = useState([]);
@@ -594,11 +599,22 @@ export default function StartPage() {
    */
   const placePopup = useCallback(() => {
     if (!openCell) return;
+    // 스크롤 중에는 상태 갱신이 다음 프레임에 그려진다. 그 한 프레임 동안 팝업이 옛 자리에 남아
+    // 칸에서 떨어지거나 만들기 버튼 위에 겹쳤다. 감추기·옮기기는 DOM에 바로 쓰고, 상태는 다음 렌더를 위해 맞춰 둔다.
+    const hidePopup = () => {
+      if (popupRef.current) popupRef.current.style.visibility = "hidden";
+      setPopupPos((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+    };
     const cell = document.querySelector(`[data-cell="${CSS.escape(openCell)}"]`);
     if (!cell) return;
     const rect = cell.getBoundingClientRect();
     const winW = window.innerWidth;
     const winH = window.innerHeight;
+    // 사이트 헤더는 위에 붙어 있다. 헤더 뒤로 들어간 칸은 가려진 것으로 보고, 팝업도 헤더 아래에만 둔다.
+    // (팝업이 헤더보다 위 층이라, 칸이 헤더 뒤로 사라진 뒤에도 헤더 위에 명단만 떠 있었다.)
+    const header = document.querySelector("[data-site-header]");
+    const headerBottom = Math.max(0, header ? header.getBoundingClientRect().bottom : 0);
+    const ceiling = headerBottom + 8;
 
     /**
      * 칸이 화면 밖이면 팝업을 띄우지 않는다.
@@ -606,14 +622,16 @@ export default function StartPage() {
      * 이때 아래 clamp 가 팝업을 화면 안으로 끌어와, 칸과 상관없는 자리(모바일에서는
      * 페이지 최상단 폼 위)에 명단이 떠 있었다.
      */
-    const onScreen = rect.bottom > 0 && rect.top < winH && rect.right > 0 && rect.left < winW;
+    const onScreen = rect.bottom > headerBottom && rect.top < winH && rect.right > 0 && rect.left < winW;
     if (!onScreen) {
-      setPopupPos((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+      hidePopup();
       return;
     }
 
-    const width = popupRef.current?.getBoundingClientRect().width || POPUP_WIDTH;
-    const height = popupRef.current?.getBoundingClientRect().height || POPUP_H_ESTIMATE;
+    const measured = popupRef.current?.getBoundingClientRect();
+    if (measured?.height) popupHeightRef.current = measured.height;
+    const width = measured?.width || POPUP_WIDTH;
+    const height = popupHeightRef.current;
 
     // 팝업 모서리가 칸 모서리를 살짝 물게 둔다. 어느 칸을 연 것인지 붙어서 보이되,
     // 칸이 통째로 덮이지는 않는다(가로 세로 각 OVERLAP 만큼만 겹친다).
@@ -627,23 +645,30 @@ export default function StartPage() {
     const card = cell.closest("[data-preview-card]");
     const floor = Math.min(winH, card ? card.getBoundingClientRect().bottom : winH) - 8;
     // 스크롤로 카드가 거의 밀려 올라가 팝업 둘 자리가 없으면 숨긴다(칸이 화면 밖일 때와 같다). 되돌리면 다시 뜬다.
-    if (floor - height < 8) {
-      setPopupPos((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+    if (floor - height < ceiling) {
+      hidePopup();
       return;
     }
     let top = rect.bottom - POPUP_OVERLAP;
     if (top + height > floor) top = rect.top - height + POPUP_OVERLAP;
-    top = Math.max(8, Math.min(top, floor - height));
+    top = Math.max(ceiling, Math.min(top, floor - height));
 
+    if (popupRef.current) {
+      popupRef.current.style.top = `${top}px`;
+      popupRef.current.style.left = `${left}px`;
+      popupRef.current.style.visibility = "";
+    }
     setPopupPos((prev) =>
       prev.top === top && prev.left === left && prev.visible ? prev : { top, left, visible: true }
     );
   }, [openCell]);
 
   // 날짜·시간·주를 바꾸면 스크롤 없이도 미리보기 모양이 바뀐다. 그때도 팝업을 칸에 다시 붙인다.
-  useEffect(() => {
+  // 처음 띄울 때는 팝업을 그리기 전이라 높이를 어림값으로 잡는다. 그린 직후 화면에 칠하기 전에
+  // 실제 높이로 한 번 더 맞춰야 칸 위쪽에 띄운 팝업이 첫 스크롤에서 튀지 않는다.
+  useLayoutEffect(() => {
     if (openCell) placePopup();
-  }, [openCell, placePopup, mock, shownHours, previewIndex]);
+  }, [openCell, placePopup, mock, shownHours, previewIndex, popupPos.visible]);
 
   useEffect(() => {
     if (!openCell) return;
@@ -655,6 +680,33 @@ export default function StartPage() {
       window.removeEventListener("resize", placePopup);
     };
   }, [openCell, placePopup]);
+
+  /**
+   * 넓은 화면에서 미리보기 칸은 폼 옆에 붙어 따라온다(sticky). 칸이 화면보다 길면(00~24시 등)
+   * 붙는 위치를 그만큼 위로 올려, 페이지를 내리는 것만으로 칸 끝(만들기 버튼)까지 보이게 한다.
+   * 예전에는 칸 안에 따로 스크롤을 두고 overscroll-behavior: contain 을 걸었는데, 크롬은 넘치지 않는
+   * 칸에서도 휠을 가둬 미리보기 위에서는 페이지가 내려가지 않았다(2026-09-28 사람 보고).
+   */
+  useLayoutEffect(() => {
+    const col = previewColumnRef.current;
+    if (!col || isStacked) return undefined;
+    const place = () => {
+      const top = Math.min(
+        HEADER_PX + PREVIEW_STICKY_GAP,
+        window.innerHeight - col.offsetHeight - PREVIEW_STICKY_GAP
+      );
+      col.style.setProperty("--preview-sticky-top", `${Math.round(top)}px`);
+    };
+    place();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(place) : null;
+    observer?.observe(col);
+    window.addEventListener("resize", place);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", place);
+      col.style.removeProperty("--preview-sticky-top");
+    };
+  }, [isStacked]);
 
   const openCellInfo = useMemo(() => {
     if (!mock || !openCell) return null;
@@ -1008,7 +1060,7 @@ export default function StartPage() {
           </TitleWrap>
 
         {/* data-nosnippet: 미리보기의 예시 이름·시간·"예시 데이터입니다…"가 검색결과 요약으로 뽑히지 않게 한다. */}
-        <PreviewColumn data-nosnippet>
+        <PreviewColumn ref={previewColumnRef} data-nosnippet>
             {/* 실제 /table 화면을 가짜 데이터로 재현한 미리보기.
                 누를 수 있는 것이 생겼으므로 통짜 role="img"로 감싸지 않는다.
                 격자는 장식으로 감추고, 격자가 말하는 내용은 아래 요약에 글로 남긴다. */}
@@ -1526,16 +1578,12 @@ export default function StartPage() {
           !created &&
           popupPos.visible &&
           createPortal(
-            /* AnimatePresence 를 쓰지 않는다. 조건이 꺼지면 이 블록 자체가 사라져
-               exit 애니메이션이 돌 자리가 없고, PopChild 가 ref 를 가로채 경고를 낸다. */
+            /* 나타나는 움직임은 CSS 로 준다(CellPopup 참고). key 가 바뀌면 다시 나타난다. */
             (
               <CellPopup
                 key={openCell}
                 ref={popupRef}
                 style={{ top: popupPos.top, left: popupPos.left }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15 }}
                 role="dialog"
                 aria-label="예시 시간대 참여 명단"
               >
@@ -1923,12 +1971,9 @@ const PreviewColumn = styled.div`
     grid-area: preview;
     align-self: start;
     position: sticky;
-    /* 사이트 헤더도 위에 붙어 있다. 그 아래에 붙여야 미리보기 윗부분이 헤더에 가리지 않는다. */
-    top: calc(${HEADER_HEIGHT} + ${theme.space[6]});
-    /* 00:00~24:00을 고르면 격자만 720px이라 화면보다 길어진다. 그때는 이 칸 안에서 스크롤한다. */
-    max-height: calc(100vh - ${HEADER_HEIGHT} - ${theme.space[6]} * 2);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    /* 사이트 헤더도 위에 붙어 있다. 그 아래에 붙여야 미리보기 윗부분이 헤더에 가리지 않는다.
+       칸이 화면보다 길면 스크립트가 붙는 위치를 위로 올린다(--preview-sticky-top). */
+    top: var(--preview-sticky-top, calc(${HEADER_HEIGHT} + ${PREVIEW_STICKY_GAP}px));
   }
 `;
 
@@ -3552,7 +3597,16 @@ const FaqMore = styled.p`
  * 색은 강조색 하나만 쓴다. 가능/불가는 초록·회색 칩 대신 시간표 칸과 같은 모양의 작은 네모로 구분하고,
  * 이름은 무채색 태그로 둔다. (이전 랜딩은 Tailwind 기본 초록 팔레트와 분홍 띠·분홍 머리가 겹쳐 있었다.)
  */
-const CellPopup = styled(motion.div)`
+const popupIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+/**
+ * 나타날 때 옅게 떠오른다. framer-motion 으로 하면 떠오름이 끝나는 순간 한 프레임 투명해져
+ * 명단이 깜빡였다(2026-09-28 사람 보고, 프레임 기록으로 확인). CSS 애니메이션은 끝 상태를 그대로 둔다.
+ */
+const CellPopup = styled.div`
   position: fixed;
   z-index: 9999;
   width: ${POPUP_WIDTH}px;
@@ -3561,6 +3615,7 @@ const CellPopup = styled(motion.div)`
   overflow: hidden;
   background: ${theme.color.surface};
   box-shadow: ${theme.shadow.card};
+  animation: ${popupIn} 150ms ease-out both;
 `;
 
 const CellInfoHead = styled.div`
