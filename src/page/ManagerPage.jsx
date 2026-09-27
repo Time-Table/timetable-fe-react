@@ -63,8 +63,9 @@ import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
 import { createRequestSequence } from "./manager/latestRequest";
+import { monthlyCreationSeries } from "./manager/monthlyTrend";
 import { blogPosts } from "../data/blogPosts";
-import { TrendChart, BarList } from "./manager/charts";
+import { TrendChart, MonthlyBarChart, BarList } from "./manager/charts";
 
 const Toast = Swal.mixin({
   toast: true,
@@ -76,6 +77,7 @@ const Toast = Swal.mixin({
 
 const TABS = [
   { key: "dashboard", label: "대시보드", icon: FiGrid, scoped: true },
+  { key: "monthly", label: "월별 추이", icon: FiBarChart2, scoped: false },
   { key: "participation", label: "3인 참여 달성률", icon: FiBarChart2, scoped: false },
   { key: "funnel", label: "퍼널 분석", icon: FiFilter, scoped: true },
   { key: "audience", label: "사용자 분석", icon: FiUsers, scoped: true },
@@ -88,6 +90,13 @@ const PERIODS = [
   { label: "7일", value: 7 },
   { label: "30일", value: 30 },
   { label: "90일", value: 90 },
+];
+
+const MONTHLY_PERIODS = [
+  { label: "최근 3개월", value: 3 },
+  { label: "6개월", value: 6 },
+  { label: "1년", value: 12 },
+  { label: "전체", value: 0 },
 ];
 
 const METRIC_LABELS = {
@@ -120,6 +129,9 @@ const ManagerPage = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period, setPeriod] = useState(30);
+  const [monthlyPeriod, setMonthlyPeriod] = useState(3);
+  const [monthlyVisits, setMonthlyVisits] = useState(null);
+  const [monthlyFailed, setMonthlyFailed] = useState(false);
   const [participationPeriod, setParticipationPeriod] = useState(0);
   const [participationReport, setParticipationReport] = useState(null);
   const [participationLoading, setParticipationLoading] = useState(false);
@@ -272,6 +284,18 @@ const ManagerPage = () => {
         if (!isLatest()) return;
         setTrends(trendRes);
         setVisitRaw(Array.isArray(visitRes?.data) ? visitRes.data : []);
+      } else if (activeTab === "monthly") {
+        setMonthlyFailed(false);
+        try {
+          const res = await getTrackVisit();
+          if (!isLatest()) return;
+          setMonthlyVisits(Array.isArray(res?.data) ? res.data : null);
+          setMonthlyFailed(!Array.isArray(res?.data));
+        } catch {
+          if (!isLatest()) return;
+          setMonthlyVisits(null);
+          setMonthlyFailed(true);
+        }
       } else if (activeTab === "audience") {
         const [audienceRes, tableRes] = await Promise.all([getAudience(period), getAllTables()]);
         if (!isLatest()) return;
@@ -414,6 +438,11 @@ const ManagerPage = () => {
     return sortBlogRows(blogOnlyZero ? rows.filter((row) => row.views === 0) : rows, blogSort);
   }, [blogStats, blogSort, blogOnlyZero]);
 
+  const monthlySeries = useMemo(
+    () => monthlyCreationSeries(monthlyVisits, monthlyPeriod),
+    [monthlyVisits, monthlyPeriod],
+  );
+
   if (!authed) return null;
 
   const currentTab = TABS.find((tab) => tab.key === activeTab);
@@ -489,6 +518,7 @@ const ManagerPage = () => {
             <SectionTitle>{currentTab?.label}</SectionTitle>
             <SectionCaption>
               {activeTab === "dashboard" && "핵심 지표와 일별 추이"}
+              {activeTab === "monthly" && "테이블 생성 수를 월별로 확인"}
               {activeTab === "participation" && "현재 보관 기록으로 보는 마감 전 참여 등록"}
               {activeTab === "funnel" && "행동 기록·등록 현황"}
               {activeTab === "audience" && "누가, 어디서, 어떤 기기로 오는지"}
@@ -517,7 +547,7 @@ const ManagerPage = () => {
         </TopBar>
 
         <Content $dim={loading}>
-          {loading && activeTab !== "dashboard" && activeTab !== "participation" && !trends && !funnelReport && !audience && !chatFeed && !tables.length && !blogStats ? (
+          {loading && activeTab !== "dashboard" && activeTab !== "monthly" && activeTab !== "participation" && !trends && !funnelReport && !audience && !chatFeed && !tables.length && !blogStats ? (
             <Loading>
               <Spinner />
               데이터를 불러오는 중입니다
@@ -643,6 +673,46 @@ const ManagerPage = () => {
                         </Total>
                       ))}
                     </TotalsRow>
+                  </Card>
+                </Stack>
+              )}
+
+              {activeTab === "monthly" && (
+                <Stack>
+                  <div>
+                    <Segmented role="group" aria-label="월별 추이 기간">
+                      {MONTHLY_PERIODS.map((option) => (
+                        <SegmentedItem key={option.value} $active={monthlyPeriod === option.value}
+                          aria-pressed={monthlyPeriod === option.value}
+                          onClick={() => setMonthlyPeriod(option.value)}>
+                          {option.label}
+                        </SegmentedItem>
+                      ))}
+                    </Segmented>
+                  </div>
+                  <Card>
+                    <CardTitle>월별 테이블 생성 수</CardTitle>
+                    <CardSubtitle>한국시간 기준 일별 생성 기록을 월별로 합산했습니다. 현행 계측에서는 관리자 생성 표를 제외합니다.</CardSubtitle>
+                    {monthlyFailed ? (
+                      <>
+                        <Empty>월별 생성 기록을 불러오지 못했습니다.</Empty>
+                        <Button onClick={loadTab}>다시 조회</Button>
+                      </>
+                    ) : monthlyVisits === null ? (
+                      <Loading><Spinner />월별 생성 기록을 불러오는 중입니다</Loading>
+                    ) : monthlySeries.length === 0 ? (
+                      <Empty>아직 기록된 생성 통계가 없습니다.</Empty>
+                    ) : (
+                      <>
+                        <div style={{ marginTop: t.space(5) }}>
+                          <MonthlyBarChart series={monthlySeries} />
+                        </div>
+                        {monthlySeries.some((row) => row.month === "2025-03") && (
+                          <CardSubtitle>* 2025년 3월은 생성 계측 도입(18일) 전 건수가 빠져 있습니다.</CardSubtitle>
+                        )}
+                        <CardSubtitle>이번 달은 조회 시점까지의 수치입니다. 과거 계측 누락이 있어 정확한 평생 생성 총수와는 다를 수 있습니다.</CardSubtitle>
+                      </>
+                    )}
                   </Card>
                 </Stack>
               )}

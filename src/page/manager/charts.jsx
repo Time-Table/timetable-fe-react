@@ -163,6 +163,71 @@ export const TrendChart = ({ series, valueKey, color = t.color.series1, label })
   );
 };
 
+export const MonthlyBarChart = ({ series }) => {
+  const wrapRef = useRef(null);
+  const width = useWidth(wrapRef);
+  const chartWidth = Math.max(width, series.length * 44 + 88, 320);
+  const top = 32;
+  const bottom = 52;
+  const left = 64;
+  const right = 24;
+  const plotHeight = 220;
+  const height = top + plotHeight + bottom;
+  const plotWidth = chartWidth - left - right;
+  const slotWidth = plotWidth / Math.max(series.length, 1);
+  const barWidth = Math.min(72, slotWidth * 0.72);
+  const max = niceMax(Math.max(...series.map((row) => row.count), 0));
+  const y = (value) => top + plotHeight * (1 - value / max);
+  const ticks = max === 1 ? [0, 1] : [0, max / 2, max];
+
+  return (
+    <MonthlyChartScroll ref={wrapRef}>
+      {width > 0 && (
+        <svg width={chartWidth} height={height} role="img" aria-label="월별 테이블 생성 수">
+          <title>월별 테이블 생성 수</title>
+          <desc>{series.map((row) => `${row.month} ${row.count}개`).join(", ")}</desc>
+          {ticks.map((tick) => (
+            <g key={tick}>
+              <line x1={left} x2={chartWidth - right} y1={y(tick)} y2={y(tick)}
+                stroke={t.color.grid} strokeWidth="1" />
+              <text x={left - 12} y={y(tick) + 4} textAnchor="end"
+                fill={t.color.muted} fontSize="11">{tick.toLocaleString()}</text>
+            </g>
+          ))}
+          <rect x={left} y={top} width={plotWidth} height={plotHeight}
+            fill="none" stroke={t.color.grid} strokeWidth="1" />
+          {series.map((row, index) => {
+            const x = left + index * slotWidth + (slotWidth - barWidth) / 2;
+            const barY = y(row.count);
+            const label = `${row.month.slice(2, 4)}.${row.month.slice(5)}${row.month === "2025-03" ? "*" : ""}`;
+            return (
+              <g key={row.month}>
+                <rect x={x} y={barY} width={barWidth} height={top + plotHeight - barY}
+                  fill={t.color.series1}>
+                  <title>{row.month} · {row.count}개</title>
+                </rect>
+                <text x={x + barWidth / 2} y={Math.max(top + 13, barY - 7)}
+                  textAnchor="middle" fill={t.color.ink} fontSize="12">
+                  {row.count.toLocaleString()}
+                </text>
+                <text x={x + barWidth / 2} y={top + plotHeight + 22}
+                  textAnchor="middle" fill={t.color.muted} fontSize="11">
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+          <text x={left + plotWidth / 2} y={height - 6} textAnchor="middle"
+            fill={t.color.ink2} fontSize="11">생성 월 (한국시간)</text>
+          <text x="18" y={top + plotHeight / 2} textAnchor="middle"
+            transform={`rotate(-90 18 ${top + plotHeight / 2})`}
+            fill={t.color.ink2} fontSize="11">생성 수 (개)</text>
+        </svg>
+      )}
+    </MonthlyChartScroll>
+  );
+};
+
 /**
  * 가로 막대 목록. 한 계열이므로 색은 하나만 쓰고,
  * 값은 막대 끝에 직접 붙여 툴팁 없이도 읽히게 한다.
@@ -205,6 +270,16 @@ const ChartWrap = styled.div`
   }
   rect {
     cursor: crosshair;
+  }
+`;
+
+const MonthlyChartScroll = styled.div`
+  width: 100%;
+  overflow-x: auto;
+
+  svg {
+    display: block;
+    font-family: ${t.font.sans};
   }
 `;
 

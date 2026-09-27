@@ -6,10 +6,15 @@ import { getAllTables, deleteTable } from "../api/table";
 import { getFunnels } from "../api/event";
 import { adminVerify, getTrends, getBlogStats } from "../api/admin";
 import { getTrackVisit } from "../api/visit";
+import { MonthlyBarChart } from "./manager/charts";
 
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("../Seo", () => () => null);
-jest.mock("./manager/charts", () => ({ TrendChart: () => null, BarList: () => null }));
+jest.mock("./manager/charts", () => ({
+  TrendChart: () => null,
+  MonthlyBarChart: jest.fn(() => null),
+  BarList: () => null,
+}));
 jest.mock("../api/event", () => ({ getFunnels: jest.fn() }));
 jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn() }));
 jest.mock("../api/visit", () => ({ getTrackVisit: jest.fn() }));
@@ -97,6 +102,37 @@ test("오늘 기록이 없으면 과거 값이나 가짜 0 대신 미조회 상�
   const summary=await screen.findByRole("region",{name:"오늘 통계"});
   expect(within(summary).getByText(/오늘 통계를 불러오지 못했습니다/)).toBeTruthy();
   expect(within(summary).getAllByText("—")).toHaveLength(4);
+});
+
+test("월별 추이는 별도 메뉴에서 최근 3개월로 시작하고 기간 버튼만으로 범위를 바꾼다", async () => {
+  getTrackVisit.mockResolvedValue({ data: [
+    { date: "2025-03-18", todayTableCreateCount: 2 },
+    { date: "2026-08-01", todayTableCreateCount: 3 },
+  ] });
+  render(<ManagerPage />); await flushUpdates();
+  await click(screen.getByText("월별 추이", { selector: "div" }));
+  expect(await screen.findByRole("heading", { name: "월별 테이블 생성 수" })).toBeTruthy();
+  const periods = screen.getByRole("group", { name: "월별 추이 기간" });
+  expect(within(periods).getByRole("button", { name: "최근 3개월" }).getAttribute("aria-pressed")).toBe("true");
+  await waitFor(() => expect(MonthlyBarChart.mock.calls.at(-1)[0].series).toHaveLength(3));
+  const calls = getTrackVisit.mock.calls.length;
+  await click(within(periods).getByRole("button", { name: "6개월" }));
+  expect(MonthlyBarChart.mock.calls.at(-1)[0].series).toHaveLength(6);
+  await click(within(periods).getByRole("button", { name: "1년" }));
+  expect(MonthlyBarChart.mock.calls.at(-1)[0].series).toHaveLength(12);
+  await click(within(periods).getByRole("button", { name: "전체" }));
+  expect(MonthlyBarChart.mock.calls.at(-1)[0].series[0]).toEqual({ month: "2025-03", count: 2 });
+  expect(getTrackVisit).toHaveBeenCalledTimes(calls);
+});
+
+test("월별 기록의 빈 상태와 조회 실패를 구분하고 재시도한다", async () => {
+  getTrackVisit.mockResolvedValueOnce({ data: [] }).mockResolvedValueOnce("failed")
+    .mockResolvedValueOnce({ data: [] });
+  render(<ManagerPage />); await flushUpdates();
+  await click(screen.getByText("월별 추이", { selector: "div" }));
+  expect(await screen.findByText("월별 생성 기록을 불러오지 못했습니다.")).toBeTruthy();
+  await click(screen.getByRole("button", { name: "다시 조회" }));
+  expect(await screen.findByText("아직 기록된 생성 통계가 없습니다.")).toBeTruthy();
 });
 
 test("KPI 조회 실패를 표시하고 재시도로 회복한다", async () => {
