@@ -1,56 +1,9 @@
-@font-face {
-  font-family: "Pretendard-Black";
-  src: url("./assets/font/Pretendard-Black.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-ExtraBold";
-  src: url("./assets/font/Pretendard-ExtraBold.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-Bold";
-  src: url("./assets/font/Pretendard-Bold.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-SemiBold";
-  src: url("./assets/font/Pretendard-SemiBold.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-Medium";
-  src: url("./assets/font/Pretendard-Medium.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-Regular";
-  src: url("./assets/font/Pretendard-Regular.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-Light";
-  src: url("./assets/font/Pretendard-Light.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-ExtraLight";
-  src: url("./assets/font/Pretendard-ExtraLight.woff") format("woff");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Pretendard-Thin";
-  src: url("./assets/font/Pretendard-Thin.woff") format("woff");
-  font-display: swap;
-}
+/*
+  Pretendard는 굵기마다 원본 woff(한글 전체, 약 1.1MB)를 글자 묶음별 WOFF2로 나눠 쓴다.
+  브라우저는 화면에 나온 글자가 든 묶음만 받는다(대부분 core 약 90KB).
+  글자 모양은 원본과 같다. 원본은 src/assets/font/*.woff, 만드는 법은 scripts/subset-fonts.py.
+*/
+@import "./assets/font/web/pretendard.css";
 
 body {
   margin: 0;
