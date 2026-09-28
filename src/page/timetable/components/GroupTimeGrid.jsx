@@ -10,6 +10,7 @@ import { keyframes } from "@emotion/react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 
 const parseTimeKey = (timeKey) => {
   const idx = timeKey.lastIndexOf("-");
@@ -62,8 +63,14 @@ export default function GroupTimeGrid({
   const POPUP_H_ESTIMATE = 250;
 
   const handleCellClick = (viewInfo, event) => {
-    if (!viewInfo) { setSelectedCell(null); return; }
+    if (!viewInfo) {
+      // 가능한 사람이 없는 칸. 팝업이 뜨지 않아 무반응 탭으로 잡히던 곳이다.
+      trackClarityEvent(CLARITY_EVENTS.TIMETABLE_CELL_EMPTY);
+      setSelectedCell(null);
+      return;
+    }
     if (selectedCell?._id === viewInfo._id) { setSelectedCell(null); return; }
+    trackClarityEvent(CLARITY_EVENTS.TIMETABLE_CELL);
 
     if (event?.currentTarget) {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -164,6 +171,7 @@ export default function GroupTimeGrid({
                 key={index}
                 $isSelected={selectedName === user.name}
                 onClick={() => {
+                  if (selectedName !== user.name) trackClarityEvent(CLARITY_EVENTS.TIMETABLE_MEMBER_FILTER);
                   setSelectedName(user.name);
                   setDropdownOpen(false);
                 }}

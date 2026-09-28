@@ -267,6 +267,30 @@ describe("표별 역할을 Clarity에 연결", () => {
 });
 
 describe("Clarity 전용 보조 이벤트", () => {
+  test("이름은 모두 tt_로 시작하고 겹치지 않으며, 목록에 있는 이름은 그대로 전달된다", () => {
+    window.clarity = jest.fn();
+    const names = Object.values(CLARITY_EVENTS);
+    expect(new Set(names).size).toBe(names.length);
+    names.forEach((name) => {
+      expect(name).toMatch(/^tt_[a-z0-9_]+$/);
+      trackClarityEvent(name);
+    });
+    expect(window.clarity.mock.calls).toEqual(names.map((name) => ["event", name]));
+    expect(sendEvent).not.toHaveBeenCalled();
+  });
+
+  test("표 화면 참여 시도·골든타임 확인은 서버와 함께 Clarity에도 보내고, 공유 시도는 보내지 않는다", () => {
+    window.clarity = jest.fn();
+    trackEvent(EVENTS.JOIN_SUBMIT, "private-table-id");
+    trackEvent(EVENTS.RANKING_OPEN, "private-table-id");
+    trackEvent(EVENTS.INVITE_SHARE, "private-table-id");
+    expect(window.clarity.mock.calls).toEqual([
+      ["event", "tt_join_submit"],
+      ["event", "tt_ranking_open"],
+    ]);
+    expect(sendEvent).toHaveBeenCalledTimes(3);
+  });
+
   test("정해진 이름만 Clarity로 보내고 자체 API로는 보내지 않는다", () => {
     window.clarity = jest.fn();
     trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_NATIVE);

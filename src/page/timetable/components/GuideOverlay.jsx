@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled from "@emotion/styled";
 import { motion, AnimatePresence } from "framer-motion";
 import theme from "../../../theme";
+import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 
 const GuideOverlay = ({ isDesktop, tableId }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
+  // 가이드가 실제로 그려진 횟수를 센다(대상 요소를 못 찾으면 그리지 않으므로 isVisible만으로는 모른다).
+  const shownRef = useRef(false);
   const [tooltipPos, setTooltipPos] = useState({
     top: 0,
     left: 0,
@@ -130,16 +133,30 @@ const GuideOverlay = ({ isDesktop, tableId }) => {
     };
   }, [updatePosition]);
 
+  useEffect(() => {
+    if (!isVisible) {
+      shownRef.current = false;
+      return;
+    }
+    if (targetRect && !shownRef.current) {
+      shownRef.current = true;
+      trackClarityEvent(CLARITY_EVENTS.GUIDE_SHOW);
+    }
+  }, [isVisible, targetRect]);
+
   const handleNext = () => {
     if (step < steps.length - 1) {
+      trackClarityEvent(CLARITY_EVENTS.GUIDE_NEXT);
       setStep(step + 1);
     } else {
+      trackClarityEvent(CLARITY_EVENTS.GUIDE_DONE);
       sessionStorage.setItem(`hasCompletedTimetableGuide:${tableId}`, "true");
       setIsVisible(false);
     }
   };
 
   const handleNeverShowAgain = () => {
+    trackClarityEvent(CLARITY_EVENTS.GUIDE_NEVER);
     localStorage.setItem("hasSeenTimetableGuide", "true");
     setIsVisible(false);
   };

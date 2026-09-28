@@ -3,6 +3,7 @@ import theme from "../../../theme";
 import { useState, useMemo, useEffect } from "react";
 import { FiUsers, FiInfo, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import Button from "../../../component/Button";
+import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 
 const PER_PAGE = 10;
 const SLOT_MIN = 30;
@@ -140,7 +141,13 @@ export default function RankingList({
 
   const handleMemberClick = (e, memberName) => {
     e.stopPropagation();
+    if (selectedName !== memberName) trackClarityEvent(CLARITY_EVENTS.RANKING_MEMBER_VIEW);
     setSelectedName(selectedName === memberName ? null : memberName);
+  };
+
+  const toggleBlock = (id) => {
+    if (expandedId !== id) trackClarityEvent(CLARITY_EVENTS.RANKING_EXPAND);
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
   if (!isValidArray) {
@@ -179,7 +186,7 @@ export default function RankingList({
             <Block
               key={b.id}
               $top={isTop}
-              onClick={() => setExpandedId((prev) => (prev === b.id ? null : b.id))}
+              onClick={() => toggleBlock(b.id)}
             >
               <BlockHead>
                 <RankBadge $top={isTop}>{b.displayRank}</RankBadge>

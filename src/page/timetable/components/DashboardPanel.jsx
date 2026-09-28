@@ -2,6 +2,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { postChat, getChating } from "../../../api/chat";
+import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
 import { keyframes } from "@emotion/react";
@@ -58,6 +59,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
           if (selectedName === userName) {
                setSelectedName(null);
           } else {
+               trackClarityEvent(CLARITY_EVENTS.MEMBER_VIEW);
                setSelectedName(userName);
           }
      };
@@ -71,6 +73,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
           if (message.trim()) {
                const res = await postChat(tableId, name, message);
                if (res.success) {
+                    trackClarityEvent(CLARITY_EVENTS.CHAT_SEND);
                     setMessage("");
                     await fetchData();
                } else {

@@ -114,9 +114,11 @@ export const trackEvent = (name, tableId, creationPath) => {
   }
 
   // 기존 버튼 텍스트 기반 스마트 이벤트와 구분한다. 식별자/입력값은 보내지 않는다.
+  // 참여 시도·골든타임 확인은 2026-09-29에 더했다. 서버 퍼널에는 기기 구분이 없어 모바일 비율을 Clarity에서 본다.
   if (![EVENTS.LANDING_VIEW, EVENTS.CREATE_VIEW, EVENTS.CREATE_CTA_CLICK,
     EVENTS.CREATE_SUBMIT, EVENTS.CREATE_SUCCESS, EVENTS.TABLE_VIEW,
-    EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE].includes(name)) return;
+    EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE,
+    EVENTS.RANKING_OPEN].includes(name)) return;
   try {
     if (typeof window.clarity !== "function") return;
     window.clarity("event", `tt_${name}`);
@@ -137,6 +139,26 @@ export const trackEvent = (name, tableId, creationPath) => {
 export const CLARITY_EVENTS = {
   INVITE_SHARE_NATIVE: "tt_invite_share_native",
   INVITE_SHARE_COPY: "tt_invite_share_copy",
+
+  // 표 화면(/table)에서 기록이 없던 곳(2026-09-29, 0회차 지표 조사 뒤). 동작 한 번에 1회씩이고 조건은 계약서 "표 화면 Clarity 보조 계측"에 있다.
+  INVITE_SHARE_TABLE: "tt_invite_share_table", // 표 화면 초대 링크 "복사하기" 누름(클립보드 호출 전, 랜딩 완료 창 복사와 구분)
+  GUIDE_SHOW: "tt_guide_show", // 이용 가이드가 화면에 뜸
+  GUIDE_NEXT: "tt_guide_next", // 가이드 "다음"
+  GUIDE_DONE: "tt_guide_done", // 가이드 마지막 단계 "시작하기"
+  GUIDE_NEVER: "tt_guide_never", // 가이드 "다시 보지 않기"
+  TIMETABLE_OPEN: "tt_timetable_open", // 휴대폰 전체 시간표 모달이 닫힘에서 열림으로 바뀜(버튼·참여자 칩·순위 이름 모두)
+  TIMETABLE_CELL: "tt_timetable_cell", // 전체 시간표 칸을 눌러 명단 팝업 열기
+  TIMETABLE_CELL_EMPTY: "tt_timetable_cell_empty", // 가능한 사람이 없는 칸을 누름(팝업이 뜨지 않는다)
+  TIMETABLE_MEMBER_FILTER: "tt_timetable_member_filter", // 참여자 드롭다운에서 한 사람 고르기
+  RANKING_EXPAND: "tt_ranking_expand", // 골든타임 순위 항목 펼치기
+  RANKING_MEMBER_VIEW: "tt_ranking_member_view", // 순위 항목 안 이름 → 그 사람 시간표
+  MEMBERS_OPEN: "tt_members_open", // 단계 막대 "인원"
+  MEMBER_VIEW: "tt_member_view", // 인원 화면 참여자 칩 → 그 사람 시간표
+  CHAT_SEND: "tt_chat_send", // 채팅 보내기 성공
+  SCHEDULE_SELECT: "tt_schedule_select", // 내 일정에서 시간을 처음 더함(화면을 열 때마다 1회, 해제만 한 것은 제외)
+  SCHEDULE_SAVE_CLICK: "tt_schedule_save_click", // 켜진 저장 버튼 누름(서버 결과와 무관, 성공은 tt_schedule_save)
+  TIPS_OPEN: "tt_tips_open", // "모임 시간 조율을 위한 팁" 펼치기
+  TIPS_CLOSE: "tt_tips_close", // 같은 팁 접기
 };
 
 export const trackClarityEvent = (name) => {

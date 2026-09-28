@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
 import Button from "../../../component/Button";
 import TimeGrid from "../../../component/TimeGrid";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../api/schedule";
-import { trackEvent, EVENTS } from "../../../utils/analytics";
+import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiArrowDown, FiGrid } from "react-icons/fi";
@@ -31,6 +31,31 @@ export default function PersonalSchedule({
      const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
      const [selectedCells, setSelectedCells] = useState([]);
 
+     // 사용자가 시간을 처음 더한 순간을 화면을 열 때마다 1회만 남긴다. 이미 고른 시간을 해제만 한 것은 세지 않는다.
+     // 드래그 선택은 터치 시작에서 기본 동작을 막아 클릭이 생기지 않아 Clarity 히트맵에 잡히지 않는다.
+     // TimeGrid가 이 함수를 이벤트 핸들러의 의존값으로 쓰므로 참조가 바뀌지 않게 두고, 현재 선택은 ref로 읽는다.
+     const selectTrackedRef = useRef(false);
+     const selectedCellsRef = useRef(selectedCells);
+     useLayoutEffect(() => {
+          selectedCellsRef.current = selectedCells;
+     }, [selectedCells]);
+     const handleSelectCells = useCallback((next) => {
+          if (!selectTrackedRef.current) {
+               try {
+                    // TimeGrid는 순수한 갱신 함수만 넘기므로 미리 한 번 계산해 봐도 상태가 바뀌지 않는다.
+                    const prev = selectedCellsRef.current;
+                    const resolved = typeof next === "function" ? next(prev) : next;
+                    if (resolved.some((cell) => !prev.includes(cell))) {
+                         selectTrackedRef.current = true;
+                         trackClarityEvent(CLARITY_EVENTS.SCHEDULE_SELECT);
+                    }
+               } catch {
+                    // 계측 계산이 실패해도 선택은 그대로 반영한다.
+               }
+          }
+          setSelectedCells(next);
+     }, []);
+
      const areArraysEqual = (arr1, arr2) =>
           arr1.length === arr2.length &&
           arr1.every((value) => arr2.includes(value)) &&
@@ -50,6 +75,9 @@ export default function PersonalSchedule({
 
      const handleSave = async () => {
           if (isSaving) return;
+          // 켜진 저장 버튼을 누른 순간이다(버튼은 바뀐 시간이 있고 저장 중이 아닐 때만 켜진다).
+          // 서버 결과와 무관하게 남기고, 저장 성공은 trackEvent가 보내는 tt_schedule_save로 따로 센다.
+          trackClarityEvent(CLARITY_EVENTS.SCHEDULE_SAVE_CLICK);
           if (!tableId || !name) {
                Swal.fire({ icon: "error", title: "로그인 정보가 없습니다." });
                return;
@@ -138,7 +166,7 @@ export default function PersonalSchedule({
                          endHour={endHour}
                          selectedCells={selectedCells}
                          selectedCellColor={theme.color.primaryTint}
-                         setSelectedCells={setSelectedCells}
+                         setSelectedCells={handleSelectCells}
                          banedCells={banedCells}
                          bgTimeInfo={bgTimeInfo}
                          stickyHeaderTop={stickyHeaderTop}

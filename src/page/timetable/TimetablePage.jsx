@@ -15,7 +15,7 @@ import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
-import { trackEvent, EVENTS } from "../../utils/analytics";
+import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../utils/analytics";
 import { clearTableScopedStorage } from "../../utils/storage";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -282,17 +282,27 @@ export default function TimetablePage() {
     setSelectedName(null);
   };
 
+  // 휴대폰 전체 시간표 모달은 버튼·참여자 칩·순위 이름 세 곳에서 열린다. 여는 곳을 하나로 모으고,
+  // 이미 열려 있을 때 다시 불려도 세지 않도록 닫힘에서 열림으로 바뀔 때만 남긴다.
+  const openGridModal = () => {
+    if (!isGridModalOpen) trackClarityEvent(CLARITY_EVENTS.TIMETABLE_OPEN);
+    setIsGridModalOpen(true);
+  };
+
   const handleUserClickWrapper = (newName, forceOpen = false) => {
     setSelectedName(newName);
     if (!isDesktop && (newName || forceOpen)) {
-      setIsGridModalOpen(true);
+      openGridModal();
     }
   };
 
   const handleCopyInvite = useCallback(() => {
     const url = `${process.env.REACT_APP_DOMAIN_URL}/table/${tableId}`;
-    navigator.clipboard.writeText(url);
+    // invite_share는 누른 순간의 복사 시도다(계약서). 클립보드 호출이 바로 예외를 던져도 빠지지 않게 먼저 남긴다.
+    // 서버의 invite_share는 랜딩 완료 창과 합산된다. 표 화면 복사는 Clarity에서 따로 본다.
     trackEvent(EVENTS.INVITE_SHARE, tableId);
+    trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_TABLE);
+    navigator.clipboard.writeText(url);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   }, [tableId]);
@@ -435,6 +445,7 @@ export default function TimetablePage() {
             localStorage.setItem("hasClickedMembers", "true");
             setHasClickedMembers(true);
           }
+          trackClarityEvent(CLARITY_EVENTS.MEMBERS_OPEN);
           handleToggleClick("DashboardPanel", "인원");
         },
       },
@@ -570,7 +581,7 @@ export default function TimetablePage() {
               id="guide-view-timetable"
               type="button"
               disabled={scheduleStatus !== "ready" || usersScheduleList.length === 0}
-              onClick={() => setIsGridModalOpen(true)}
+              onClick={openGridModal}
             >
               <FiGrid size={20} />
               전체 시간표 보기
@@ -594,7 +605,13 @@ export default function TimetablePage() {
           const tips = TOGGLE_TIPS[selectedToggle] || TOGGLE_TIPS.default;
           return (
             <>
-              <div className="accordion-header" onClick={() => setIsTipsOpen(!isTipsOpen)}>
+              <div
+                className="accordion-header"
+                onClick={() => {
+                  trackClarityEvent(isTipsOpen ? CLARITY_EVENTS.TIPS_CLOSE : CLARITY_EVENTS.TIPS_OPEN);
+                  setIsTipsOpen(!isTipsOpen);
+                }}
+              >
                 <h3>{tips.emoji} 모임 시간 조율을 위한 팁</h3>
                 <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
                   <Arrow width={16} height={16} angle={90} />
