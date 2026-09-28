@@ -12,8 +12,9 @@ export default function Header() {
      const email = "timetable2official@gmail.com";
      const navigate = useNavigate();
      const location = useLocation();
-     // 랜딩(`/`)에서만 버튼을 단색으로 그린다(2026-09-27 새 랜딩 채택). 다른 페이지는 아직 기존 모양이다.
-     const isFlatCta = location.pathname === "/";
+     // 랜딩(`/`)과 랜딩 실험(`/landing-v4`)에서만 버튼을 단색으로 그린다(2026-09-27 새 랜딩 채택).
+     // 다른 페이지는 아직 기존 모양이다.
+     const isFlatCta = location.pathname === "/" || location.pathname === "/landing-v4";
 
      const [isScrolled, setIsScrolled] = useState(false);
      // 문의는 페이지로 넘어가지 않고 모달에서 바로 보낸다.

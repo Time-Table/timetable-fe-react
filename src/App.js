@@ -25,6 +25,8 @@ import { lazyPage, LazyPageBoundary } from "./utils/lazyPage";
 // ManagerPage는 관리자 전용이다.
 const AboutPage = lazyPage(() => import("./page/AboutPage"));
 const ManagerPage = lazyPage(() => import("./page/ManagerPage"));
+// 랜딩 실험 v4(스크롤 이야기). 검색 제외·지표 미기록, 링크로만 연다.
+const LandingV4Page = lazyPage(() => import("./page/start/LandingV4Page"));
 
 // 관리자 콘솔은 자체 사이드바로 화면 전체를 쓰기 때문에
 // 서비스용 헤더/푸터가 끼면 레이아웃이 깨진다.
@@ -70,6 +72,7 @@ function App() {
                          <Route path="/create" element={<Navigate to="/" replace />}></Route>
                          <Route path="/start" element={<Navigate to="/" replace />}></Route>
                          <Route path="/quick-create" element={<QuickCreatePage />}></Route>
+                         <Route path="/landing-v4" element={<LandingV4Page />}></Route>
                          <Route path="/managerPage" element={<ManagerPage />}></Route>
                          <Route path="/table/:tableId" element={<TimetablePage />}></Route>
                          <Route path="/about" element={<AboutPage />}></Route>
