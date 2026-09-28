@@ -114,6 +114,20 @@ describe("이벤트 전송", () => {
     );
   });
 
+  test("생성 경로(landing·quick_create)만 creationPath로 함께 보낸다", () => {
+    trackEvent(EVENTS.CREATE_SUCCESS, "table-1", "landing");
+    trackEvent(EVENTS.CREATE_VIEW, undefined, "quick_create");
+    trackEvent(EVENTS.TABLE_VIEW, "table-1");
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "other");
+    expect(sendEvent.mock.calls.map(([e]) => [e.name, e.creationPath])).toEqual([
+      ["create_success", "landing"],
+      ["create_view", "quick_create"],
+      ["table_view", undefined],
+      ["create_submit", undefined],
+    ]);
+    expect("creationPath" in sendEvent.mock.calls[2][0]).toBe(false);
+  });
+
   test("관리자의 이벤트는 전송되지 않는다", () => {
     grantAdmin("admin-token");
     trackEvent(EVENTS.TABLE_VIEW, "table-1");

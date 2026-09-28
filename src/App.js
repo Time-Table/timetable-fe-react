@@ -6,7 +6,7 @@ import Header from "./component/Header";
 import QuickCreatePage from "./page/create/QuickCreatePage.jsx";
 import GuidePage from "./page/GuidePage";
 import GuideSchedulingPage from "./page/GuideSchedulingPage";
-import StartPage from "./page/start/StartPage";
+import LandingRoute from "./page/start/LandingRoute";
 import NotFound from "./page/NotFound";
 import { HelmetProvider } from "react-helmet-async";
 import TermsPage from "./page/TermsPage";
@@ -25,8 +25,8 @@ import { lazyPage, LazyPageBoundary } from "./utils/lazyPage";
 // ManagerPage는 관리자 전용이다.
 const AboutPage = lazyPage(() => import("./page/AboutPage"));
 const ManagerPage = lazyPage(() => import("./page/ManagerPage"));
-// 랜딩 실험 v4(스크롤 이야기). 검색 제외·지표 미기록, 링크로만 연다.
-const LandingV4Page = lazyPage(() => import("./page/start/LandingV4Page"));
+// 랜딩 실험 v2(스크롤 이야기) 미리보기 주소. 검색 제외·지표 미기록, 링크로만 연다.
+const LandingV2Page = lazyPage(() => import("./page/start/LandingV2Page"));
 
 // 관리자 콘솔은 자체 사이드바로 화면 전체를 쓰기 때문에
 // 서비스용 헤더/푸터가 끼면 레이아웃이 깨진다.
@@ -66,13 +66,14 @@ function App() {
                     {/* 떼어 둔 화면을 받는 동안 자리를 잡아 둔다. 비워 두면 푸터가 헤더 밑으로 올라왔다 내려간다. */}
                     <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
                     <Routes>
-                         <Route path="/" element={<StartPage />}></Route>
+                         {/* 랜딩 A/B 1회차(2026-09-29): 같은 주소에서 방문자 절반은 v1, 절반은 v2를 본다. */}
+                         <Route path="/" element={<LandingRoute />}></Route>
                          {/* 옛 랜딩 주소. 색인과 외부 링크가 남아 있어 404 대신 정본으로 보낸다.
                              크롤러용 301은 public/_redirects 가 담당한다. */}
                          <Route path="/create" element={<Navigate to="/" replace />}></Route>
                          <Route path="/start" element={<Navigate to="/" replace />}></Route>
                          <Route path="/quick-create" element={<QuickCreatePage />}></Route>
-                         <Route path="/landing-v4" element={<LandingV4Page />}></Route>
+                         <Route path="/landing-v2" element={<LandingV2Page preview />}></Route>
                          <Route path="/managerPage" element={<ManagerPage />}></Route>
                          <Route path="/table/:tableId" element={<TimetablePage />}></Route>
                          <Route path="/about" element={<AboutPage />}></Route>

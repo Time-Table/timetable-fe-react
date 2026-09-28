@@ -95,6 +95,8 @@ export const trackEvent = (name, tableId, creationPath) => {
       tableId,
       source: getSource(),
       device: getDevice(),
+      // 생성 경로. 서버가 랜딩 생성과 빠른 생성을 나눠 세도록 함께 보낸다(2026-09-29 랜딩 A/B).
+      ...(creationPath === "landing" || creationPath === "quick_create" ? { creationPath } : {}),
     });
   } catch (error) {
     return;
@@ -159,6 +161,14 @@ export const CLARITY_EVENTS = {
   SCHEDULE_SAVE_CLICK: "tt_schedule_save_click", // 켜진 저장 버튼 누름(서버 결과와 무관, 성공은 tt_schedule_save)
   TIPS_OPEN: "tt_tips_open", // "모임 시간 조율을 위한 팁" 펼치기
   TIPS_CLOSE: "tt_tips_close", // 같은 팁 접기
+
+  // 랜딩(`/`, v1·v2 공통, 2026-09-29 A/B 1회차). 노출은 `/`를 열 때마다, 나머지는 화면을 한 번 열 때 처음 1회다.
+  LANDING_VIEW_V1: "tt_landing_view_v1", // A/B 배정 v1(지금 랜딩)을 봄
+  LANDING_VIEW_V2: "tt_landing_view_v2", // A/B 배정 v2(스크롤 이야기)를 봄
+  LANDING_FORM_VIEW: "tt_landing_form_view", // 모임 입력 상자가 절반 이상 화면에 들어옴
+  LANDING_FORM_START: "tt_landing_form_start", // 모임 이름·후보 날짜·시간 범위 중 하나를 처음 바꿈
+  LANDING_PRESET: "tt_landing_preset", // 추천 모임 이름 칩을 처음 누름
+  LANDING_PREVIEW_OPEN: "tt_landing_preview_open", // 미리보기 칸을 직접 눌러 명단을 처음 엶(자동으로 열린 것은 빼고)
 };
 
 export const trackClarityEvent = (name) => {

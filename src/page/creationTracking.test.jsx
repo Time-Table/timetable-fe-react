@@ -88,6 +88,8 @@ describe.each([["landing", StartPage], ["quick_create", QuickCreatePage]])("%s �
     await waitFor(() => expect(window.clarity).toHaveBeenCalledWith("event", "tt_create_success"));
     expect(window.clarity.mock.calls.filter(([, name]) => name === "tt_create_success")).toHaveLength(1);
     expect(window.clarity).toHaveBeenCalledWith("event", `tt_create_success_${path}`);
+    // 서버에도 생성 경로를 함께 보낸다(랜딩 A/B에서 랜딩 생성과 빠른 생성을 나눠 세려고).
+    expect(sendEvent.mock.calls.filter(([e]) => e.name === "create_success").map(([e]) => e.creationPath)).toEqual([path]);
   });
 
   test.each([undefined, { success: false }, { isRateLimit: true }, { success: true, data: {} }])("실패·빈 응답·429·ID 누락은 성공으로 세지 않는다: %p", async (response) => {

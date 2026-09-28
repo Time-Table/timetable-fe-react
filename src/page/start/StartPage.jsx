@@ -40,7 +40,6 @@ import theme from "../../theme";
 import Seo from "../../Seo";
 import TimeGrid from "../../component/TimeGrid";
 import { createTable } from "../../api/table";
-import { trackVisit } from "../../api/visit";
 import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../utils/analytics";
 import {
   PRESETS,
@@ -52,6 +51,7 @@ import {
 } from "./presets";
 import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
+import useLandingFormTracking from "./useLandingFormTracking";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 /** 화면에 그리는 순서. 주는 월요일에 시작한다. */
@@ -565,8 +565,7 @@ export default function StartPage() {
   useEffect(() => {
     if (hasTracked.current) return;
     hasTracked.current = true;
-    trackVisit("landing");
-    trackEvent(EVENTS.LANDING_VIEW);
+    // 방문·landing_view는 `/`의 LandingRoute가 v1·v2 공통으로 먼저 남긴다(A/B 분모를 맞추려고, 2026-09-29).
     // 랜딩 자체가 생성 폼이다. 실제 클릭은 openLock에서만 기록한다.
     trackEvent(EVENTS.CREATE_VIEW, undefined, "landing");
   }, []);
@@ -630,9 +629,17 @@ export default function StartPage() {
    * 선택 표시가 거짓말이 되므로 지속 선택 상태를 두지 않는다.
    * 날짜는 건드리지 않는다 — 언제 모일지는 키워드가 알 수 없는 것이다.
    */
+  // 폼 보조 계측(Clarity). v2와 같은 기준으로 잰다.
+  const { markPreset, markPreviewOpen } = useLandingFormTracking({
+    builderRef,
+    formState: `${title}|${selectedKeys.join(",")}|${startHour}|${endHour}`,
+    track: trackClarityEvent,
+  });
+
   const applyPreset = (key) => {
     const found = PRESETS.find((p) => p.key === key);
     if (!found) return;
+    markPreset();
     setTitleTouched(true);
     setTitle(found.title);
     setStartHour(found.startHour);
@@ -1359,7 +1366,8 @@ export default function StartPage() {
                 <PreviewLayout>
                   {/* 왼쪽: 전체 시간표 (table 페이지의 LeftPanel) */}
                   <PreviewPane>
-                    <PaneHeading id="start-preview-heading">
+                    {/* 모임 이름은 사용자가 쓴 글이라 Clarity 녹화에서 가린다. */}
+                    <PaneHeading id="start-preview-heading" data-clarity-mask="true">
                       <TabClearance aria-hidden="true" />
                       {previewTitle} <em>타임테이블</em>
                     </PaneHeading>
@@ -1451,6 +1459,7 @@ export default function StartPage() {
                                     members.length
                                       ? () => {
                                           setTapHintDismissed(true);
+                                          if (openCell !== cellKey) markPreviewOpen();
                                           setOpenCell((v) => (v === cellKey ? null : cellKey));
                                         }
                                       : undefined
@@ -1503,7 +1512,7 @@ export default function StartPage() {
                         {dateRangeLabel}
                       </MiniBadge>
                     )}
-                    <MiniTitle>{previewTitle}</MiniTitle>
+                    <MiniTitle data-clarity-mask="true">{previewTitle}</MiniTitle>
 
                     <MiniInvite
                       type="button"
@@ -2075,7 +2084,7 @@ export default function StartPage() {
                   <LockSummary id="start-lock-summary">
                     <div>
                       <dt>모임 이름</dt>
-                      <dd>{title.trim()}</dd>
+                      <dd data-clarity-mask="true">{title.trim()}</dd>
                     </div>
                     <div>
                       <dt>후보 날짜</dt>

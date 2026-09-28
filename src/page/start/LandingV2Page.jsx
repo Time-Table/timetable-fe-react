@@ -41,7 +41,12 @@ import theme from "../../theme";
 import Seo from "../../Seo";
 import TimeGrid from "../../component/TimeGrid";
 import { createTable } from "../../api/table";
-import { EVENTS, CLARITY_EVENTS } from "../../utils/analytics";
+import {
+  trackEvent as recordEvent,
+  trackClarityEvent as recordClarityEvent,
+  EVENTS,
+  CLARITY_EVENTS,
+} from "../../utils/analytics";
 import {
   PRESETS,
   buildDefaultDates,
@@ -52,6 +57,7 @@ import {
 } from "./presets";
 import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
+import useLandingFormTracking from "./useLandingFormTracking";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 /** 화면에 그리는 순서. 주는 월요일에 시작한다. */
@@ -87,10 +93,13 @@ const COMPACT_ROWS = 5;
 const HEADER_PX = 72;
 const HEADER_HEIGHT = `${HEADER_PX}px`;
 /** 한 줄로 쌓이는 화면에서 스크롤해 단톡방이 사라지면 제목 자리에 보여 줄 입력 유도 문구(2026-09-27 사람 선택). */
-/* 실험 주소(/landing-v4)는 랜딩 지표에 섞이지 않게 방문·퍼널·Clarity 어느 것도 기록하지 않는다. */
-const trackVisit = () => {};
-const trackEvent = () => {};
-const trackClarityEvent = () => {};
+/**
+ * `/`에서 A/B 배정으로 v2가 뜨면 v1(StartPage)과 똑같이 퍼널·Clarity를 기록한다.
+ * 방문·landing_view는 LandingRoute가 이 조각을 받기 전에 두 쪽 공통으로 먼저 남긴다.
+ * 미리보기 주소(`/landing-v2`, preview)는 랜딩 지표에 섞이지 않게 아무것도 기록하지 않는다.
+ */
+const TRACKING = { event: recordEvent, clarity: recordClarityEvent };
+const NO_TRACKING = { event: () => {}, clarity: () => {} };
 
 const TITLE_PROMPT = "모임 이름부터 바꿔 보세요";
 /**
@@ -319,17 +328,21 @@ const FAQ_ITEMS = [
  * 검색 제목·설명은 이전 랜딩과 같다.
  */
 /**
- * 랜딩 실험 v4(`/landing-v4`, 2026-09-28 사람 지시: "랜딩에 바로 하지 말고 v4 라우터 파서 작업").
+ * 랜딩 실험 v2(`/landing-v2`, 2026-09-28 사람 지시: "랜딩에 바로 하지 말고 v4 라우터 파서 작업".
+ * 2026-09-29 사람 지시로 이름을 v4에서 v2로 바꿨다. 지금 랜딩 StartPage가 v1이다).
  * 지금 랜딩(StartPage)을 복제해 두 가지만 바꿨다.
  * - 넓은 화면: 스크롤 이야기. 화면 가운데 빈 단톡방 + 스크롤 안내 → 스크롤하면 대화가 하나씩 생김 →
  *   방이 흐려지며 "단체 약속 잡기, 이 링크 하나면 끝" → 제목이 사라지고 폼·미리보기가 나타남.
  *   입력칸 유도(3초 뒤 강조색·두 번 깜빡임)와 명단 자동 열기(유도가 끝난 뒤)는 폼이 나타난 때부터 센다.
  * - 휴대폰: 스크롤을 내리기 시작하면 제목과 카톡방이 함께 흐려지고, 입력 유도 문구는 미리보기 아래 자리에서 나온다.
- * 검색에서 빼고(noindex) 지표도 남기지 않는다.
+ * `/`에서는 A/B 배정(utils/landingExperiment.js)으로 절반에게 보이고 v1과 같은 계측을 남긴다.
+ * 미리보기 주소(`/landing-v2`, preview)는 검색에서 빼고(noindex) 지표도 남기지 않는다.
  */
-export default function LandingV4Page() {
+export default function LandingV2Page({ preview = false }) {
   const navigate = useNavigate();
   const hasTracked = useRef(false);
+  // 주소가 바뀌지 않는 한 그대로다. 훅 의존성에 넣지 않으려고 ref에 둔다.
+  const tracker = useRef(preview ? NO_TRACKING : TRACKING);
 
   const reduceMotion = useReducedMotion();
 
@@ -396,7 +409,7 @@ export default function LandingV4Page() {
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   /**
-   * 한 줄로 쌓이는 화면(휴대폰) 스크롤 연출(v4).
+   * 한 줄로 쌓이는 화면(휴대폰) 스크롤 연출(v2).
    * - 스크롤을 내리기 시작하면 제목과 카톡방이 함께 흐려진다(0→120px). 제목은 헤더를 데리고 올라간다.
    * - 입력 유도 문구는 미리보기 아래 자리에서 나타난다(40→140px). 자리는 처음부터 잡아 두어 아래가 밀리지 않는다.
    * 시간이 아니라 스크롤 위치에 묶어 있어 되돌리면 그대로 되돌아온다. 원래 제목(h1)은 문서에 그대로 남는다.
@@ -534,10 +547,9 @@ export default function LandingV4Page() {
   useEffect(() => {
     if (hasTracked.current) return;
     hasTracked.current = true;
-    trackVisit("landing");
-    trackEvent(EVENTS.LANDING_VIEW);
+    // 방문·landing_view는 `/`의 LandingRoute가 v1·v2 공통으로 먼저 남긴다(A/B 분모를 맞추려고, 2026-09-29).
     // 랜딩 자체가 생성 폼이다. 실제 클릭은 openLock에서만 기록한다.
-    trackEvent(EVENTS.CREATE_VIEW, undefined, "landing");
+    tracker.current.event(EVENTS.CREATE_VIEW, undefined, "landing");
   }, []);
 
   useEffect(() => {
@@ -599,9 +611,17 @@ export default function LandingV4Page() {
    * 선택 표시가 거짓말이 되므로 지속 선택 상태를 두지 않는다.
    * 날짜는 건드리지 않는다 — 언제 모일지는 키워드가 알 수 없는 것이다.
    */
+  // 폼 보조 계측(Clarity). v1과 같은 기준으로 잰다.
+  const { markPreset, markPreviewOpen } = useLandingFormTracking({
+    builderRef,
+    formState: `${title}|${selectedKeys.join(",")}|${startHour}|${endHour}`,
+    track: tracker.current.clarity,
+  });
+
   const applyPreset = (key) => {
     const found = PRESETS.find((p) => p.key === key);
     if (!found) return;
+    markPreset();
     setTitleTouched(true);
     setTitle(found.title);
     setStartHour(found.startHour);
@@ -762,7 +782,7 @@ export default function LandingV4Page() {
    */
   const [isIntroDone, setIntroDone] = useState(false);
   const isIntroDoneRef = useRef(false);
-  // v4 넓은 화면은 폼이 스크롤 이야기 뒤에 나타난다. 나타난 때부터 센다.
+  // v2 넓은 화면은 폼이 스크롤 이야기 뒤에 나타난다. 나타난 때부터 센다.
   useEffect(() => {
     if (!isRestShown) return undefined;
     const timer = setTimeout(() => {
@@ -997,7 +1017,7 @@ export default function LandingV4Page() {
     if (!isValid || isLoading) return;
     // 창을 연 버튼. 하단 고정 막대의 버튼은 창이 뜨는 순간 내려가므로 렌더 전에 잡아 둔다.
     lockOpenerRef.current = document.activeElement;
-    trackEvent(EVENTS.CREATE_CTA_CLICK, undefined, "landing");
+    tracker.current.event(EVENTS.CREATE_CTA_CLICK, undefined, "landing");
     setBanedCells((prev) => prev.filter((c) => selectedDates.includes(c.slice(0, c.lastIndexOf("-")))));
     setLockOpen(true);
   };
@@ -1056,8 +1076,8 @@ export default function LandingV4Page() {
    * 테이블 화면의 복사 버튼도 누를 때 기록하므로 같은 기준이다.
    */
   const recordShareAttempt = (tableId, clarityName) => {
-    trackEvent(EVENTS.INVITE_SHARE, tableId);
-    trackClarityEvent(clarityName);
+    tracker.current.event(EVENTS.INVITE_SHARE, tableId);
+    tracker.current.clarity(clarityName);
   };
 
   /** track: false는 공유 창이 실패해 자동으로 복사로 넘어갈 때다. 이미 공유 시도로 셌으므로 다시 세지 않는다. */
@@ -1103,13 +1123,13 @@ export default function LandingV4Page() {
 
   const handleCreate = async () => {
     if (!isValid || isLoading) return;
-    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing");
+    tracker.current.event(EVENTS.CREATE_SUBMIT, undefined, "landing");
     setIsLoading(true);
     const res = await createTable(title.trim(), selectedDates, startHour, endHour, banedCells);
     // 화면을 떠났더라도 성공 응답은 기록한다. 화면 갱신은 아래에서 중단한다.
     const tableId = res?.data?.tableId;
     if (res?.success && tableId) {
-      trackEvent(EVENTS.CREATE_SUCCESS, tableId, "landing");
+      tracker.current.event(EVENTS.CREATE_SUCCESS, tableId, "landing");
     }
     // 응답을 기다리는 사이에 사용자가 페이지를 떠났으면 여기서 끝낸다.
     // 아니면 다른 화면 위에 성공 모달이 뜨고, 확인을 누르면 엉뚱한 곳으로 이동한다.
@@ -1160,7 +1180,7 @@ export default function LandingV4Page() {
   return (
     <>
       <Seo
-        noindex
+        noindex={preview ? true : undefined}
         title="타임테이블 | 10초 만에 시간 조율표 만들고 공유하자! - 약속 시간 정하기"
         description="번거로운 시간 조율은 링크 하나로 끝내세요. 참여자가 가능한 시간만 표시하면 가장 많이 모일 수 있는 시간 약속을 추천해 드려요."
       />
@@ -1298,7 +1318,8 @@ export default function LandingV4Page() {
                 <PreviewLayout>
                   {/* 왼쪽: 전체 시간표 (table 페이지의 LeftPanel) */}
                   <PreviewPane>
-                    <PaneHeading id="start-preview-heading">
+                    {/* 모임 이름은 사용자가 쓴 글이라 Clarity 녹화에서 가린다. */}
+                    <PaneHeading id="start-preview-heading" data-clarity-mask="true">
                       <TabClearance aria-hidden="true" />
                       {previewTitle} <em>타임테이블</em>
                     </PaneHeading>
@@ -1390,6 +1411,7 @@ export default function LandingV4Page() {
                                     members.length
                                       ? () => {
                                           setTapHintDismissed(true);
+                                          if (openCell !== cellKey) markPreviewOpen();
                                           setOpenCell((v) => (v === cellKey ? null : cellKey));
                                         }
                                       : undefined
@@ -1442,7 +1464,7 @@ export default function LandingV4Page() {
                         {dateRangeLabel}
                       </MiniBadge>
                     )}
-                    <MiniTitle>{previewTitle}</MiniTitle>
+                    <MiniTitle data-clarity-mask="true">{previewTitle}</MiniTitle>
 
                     <MiniInvite
                       type="button"
@@ -2035,7 +2057,7 @@ export default function LandingV4Page() {
                   <LockSummary id="start-lock-summary">
                     <div>
                       <dt>모임 이름</dt>
-                      <dd>{title.trim()}</dd>
+                      <dd data-clarity-mask="true">{title.trim()}</dd>
                     </div>
                     <div>
                       <dt>후보 날짜</dt>
@@ -2322,7 +2344,7 @@ const StartShell = styled("div", withRailAttr)`
   @media (min-width: ${theme.breakpoint.lg}) {
     max-width: 1240px;
     grid-template-columns: 440px minmax(0, 1fr);
-    /* v4: 제목·단톡방은 위 스크롤 이야기로 옮겼다. 여기는 폼 상자와 미리보기 한 줄(같은 높이). */
+    /* v2: 제목·단톡방은 위 스크롤 이야기로 옮겼다. 여기는 폼 상자와 미리보기 한 줄(같은 높이). */
     grid-template-rows: auto;
     grid-template-areas: "form preview";
     column-gap: ${theme.space[6]};
@@ -2476,7 +2498,7 @@ const PageTitle = styled(motion.h1)`
 const KAKAO_ROOM = "#BECDDE"; // 채팅방 배경
 const KAKAO_BUBBLE = "#FAE64D"; // 보낸 메시지
 
-/* ---- 넓은 화면 스크롤 이야기(v4) ---- */
+/* ---- 넓은 화면 스크롤 이야기(v2) ---- */
 
 /* 이야기 구간. 이 높이만큼 스크롤하는 동안 안쪽 무대가 헤더 아래에 붙어 있다. */
 const Story = styled.section`

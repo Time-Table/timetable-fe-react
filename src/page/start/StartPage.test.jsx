@@ -551,3 +551,66 @@ describe("단계 번호와 추천 모임 이름", () => {
     expect(screen.getByRole("group", { name: "추천 모임 이름" })).toBeInTheDocument();
   });
 });
+
+describe("랜딩 폼 보조 계측(Clarity)", () => {
+  const landingEvents = () =>
+    window.clarity.mock.calls
+      .filter(([m, n]) => m === "event" && /^tt_landing_(form|preset|preview)/.test(n))
+      .map(([, n]) => n);
+
+  beforeEach(() => {
+    window.clarity = jest.fn();
+  });
+  afterEach(() => {
+    delete window.clarity;
+    delete window.IntersectionObserver;
+  });
+
+  test("처음 그린 값에서는 남기지 않고, 폼을 처음 바꾸면 한 번만 남긴다", () => {
+    mount();
+    expect(landingEvents()).toEqual([]);
+    const input = screen.getByRole("textbox", { name: "모임 이름" });
+    fireEvent.change(input, { target: { value: "동아리" } });
+    fireEvent.change(input, { target: { value: "동아리 모임" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "시작 시간" }), { target: { value: "11:00" } });
+    expect(landingEvents()).toEqual(["tt_landing_form_start"]);
+  });
+
+  test("추천 이름 칩과 미리보기 칸 직접 열기는 각각 처음 한 번만 남긴다", () => {
+    mount();
+    const input = screen.getByRole("textbox", { name: "모임 이름" });
+    fireEvent.click(input);
+    const group = screen.getByRole("group", { name: "추천 모임 이름" });
+    fireEvent.click(within(group).getByRole("button", { name: "주간 스터디" }));
+    fireEvent.click(within(group).getByRole("button", { name: "이번 달 회식" }));
+    const cell = screen.getAllByRole("button", { name: /명 가능$/ })[0];
+    fireEvent.click(cell);
+    fireEvent.click(cell);
+    fireEvent.click(cell);
+    expect(landingEvents()).toEqual(["tt_landing_preset", "tt_landing_form_start", "tt_landing_preview_open"]);
+  });
+
+  test("모임 입력 상자가 절반 이상 보이면 한 번 남긴다", () => {
+    const observers = [];
+    window.IntersectionObserver = class {
+      constructor(callback, options) {
+        this.callback = callback;
+        this.options = options;
+        this.disconnect = jest.fn();
+        observers.push(this);
+      }
+      observe(el) {
+        this.el = el;
+      }
+    };
+    mount();
+    const formObserver = observers.find((o) => o.options?.threshold === 0.5 && o.el?.tagName === "SECTION");
+    act(() => formObserver.callback([{ isIntersecting: false, intersectionRatio: 0 }]));
+    act(() => formObserver.callback([{ isIntersecting: true, intersectionRatio: 0.3 }]));
+    expect(landingEvents()).toEqual([]);
+    act(() => formObserver.callback([{ isIntersecting: true, intersectionRatio: 0.6 }]));
+    act(() => formObserver.callback([{ isIntersecting: true, intersectionRatio: 0.9 }]));
+    expect(landingEvents()).toEqual(["tt_landing_form_view"]);
+    expect(formObserver.disconnect).toHaveBeenCalled();
+  });
+});

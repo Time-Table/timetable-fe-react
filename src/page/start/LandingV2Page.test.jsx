@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import LandingV4Page from "./LandingV4Page";
+import LandingV2Page from "./LandingV2Page";
 import { sendEvent } from "../../api/event";
 import { trackVisit } from "../../api/visit";
 
@@ -53,12 +53,13 @@ const mockMatchMedia = (touch, narrow = false) => {
   });
 };
 
-const mount = () =>
+/** preview: 미리보기 주소(/landing-v2)처럼 기록하지 않는다. false면 `/`에서 A/B 배정으로 뜬 v2다. */
+const mount = ({ preview = true } = {}) =>
   render(
     <StrictMode>
-      <MemoryRouter initialEntries={["/landing-v4"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={["/landing-v2"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          <Route path="/landing-v4" element={<LandingV4Page />} />
+          <Route path="/landing-v2" element={<LandingV2Page preview={preview} />} />
         </Routes>
       </MemoryRouter>
     </StrictMode>
@@ -77,7 +78,7 @@ afterEach(() => {
   window.matchMedia = originalMatchMedia;
 });
 
-describe("랜딩 실험 v4", () => {
+describe("랜딩 실험 v2", () => {
   test("넓은 화면은 단톡방·스크롤 안내·대화·제목(h1 하나)으로 시작한다", () => {
     mount();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -127,10 +128,25 @@ describe("랜딩 실험 v4", () => {
     expect(group()).toBeVisible();
   });
 
-  test("방문·퍼널 기록을 보내지 않는다", () => {
+  test("미리보기 주소는 방문·퍼널·Clarity 기록을 보내지 않는다", () => {
+    window.clarity = jest.fn();
     mount();
+    fireEvent.change(screen.getByRole("textbox", { name: "모임 이름" }), { target: { value: "동아리" } });
     expect(sendEvent).not.toHaveBeenCalled();
     expect(trackVisit).not.toHaveBeenCalled();
+    expect(window.clarity).not.toHaveBeenCalled();
+    delete window.clarity;
+  });
+
+  test("`/`에서 A/B로 뜨면 v1과 같은 퍼널·폼 계측을 보낸다(방문·landing_view는 LandingRoute 몫)", () => {
+    window.clarity = jest.fn();
+    mount({ preview: false });
+    expect(trackVisit).not.toHaveBeenCalled();
+    expect(sendEvent.mock.calls.map(([e]) => [e.name, e.creationPath])).toEqual([["create_view", "landing"]]);
+    fireEvent.change(screen.getByRole("textbox", { name: "모임 이름" }), { target: { value: "동아리" } });
+    const events = window.clarity.mock.calls.filter(([m]) => m === "event").map(([, n]) => n);
+    expect(events).toEqual(["tt_create_view", "tt_create_view_landing", "tt_landing_form_start"]);
+    delete window.clarity;
   });
 
   test("휴대폰은 시간 칸을 누르면 아래 창에서 시간을 고르고, 고르면 창이 닫힌다", () => {
