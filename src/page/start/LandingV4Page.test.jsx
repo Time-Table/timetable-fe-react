@@ -111,6 +111,22 @@ describe("랜딩 실험 v4", () => {
     expect(screen.queryByText("스크롤을 내려 대화를 이어 보세요")).not.toBeInTheDocument();
   });
 
+  test("랜딩과 같이 단계 번호가 붙고, 넓은 화면 추천 모임 이름은 숨겨 두었다가 입력칸을 누르면 보인다", () => {
+    mount();
+    const input = screen.getByRole("textbox", { name: "모임 이름" });
+    expect(screen.getByText("모임 이름", { selector: "label" })).toHaveAttribute("for", input.id);
+    expect(screen.getByText("모임 이름", { selector: "label" })).toHaveAttribute("data-step", "1");
+    expect(screen.getByRole("group", { name: "후보 날짜" })).toBeInTheDocument();
+    expect(screen.getByText("후보 날짜", { selector: "legend" })).toHaveAttribute("data-step", "2");
+    expect(screen.getByText("시간 범위")).toHaveAttribute("data-step", "3");
+    const group = () => screen.queryByRole("group", { name: "추천 모임 이름" });
+    expect(group()).not.toBeInTheDocument();
+    fireEvent.click(input);
+    fireEvent.click(within(group()).getByRole("button", { name: "주말 나들이" }));
+    expect(input).toHaveValue("주말 나들이");
+    expect(group()).toBeVisible();
+  });
+
   test("방문·퍼널 기록을 보내지 않는다", () => {
     mount();
     expect(sendEvent).not.toHaveBeenCalled();

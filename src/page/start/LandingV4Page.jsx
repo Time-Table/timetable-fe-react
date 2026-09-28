@@ -612,6 +612,9 @@ export default function LandingV4Page() {
     );
   };
 
+  // 넓은 화면의 추천 모임 이름 줄은 입력칸을 한 번 누르면(초점이 오면) 나타난다.
+  const [isQuickShown, setQuickShown] = useState(false);
+
   const toggleDate = (key) =>
     setSelectedKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key].sort()
@@ -1598,7 +1601,7 @@ export default function LandingV4Page() {
           <SrOnly role="status">{presetAnnounce}</SrOnly>
 
           <FieldBlock>
-            <FieldLabel htmlFor="start-title">모임 이름</FieldLabel>
+            <FieldLabel htmlFor="start-title" data-step="1">모임 이름</FieldLabel>
             <TitleField>
               <TitleInput
                 id="start-title"
@@ -1611,7 +1614,9 @@ export default function LandingV4Page() {
                 onFocus={() => {
                   setTitleFocused(true);
                   setTitleVisited(true);
+                  setQuickShown(true);
                 }}
+                onClick={() => setQuickShown(true)}
                 onBlur={() => setTitleFocused(false)}
                 $nudge={
                   promptActive
@@ -1630,14 +1635,16 @@ export default function LandingV4Page() {
               </TitleCount>
             </TitleField>
 
-            {/* 빠른 제목 입력. 칩에 적힌 제목이 그대로 들어가고, 시간 범위도 그 모임에 맞게 바뀐다.
-                날짜는 건드리지 않는다. */}
+            {/* 추천 모임 이름. 칩에 적힌 제목이 그대로 들어가고, 시간 범위도 그 모임에 맞게 바뀐다.
+                날짜는 건드리지 않는다. 휴대폰은 늘 보이고, 넓은 화면은 숨겨(display: none) 두었다가
+                입력칸을 누르면 그 자리에 나타나 계속 남는다(2026-09-29 사람 지시). */}
             {PRESETS.length > 0 && (
               <QuickTitles
                 ref={quickRef}
                 role="group"
-                aria-label="빠른 제목 입력"
+                aria-label="추천 모임 이름"
                 onScroll={updateQuickFade}
+                $hidden={!isStacked && !isQuickShown}
                 $fadeStart={quickFade.start}
                 $fadeEnd={quickFade.end}
               >
@@ -1657,7 +1664,7 @@ export default function LandingV4Page() {
           </FieldBlock>
 
           <DateFieldset disabled={isLoading}>
-            <DateLegend>후보 날짜</DateLegend>
+            <DateLegend data-step="2">후보 날짜</DateLegend>
             <SrOnly id="start-dates-hint">
               날짜를 눌러 켜고 끄기 · 요일이나 주 번호를 누르면 그 줄 전체 · 최소 하루
             </SrOnly>
@@ -1818,7 +1825,7 @@ export default function LandingV4Page() {
           </DateFieldset>
 
           <TimeBlock>
-            <FieldLabel as="span">시간 범위</FieldLabel>
+            <FieldLabel as="span" data-step="3">시간 범위</FieldLabel>
             {/* 휴대폰은 기본 선택 목록 대신 아래에서 올라오는 시간 격자 창을 쓴다(2026-09-28 사람 지시).
                 기본 목록은 25줄이라 작은 화면을 넘고, 스크롤하면 손가락에서 멀어져 누르기 어려웠다. */}
             <TimeRow>
@@ -2910,7 +2917,29 @@ const TimeBlock = styled(FieldBlock)`
   }
 `;
 
+/* 모임 이름·후보 날짜·시간 범위 앞 번호(2026-09-29 사람 지시). 숫자는 CSS가 그려 라벨 이름("모임 이름")에 섞이지 않고,
+   대체 글("")을 줘 화면 읽기 프로그램도 읽지 않는다. */
+const stepNumber = css`
+  &[data-step]::before {
+    content: attr(data-step);
+    content: attr(data-step) / "";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: ${theme.color.primarySurface};
+    color: ${theme.color.primaryText};
+    font-family: ${theme.font.family.bold};
+    font-size: ${theme.font.size.footnote};
+    line-height: 1;
+  }
+`;
+
 const FieldLabel = styled.label`
+  ${stepNumber}
   display: block;
   font-family: "Pretendard-Bold";
   font-size: ${theme.font.size.body};
@@ -2958,6 +2987,13 @@ const SrOnly = styled.span`
  * 좌우로 갈라진 넓은 화면은 첫 화면 높이에 여유가 있어 줄을 바꾼다(마우스로는 옆으로 밀기 어렵다).
  */
 const QUICK_FADE = "28px";
+const quickPop = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+`;
+
 const QuickTitles = styled.div`
   display: flex;
   gap: ${theme.space[2]};
@@ -2989,8 +3025,16 @@ const QuickTitles = styled.div`
     overflow-x: visible;
     -webkit-mask-image: none;
     mask-image: none;
+    animation: ${quickPop} 200ms ${theme.easing.standard} both;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
+
+  ${({ $hidden }) => $hidden && "display: none;"}
 `;
+
 
 const QuickTitle = styled.button`
   flex-shrink: 0;
@@ -3125,6 +3169,7 @@ const DateFieldset = styled.fieldset`
 /* 넓은 화면은 "후보 날짜"와 선택 요약을 한 줄에 둔다(왼쪽 제목·오른쪽 요약). 폼 상자를 한 화면에 넣기 위해서다.
    legend를 float으로 빼도 fieldset의 이름으로 그대로 읽힌다. */
 const DateLegend = styled.legend`
+  ${stepNumber}
   padding: 0;
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.label};

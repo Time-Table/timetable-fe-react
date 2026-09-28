@@ -96,16 +96,25 @@ const PROMPT_BAR_PX = 56;
 const NUDGE_DELAY_MS = 3000;
 const NUDGE_MS = 5000;
 /**
- * 첫 화면 등장 순서(2026-09-28 사람 지시): 제목 → 카톡방(말풍선 차례로) → 나머지.
- * 제목은 처음부터 보인다(가장 큰 글자라 LCP 후보). 값은 초 단위, [휴대폰, 넓은 화면].
- * 넓은 화면은 말풍선을 약 1초·2초에 띄우고 3초에 입력칸 유도가 이어진다.
+ * 첫 화면 소개(2026-09-28·29 사람 지시). 시간으로만 진행하고 그동안 스크롤을 막는다. 값은 페이지를 연 뒤 ms.
+ * 1) 화면 가운데에 제목(위, 크게)과 단톡방(아래)이 "언제 시간 돼?"까지 담은 채 함께 나타남
+ * 2) 0.8초 뒤 링크 → 1초 뒤 둘 다 흐려짐(2026-09-29 사람 지시로 첫 메시지를 단톡방과 함께 띄워 0.5초 줄임)
+ * 3) 제목·단톡방이 가운데에서 제자리(지금 랜딩 배치)로 돌아가며 나타나고, 나머지(폼·미리보기)도 나타남
+ * 움직임 줄이기 설정이면 소개 없이 바로 보인다.
  */
-const INTRO = {
-  room: [0.3, 0.3],
-  ask: [0.7, 1.0],
-  link: [1.1, 2.0],
-  rest: [1.5, 2.4],
+const INTRO_AT = {
+  shown: 400, // 제목·단톡방(첫 메시지 포함)이 다 나타남
+  link: 800,
+  out: 1800, // 흐려지기 시작
+  back: 2200, // 제자리로 돌아가기 시작
+  end: 2800,
 };
+const INTRO_MS = INTRO_AT.end;
+const introPct = (ms) => `${((ms / INTRO_MS) * 100).toFixed(2)}%`;
+/** 가운데에서 보일 제목 배율의 상한. 좁은 화면은 폭의 90%를 넘지 않게 줄인다. */
+const INTRO_TITLE_SCALE = 1.4;
+/** 가운데에서 제목과 단톡방 사이 간격(px). */
+const INTRO_GAP = 24;
 
 const matchesQuery = (query) =>
   typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -289,6 +298,14 @@ export default function StartPage() {
 
   const reduceMotion = useReducedMotion();
 
+  /**
+   * 첫 화면 소개(INTRO_AT). 시간으로만 진행하고 그동안 스크롤을 막는다.
+   * 제목·단톡방은 제자리에 그려 둔 채 가운데로 옮겨 보여 주므로, 처음 그리기 전에 가운데까지의 거리를 잰다.
+   * 입력칸 유도·명단 자동 열기는 소개가 끝난 뒤부터 센다.
+   */
+  const [isIntroPlaying, setIntroPlaying] = useState(() => !reduceMotion);
+  const isIntroFinished = !isIntroPlaying;
+
   const [title, setTitle] = useState(PRESETS[0].title);
   // 오늘은 화면을 연 날로 고정한다. 자정을 넘겨도 오늘 칸이 갑자기 막히지 않게 한다.
   const [today] = useState(() => {
@@ -446,6 +463,66 @@ export default function StartPage() {
     return () => placeHeader(0);
   }, [placeHeader, headerOut]);
 
+  useLayoutEffect(() => {
+    if (!isIntroPlaying) return undefined;
+    window.scrollTo(0, 0);
+    // 헤더 아래 보이는 영역의 가운데에 [제목(위, 크게) + 간격 + 단톡방(아래)] 묶음을 놓는다.
+    const cx = window.innerWidth / 2;
+    const cy = (window.innerHeight + HEADER_PX) / 2;
+    const targets = [];
+    const title = titleWrapRef.current?.querySelector("h1");
+    const room = roomRef.current;
+    if (title && room) {
+      // 제목 칸은 폭을 꽉 채우고 넓은 화면에서는 글자가 왼쪽 정렬이다. 글자가 실제로 차지하는 영역을 기준으로
+      // 옮기고, 그 영역의 가운데를 축으로 키운다.
+      const box = title.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      const text = range.getBoundingClientRect();
+      const t = text.width ? text : box;
+      const scale = Math.min(INTRO_TITLE_SCALE, (window.innerWidth * 0.9) / Math.max(t.width, 1));
+      const r = room.getBoundingClientRect();
+      const top = cy - (t.height * scale + INTRO_GAP + r.height) / 2;
+      const moveTo = (el, from, x, y) => {
+        el.style.setProperty("--intro-dx", `${Math.round(x - (from.left + from.width / 2))}px`);
+        el.style.setProperty("--intro-dy", `${Math.round(y - (from.top + from.height / 2))}px`);
+        targets.push(el);
+      };
+      title.style.setProperty("--intro-scale", scale.toFixed(3));
+      title.style.setProperty(
+        "--intro-origin",
+        `${Math.round(t.left + t.width / 2 - box.left)}px ${Math.round(t.top + t.height / 2 - box.top)}px`
+      );
+      moveTo(title, t, cx, top + (t.height * scale) / 2);
+      moveTo(room, r, cx, top + t.height * scale + INTRO_GAP + r.height / 2);
+    }
+
+    // 소개 동안 스크롤 막기(휠·터치·키보드). 입력칸 안의 키 입력은 막지 않는다.
+    const html = document.documentElement;
+    const prevOverflow = [html.style.overflow, document.body.style.overflow];
+    html.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const block = (e) => e.preventDefault();
+    const SCROLL_KEYS = [" ", "PageDown", "PageUp", "ArrowDown", "ArrowUp", "Home", "End"];
+    const blockKeys = (e) => {
+      if (SCROLL_KEYS.includes(e.key) && !e.target.closest?.("input, textarea, select")) e.preventDefault();
+    };
+    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("touchmove", block, { passive: false });
+    window.addEventListener("keydown", blockKeys);
+    const timer = setTimeout(() => setIntroPlaying(false), INTRO_MS + 50);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("wheel", block);
+      window.removeEventListener("touchmove", block);
+      window.removeEventListener("keydown", blockKeys);
+      [html.style.overflow, document.body.style.overflow] = prevOverflow;
+      targets.forEach((el) =>
+        ["--intro-dx", "--intro-dy", "--intro-scale", "--intro-origin"].forEach((v) => el.style.removeProperty(v))
+      );
+    };
+  }, [isIntroPlaying]);
+
   /** 문구를 누르면 입력칸으로 간다. 기본 제목이 들어 있으므로 전부 골라 두어 바로 새로 쓰게 한다. */
   const focusTitle = () => {
     const input = document.getElementById("start-title");
@@ -565,6 +642,9 @@ export default function StartPage() {
       `'${found.title}'로 채웠습니다. 시간 ${found.startHour}–${found.endHour}. 날짜는 그대로입니다.`
     );
   };
+
+  // 넓은 화면의 추천 모임 이름 줄은 입력칸을 한 번 누르면(초점이 오면) 나타난다.
+  const [isQuickShown, setQuickShown] = useState(false);
 
   const toggleDate = (key) =>
     setSelectedKeys((prev) =>
@@ -713,13 +793,15 @@ export default function StartPage() {
    */
   const [isIntroDone, setIntroDone] = useState(false);
   const isIntroDoneRef = useRef(false);
+  // 첫 화면 소개가 끝난 때부터 센다(소개 동안에는 폼이 보이지 않는다).
   useEffect(() => {
+    if (!isIntroFinished) return undefined;
     const timer = setTimeout(() => {
       isIntroDoneRef.current = true;
       setIntroDone(true);
     }, NUDGE_DELAY_MS + NUDGE_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isIntroFinished]);
   // 날짜·시간을 바꾸면 골든타임이 옮겨간다. 열려 있던 칸을 새 골든타임으로 다시 맞춘다.
   // 줄인 미리보기는 첫 화면에서 입력창 바로 위에 있어, 팝업을 먼저 띄우면 입력창을 가린다.
   useEffect(() => {
@@ -1160,7 +1242,7 @@ export default function StartPage() {
         description="번거로운 시간 조율은 링크 하나로 끝내세요. 참여자가 가능한 시간만 표시하면 가장 많이 모일 수 있는 시간 약속을 추천해 드려요."
       />
 
-      <PageWrapper>
+      <PageWrapper data-intro={isIntroPlaying ? "on" : undefined}>
         {/* 넓은 화면 양옆은 AdSense 자동 광고(사이드 레일) 자리다. 이 칸 위로는 광고가 겹치지 않게 한다. */}
         <StartShell google-side-rail-overlap="false">
           <TitleWrap ref={titleWrapRef}>
@@ -1560,7 +1642,7 @@ export default function StartPage() {
           <SrOnly role="status">{presetAnnounce}</SrOnly>
 
           <FieldBlock>
-            <FieldLabel htmlFor="start-title">모임 이름</FieldLabel>
+            <FieldLabel htmlFor="start-title" data-step="1">모임 이름</FieldLabel>
             <TitleField>
               <TitleInput
                 id="start-title"
@@ -1573,12 +1655,14 @@ export default function StartPage() {
                 onFocus={() => {
                   setTitleFocused(true);
                   setTitleVisited(true);
+                  setQuickShown(true);
                 }}
+                onClick={() => setQuickShown(true)}
                 onBlur={() => setTitleFocused(false)}
                 $nudge={
                   promptActive
                     ? "steady"
-                    : !isStacked && !isTitleTouched
+                    : !isStacked && !isTitleTouched && isIntroFinished
                       ? isTitleVisited
                         ? "steady"
                         : "blink"
@@ -1592,14 +1676,16 @@ export default function StartPage() {
               </TitleCount>
             </TitleField>
 
-            {/* 빠른 제목 입력. 칩에 적힌 제목이 그대로 들어가고, 시간 범위도 그 모임에 맞게 바뀐다.
-                날짜는 건드리지 않는다. */}
+            {/* 추천 모임 이름. 칩에 적힌 제목이 그대로 들어가고, 시간 범위도 그 모임에 맞게 바뀐다.
+                날짜는 건드리지 않는다. 휴대폰은 늘 보이고, 넓은 화면은 숨겨(display: none) 두었다가
+                입력칸을 누르면 그 자리에 나타나 계속 남는다(2026-09-29 사람 지시). */}
             {PRESETS.length > 0 && (
               <QuickTitles
                 ref={quickRef}
                 role="group"
-                aria-label="빠른 제목 입력"
+                aria-label="추천 모임 이름"
                 onScroll={updateQuickFade}
+                $hidden={!isStacked && !isQuickShown}
                 $fadeStart={quickFade.start}
                 $fadeEnd={quickFade.end}
               >
@@ -1619,7 +1705,7 @@ export default function StartPage() {
           </FieldBlock>
 
           <DateFieldset disabled={isLoading}>
-            <DateLegend>후보 날짜</DateLegend>
+            <DateLegend data-step="2">후보 날짜</DateLegend>
             <SrOnly id="start-dates-hint">
               날짜를 눌러 켜고 끄기 · 요일이나 주 번호를 누르면 그 줄 전체 · 최소 하루
             </SrOnly>
@@ -1780,7 +1866,7 @@ export default function StartPage() {
           </DateFieldset>
 
           <TimeBlock>
-            <FieldLabel as="span">시간 범위</FieldLabel>
+            <FieldLabel as="span" data-step="3">시간 범위</FieldLabel>
             {/* 휴대폰은 기본 선택 목록 대신 아래에서 올라오는 시간 격자 창을 쓴다(2026-09-28 사람 지시).
                 기본 목록은 25줄이라 작은 화면을 넘고, 스크롤하면 손가락에서 멀어져 누르기 어려웠다. */}
             <TimeRow>
@@ -2232,28 +2318,57 @@ const withRailAttr = {
  * 좁은 화면의 폭 제한(720px)을 여기서 건다. 폼 카드에 margin: auto를 주면
  * 그리드 칸을 채우지 않고 내용 폭으로 줄어든다.
  */
-/* 첫 화면 등장(INTRO). 기다리는 동안은 0% 모습(투명)으로 두고, 끝나면 애니메이션이 빠진다(fill: backwards).
-   그래서 카톡방처럼 스크롤로 투명도를 바꾸는 요소도 등장이 끝나면 인라인 값이 그대로 산다. */
-const appearIn = keyframes`
-  from {
+/* ---- 첫 화면 소개(INTRO_AT) ----
+   PageWrapper에 data-intro="on"이 붙어 있는 동안만 아래 애니메이션이 돈다. 소개가 끝나면 속성을 떼어
+   애니메이션을 빼므로, 스크롤로 투명도를 바꾸는 요소(휴대폰 카톡방·제목)도 그 뒤로는 제 값대로 움직인다.
+   제목·단톡방은 제자리에 그려 둔 채 가운데로 옮겨 보여 준다(--intro-dx·--intro-dy·--intro-scale은 스크립트가 잰다). */
+const INTRO_CENTER = "translate(var(--intro-dx, 0px), var(--intro-dy, 0px))";
+
+/* 제목과 단톡방이 같은 흐름을 탄다. 단톡방은 --intro-scale이 없어 배율 1이다. */
+const introGroup = keyframes`
+  0% {
+    transform: ${INTRO_CENTER} scale(var(--intro-scale, 1));
+    opacity: 0;
+  }
+  ${introPct(INTRO_AT.shown)}, ${introPct(INTRO_AT.out)} {
+    transform: ${INTRO_CENTER} scale(var(--intro-scale, 1));
+    opacity: 1;
+  }
+  ${introPct(INTRO_AT.back)} {
+    transform: ${INTRO_CENTER} scale(var(--intro-scale, 1));
+    opacity: 0;
+    animation-timing-function: ${theme.easing.standard};
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+`;
+
+const introBubble = (at) => keyframes`
+  0%, ${introPct(at)} {
     opacity: 0;
     transform: translateY(6px);
   }
-  to {
+  ${introPct(at + 300)}, 100% {
     opacity: 1;
     transform: none;
   }
 `;
 
-const intro = ([mobile, wide]) => css`
-  animation: ${appearIn} 0.45s ${theme.easing.out} ${mobile}s backwards;
-
-  @media (min-width: ${theme.breakpoint.lg}) {
-    animation-delay: ${wide}s;
+const introRest = keyframes`
+  0%, ${introPct(INTRO_AT.back)} {
+    opacity: 0;
   }
+  ${introPct(INTRO_AT.back + 500)}, 100% {
+    opacity: 1;
+  }
+`;
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+const introPlay = (frames) => css`
+  [data-intro="on"] & {
+    animation: ${frames} ${INTRO_MS}ms linear both;
+    transform-origin: var(--intro-origin, 50% 50%);
   }
 `;
 
@@ -2300,7 +2415,7 @@ const PreviewColumn = styled.div`
   /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
   position: relative;
   z-index: 1;
-  ${intro(INTRO.rest)}
+  ${introPlay(introRest)}
 
   /* 폼 상자와 같은 높이로 늘어난다. 늘어난 만큼은 미리보기 시간표 칸이 나눠 갖는다. */
   @media (min-width: ${theme.breakpoint.lg}) {
@@ -2314,7 +2429,7 @@ const PreviewColumn = styled.div`
 const CtaBlock = styled.div`
   position: relative;
   z-index: 1;
-  ${intro(INTRO.rest)}
+  ${introPlay(introRest)}
 
   @media (min-width: ${theme.breakpoint.lg}) {
     display: none;
@@ -2333,7 +2448,7 @@ const SideCta = styled.div`
 
 /* 좁은 화면 하단 고정 막대. 안내 문구까지 넣으면 첫 화면의 입력창을 가려 버튼만 둔다. */
 const MobileCtaBar = styled.div`
-  ${intro(INTRO.rest)}
+  ${introPlay(introRest)}
   position: fixed;
   left: 0;
   right: 0;
@@ -2426,6 +2541,7 @@ const TitlePrompt = styled(motion.div)`
 `;
 
 const PageTitle = styled(motion.h1)`
+  ${introPlay(introGroup)}
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.title1};
   line-height: 1.3;
@@ -2458,7 +2574,7 @@ const KAKAO_BUBBLE = "#FAE64D"; // 보낸 메시지
    한 줄로 쌓이는 화면에서는 스크롤에 맞춰 작아지고 옅어진다(style로 받는 모션 값). */
 const ChatRoom = styled(motion.div)`
   margin: 0;
-  ${intro(INTRO.room)}
+  ${introPlay(introGroup)}
 
   /* 휴대폰: 화면 맨 위에 닿으면 멈춘 채 흐려지고(투명도는 스크롤에 묶음), 미리보기가 그 위로 올라온다.
      입력 유도 문구 자리(PromptDock)와 같은 칸에 놓이도록 2행을 정해 둔다. 나머지는 자동으로 1·3·4…행에 들어간다. */
@@ -2578,7 +2694,7 @@ const SentBubble = styled.span`
   position: relative;
   align-self: flex-end;
   margin-right: 7px;
-  ${intro(INTRO.link)}
+  ${introPlay(introBubble(INTRO_AT.link))}
   padding: ${theme.space[2]} ${theme.space[3]};
   border-radius: 14px 0 14px 14px;
   background: ${KAKAO_BUBBLE};
@@ -2613,7 +2729,6 @@ const Received = styled.div`
   display: flex;
   align-items: flex-start;
   gap: ${theme.space[2]};
-  ${intro(INTRO.ask)}
 `;
 
 const ReceivedBody = styled.div`
@@ -2682,7 +2797,7 @@ const Builder = styled.section`
   /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
   position: relative;
   z-index: 1;
-  ${intro(INTRO.rest)}
+  ${introPlay(introRest)}
   background: white;
   border: 1px solid ${theme.text.gamma[800]};
   border-radius: ${theme.radius.lg};
@@ -2737,7 +2852,29 @@ const TimeBlock = styled(FieldBlock)`
   }
 `;
 
+/* 모임 이름·후보 날짜·시간 범위 앞 번호(2026-09-29 사람 지시). 숫자는 CSS가 그려 라벨 이름("모임 이름")에 섞이지 않고,
+   대체 글("")을 줘 화면 읽기 프로그램도 읽지 않는다. */
+const stepNumber = css`
+  &[data-step]::before {
+    content: attr(data-step);
+    content: attr(data-step) / "";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: ${theme.color.primarySurface};
+    color: ${theme.color.primaryText};
+    font-family: ${theme.font.family.bold};
+    font-size: ${theme.font.size.footnote};
+    line-height: 1;
+  }
+`;
+
 const FieldLabel = styled.label`
+  ${stepNumber}
   display: block;
   font-family: "Pretendard-Bold";
   font-size: ${theme.font.size.body};
@@ -2785,6 +2922,13 @@ const SrOnly = styled.span`
  * 좌우로 갈라진 넓은 화면은 첫 화면 높이에 여유가 있어 줄을 바꾼다(마우스로는 옆으로 밀기 어렵다).
  */
 const QUICK_FADE = "28px";
+const quickPop = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+`;
+
 const QuickTitles = styled.div`
   display: flex;
   gap: ${theme.space[2]};
@@ -2816,8 +2960,16 @@ const QuickTitles = styled.div`
     overflow-x: visible;
     -webkit-mask-image: none;
     mask-image: none;
+    animation: ${quickPop} 200ms ${theme.easing.standard} both;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
+
+  ${({ $hidden }) => $hidden && "display: none;"}
 `;
+
 
 const QuickTitle = styled.button`
   flex-shrink: 0;
@@ -2952,6 +3104,7 @@ const DateFieldset = styled.fieldset`
 /* 넓은 화면은 "후보 날짜"와 선택 요약을 한 줄에 둔다(왼쪽 제목·오른쪽 요약). 폼 상자를 한 화면에 넣기 위해서다.
    legend를 float으로 빼도 fieldset의 이름으로 그대로 읽힌다. */
 const DateLegend = styled.legend`
+  ${stepNumber}
   padding: 0;
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.label};
@@ -4400,7 +4553,7 @@ const CreateButton = styled.button`
 const Faq = styled("section", withRailAttr)`
   max-width: 720px;
   margin: 56px auto 0;
-  ${intro(INTRO.rest)}
+  ${introPlay(introRest)}
 
   /* 제목만 가운데. 질문 목록은 읽기 쉽게 왼쪽 정렬 그대로 둔다(2026-09-27 사람 지시). */
   h2 {

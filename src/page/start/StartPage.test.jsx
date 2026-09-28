@@ -512,3 +512,42 @@ describe("휴대폰 시간 선택 창", () => {
     expect(screen.getByRole("combobox", { name: "시작 시간" })).toHaveValue("10:00");
   });
 });
+
+describe("단계 번호와 추천 모임 이름", () => {
+  test("모임 이름·후보 날짜·시간 범위 앞에 1·2·3 번호가 붙고, 입력칸·묶음 이름은 그대로다", () => {
+    mount();
+    const input = screen.getByRole("textbox", { name: "모임 이름" });
+    expect(screen.getByText("모임 이름", { selector: "label" })).toHaveAttribute("for", input.id);
+    expect(screen.getByText("모임 이름", { selector: "label" })).toHaveAttribute("data-step", "1");
+    expect(screen.getByRole("group", { name: "후보 날짜" })).toBeInTheDocument();
+    expect(screen.getByText("후보 날짜", { selector: "legend" })).toHaveAttribute("data-step", "2");
+    expect(screen.getByText("시간 범위")).toHaveAttribute("data-step", "3");
+  });
+
+  test("넓은 화면은 추천 모임 이름 줄을 숨겨 두었다가 입력칸을 누르면 보이고, 고른 뒤에도 남는다", () => {
+    mount();
+    const group = () => screen.queryByRole("group", { name: "추천 모임 이름" });
+    expect(group()).not.toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "모임 이름" });
+    fireEvent.click(input);
+    fireEvent.click(within(group()).getByRole("button", { name: "주간 스터디" }));
+    expect(input).toHaveValue("주간 스터디");
+    expect(screen.getByRole("combobox", { name: "시작 시간" })).toHaveValue("09:00");
+    expect(group()).toBeVisible();
+  });
+
+  test("넓은 화면에서 키보드로 입력칸에 들어와도 추천 줄이 보인다", () => {
+    mount();
+    act(() => screen.getByRole("textbox", { name: "모임 이름" }).focus());
+    expect(screen.getByRole("group", { name: "추천 모임 이름" })).toBeVisible();
+  });
+
+  test("휴대폰은 입력칸을 누르지 않아도 추천 이름 줄이 보인다", () => {
+    mockMatchMedia(true, true);
+    mount();
+    const group = screen.getByRole("group", { name: "추천 모임 이름" });
+    fireEvent.click(within(group).getByRole("button", { name: "이번 달 회식" }));
+    expect(screen.getByRole("textbox", { name: "모임 이름" })).toHaveValue("이번 달 회식");
+    expect(screen.getByRole("group", { name: "추천 모임 이름" })).toBeInTheDocument();
+  });
+});
