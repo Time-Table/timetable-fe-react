@@ -20,6 +20,7 @@ import {
   FiBookOpen,
   FiAlertCircle,
   FiMail,
+  FiShuffle,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -63,6 +64,7 @@ import StatTile, { formatStat } from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import InquiryFeed from "./manager/InquiryFeed";
+import ExperimentPanel from "./manager/ExperimentPanel";
 import Explain from "./manager/Explain";
 import Pagination, { usePaged, Anchor } from "./manager/Pagination";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
@@ -89,6 +91,8 @@ const TABS = [
   { key: "tables", label: "테이블 관리", icon: FiLayers, scoped: false },
   { key: "chats", label: "채팅 모니터링", icon: FiMessageSquare, scoped: false },
   { key: "inquiries", label: "문의함", icon: FiMail, scoped: false },
+  // 랜딩 A/B 1회차(2026-09-29). 기간은 실험 기간이라 기간 선택을 쓰지 않는다.
+  { key: "experiments", label: "A/B 테스트", icon: FiShuffle, scoped: false },
 ];
 
 const PERIODS = [
@@ -535,6 +539,7 @@ const ManagerPage = () => {
               {activeTab === "tables" && `전체 ${tables.length.toLocaleString()}개`}
               {activeTab === "chats" && `전체 메시지 ${chatFeed?.total?.toLocaleString() || 0}건`}
               {activeTab === "inquiries" && "문의하기 양식으로 들어온 문의 · 10년 보관"}
+              {activeTab === "experiments" && "랜딩 v1·v2 비교 · 브라우저 수 · 관리자 제외"}
             </SectionCaption>
           </div>
 
@@ -1266,6 +1271,9 @@ const ManagerPage = () => {
 
               {/* ------------------------------------------------ 문의함 */}
               {activeTab === "inquiries" && <InquiryFeed onOpenTable={openDetail} />}
+
+              {/* ------------------------------------------------ A/B 테스트 */}
+              {activeTab === "experiments" && <ExperimentPanel />}
             </>
           )}
         </Content>
