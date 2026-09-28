@@ -104,11 +104,12 @@ const focusRing = `
   outline-offset: 2px;
 `;
 
-// 헤더(z-index 1000) 위에 뜬다.
+// 사람이 직접 연 창이라 화면의 어떤 팝업보다도 위에 뜬다. 헤더(1000)뿐 아니라 랜딩·/table의
+// 칸 명단 팝업(9999)과 /table 가이드(최고 10001)보다 높다. 명단이 모달 위로 올라온 사고(2026-09-28 사람 보고).
 const Scrim = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: 10100;
   display: flex;
   align-items: center;
   justify-content: center;
