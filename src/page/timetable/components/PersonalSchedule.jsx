@@ -23,6 +23,7 @@ export default function PersonalSchedule({
      bgTimeInfo,
      onSaveSuccess,
      onViewTimetable,
+     stickyHeaderTop,
 }) {
      const [isLoading, setIsLoading] = useState(true);
      const [isSaving, setIsSaving] = useState(false);
@@ -140,6 +141,7 @@ export default function PersonalSchedule({
                          setSelectedCells={setSelectedCells}
                          banedCells={banedCells}
                          bgTimeInfo={bgTimeInfo}
+                         stickyHeaderTop={stickyHeaderTop}
                     />
                     <SaveButton
                          onClick={handleSave}

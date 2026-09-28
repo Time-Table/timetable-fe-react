@@ -22,6 +22,9 @@ export default function TimeGrid({
   banedCells = [],
   onCellClick,
   selectedCellKey,
+  // 요일·날짜 줄을 붙여 둘 위치(CSS 길이). 넘기면 시간을 아래로 내려도 그 줄이 화면 위에 남는다.
+  // 넘기지 않으면 예전처럼 같이 스크롤된다(랜딩·빠른 생성 화면).
+  stickyHeaderTop,
 }) {
   const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -378,7 +381,7 @@ export default function TimeGrid({
           }
         >
           <HeaderRow>
-            <EmptyCell />
+            <EmptyCell $stickyTop={stickyHeaderTop} />
             {currentWeek.map((date) => {
               const { day, weekday } = formatDate(date);
               const isToday = date === todayDateString;
@@ -390,6 +393,7 @@ export default function TimeGrid({
                   onClick={() => handleSelectColumn(date)}
                   $readOnly={readOnly}
                   $isHighlighted={!!(readOnly && selectedDate && date === selectedDate)}
+                  $stickyTop={stickyHeaderTop}
                 >
                   <WeekdayBox>{weekday}</WeekdayBox>
                   <DayBox $isToday={isToday}>{day}</DayBox>
@@ -591,9 +595,22 @@ const Row = styled.div`
   font-size: 16px;
   display: contents;
 `;
+/**
+ * 요일·날짜 줄 붙이기. 줄(HeaderRow)은 display: contents라 스스로 붙을 수 없어서 칸마다 붙인다.
+ * 칸 색·골든타임 반짝임보다 위에 그려야 하고, 밑으로 지나가는 칸이 비치지 않게 흰 바탕을 깐다.
+ * 아래 선은 붙어 있는 동안 날짜 줄과 칸을 나눈다.
+ */
+const stickyHeaderCell = (top) => css`
+  position: sticky;
+  top: ${top};
+  z-index: 3;
+  background-color: ${theme.color.surface};
+  box-shadow: 0 1px 0 ${theme.text.gamma[900]};
+`;
 const EmptyCell = styled.div`
   grid-column: 1 / 2;
   border-bottom: 1px solid ${theme.text.gamma[900]};
+  ${(props) => props.$stickyTop !== undefined && stickyHeaderCell(props.$stickyTop)}
 `;
 const HeaderCell = styled.div`
   display: flex;
@@ -630,6 +647,31 @@ const HeaderCell = styled.div`
              }
         }
      `}
+
+  /* 붙어 있을 때는 옅은 색(오늘·누름)을 흰 바탕 위에 겹쳐 칠한다. 바탕색 자체를 옅게 두면 밑의 칸이 비친다. */
+  ${(props) =>
+    props.$stickyTop !== undefined &&
+    css`
+      ${stickyHeaderCell(props.$stickyTop)}
+      background-image: ${props.$isToday
+        ? `linear-gradient(${theme.color.primary}10, ${theme.color.primary}10)`
+        : "none"};
+
+      ${!props.$readOnly &&
+      !props.$isDisabled &&
+      css`
+        &:active {
+          background-color: ${theme.color.surface};
+          background-image: linear-gradient(${theme.color.primary}25, ${theme.color.primary}25);
+        }
+        @media (hover: hover) {
+          &:hover {
+            background-color: ${theme.color.surface};
+            background-image: linear-gradient(${theme.color.primary}15, ${theme.color.primary}15);
+          }
+        }
+      `}
+    `}
 `;
 const WeekdayBox = styled.div`
   font-family: "Pretendard-Regular";

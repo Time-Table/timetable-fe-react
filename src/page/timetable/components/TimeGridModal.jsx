@@ -70,6 +70,9 @@ const TimeGridModal = ({
               tableId={tableId}
               usersSchedule={usersSchedule}
               onRefresh={onRefresh}
+              // 모달 안에서 스크롤된다. sticky는 스크롤 상자의 안쪽 여백에서 멈추므로
+              // 여백만큼 위로 올려야 모달 맨 위에 붙는다(0이면 그 틈으로 지나가는 칸이 비친다).
+              stickyHeaderTop="calc(-1 * var(--modal-padding))"
             />
           </ModalContainer>
         </Backdrop>
@@ -94,10 +97,12 @@ const Backdrop = styled(motion.div)`
 `;
 
 const ModalContainer = styled(motion.div)`
+  /* 안쪽 여백. 시간표의 날짜 줄이 이 값만큼 위로 올라가 붙는다(GroupTimeGrid의 stickyHeaderTop). */
+  --modal-padding: 40px;
   position: relative;
   background: white;
   border-radius: 20px;
-  padding: 40px;
+  padding: var(--modal-padding);
   width: 100%;
   max-width: 900px;
   max-height: 90vh;
@@ -105,10 +110,10 @@ const ModalContainer = styled(motion.div)`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 
   @media (max-width: 768px) {
-    padding: 30px;
+    --modal-padding: 30px;
   }
   @media (max-width: 480px) {
-    padding: 20px;
+    --modal-padding: 20px;
   }
 `;
 

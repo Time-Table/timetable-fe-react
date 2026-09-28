@@ -26,6 +26,9 @@ import AdSense from "../../component/AdSense";
 import Arrow from "../../assets/svg/Arrow";
 import GuideOverlay from "./components/GuideOverlay";
 
+// component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
+const SITE_HEADER_HEIGHT = "72px";
+
 const TOGGLE_TIPS = {
   인원: {
     emoji: "👥",
@@ -344,6 +347,8 @@ export default function TimetablePage() {
             banedCells={banedCells}
             bgTimeInfo={timeInfo}
             onSaveSuccess={refreshScheduleData}
+            // 휴대폰에서는 페이지째 스크롤되므로 사이트 헤더 바로 밑에 요일·날짜 줄을 붙인다.
+            stickyHeaderTop={isDesktop ? undefined : SITE_HEADER_HEIGHT}
           />
         ) : (
           <Loader />

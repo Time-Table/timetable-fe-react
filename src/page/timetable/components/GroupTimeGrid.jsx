@@ -39,6 +39,7 @@ export default function GroupTimeGrid({
   tableId,
   usersSchedule,
   onRefresh,
+  stickyHeaderTop,
 }) {
   const Toast = Swal.mixin({
     toast: true,
@@ -183,6 +184,7 @@ export default function GroupTimeGrid({
         banedCells={banedCells}
         onCellClick={handleCellClick}
         selectedCellKey={selectedCell?.time}
+        stickyHeaderTop={stickyHeaderTop}
       />
 
       {selectedCell && createPortal(
