@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import styled from "@emotion/styled";
+import { Global, css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import {
   FiGrid,
@@ -12,7 +13,6 @@ import {
   FiTrash2,
   FiX,
   FiShield,
-  FiMenu,
   FiLogOut,
   FiSearch,
   FiBarChart2,
@@ -59,10 +59,12 @@ import {
   IconButton,
   Button,
 } from "./manager/ui";
-import StatTile from "./manager/StatTile";
+import StatTile, { formatStat } from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import InquiryFeed from "./manager/InquiryFeed";
+import Explain from "./manager/Explain";
+import Pagination, { usePaged, Anchor } from "./manager/Pagination";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
 import { createRequestSequence } from "./manager/latestRequest";
 import { monthlyCreationSeries } from "./manager/monthlyTrend";
@@ -130,7 +132,6 @@ const ManagerPage = () => {
   const isChecking = useRef(false);
 
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period, setPeriod] = useState(30);
   const [monthlyPeriod, setMonthlyPeriod] = useState(3);
   const [monthlyVisits, setMonthlyVisits] = useState(null);
@@ -167,8 +168,6 @@ const ManagerPage = () => {
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [onlyEmpty, setOnlyEmpty] = useState(false);
-  const [page, setPage] = useState(1);
-  const perPage = 15;
 
   const [editing, setEditing] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -389,12 +388,8 @@ const ManagerPage = () => {
     return rows;
   }, [tables, query, sortBy, onlyEmpty]);
 
-  const totalPages = Math.max(Math.ceil(visibleTables.length / perPage), 1);
-  const pagedTables = visibleTables.slice((page - 1) * perPage, page * perPage);
-
-  useEffect(() => {
-    setPage(1);
-  }, [query, sortBy, onlyEmpty]);
+  // 받아 둔 목록을 쪽으로 나눠 그린다. 요청 수·요청 크기는 그대로다.
+  const tablePages = usePaged(visibleTables, 15, `${query}|${sortBy}|${onlyEmpty}`);
 
   const meetingPattern = useMemo(() => {
     if (!tables.length) return null;
@@ -446,7 +441,17 @@ const ManagerPage = () => {
     [monthlyVisits, monthlyPeriod],
   );
 
+  const trendRows = useMemo(() => (trends?.series ? [...trends.series].reverse() : []), [trends]);
+  const trendPages = usePaged(trendRows, 10, String(period));
+  const blogPages = usePaged(blogRows, 10, `${blogSort}|${blogOnlyZero}|${period}`);
+  const chatPages = usePaged(visibleChats, 20, chatQuery);
+
   if (!authed) return null;
+
+  const logout = () => {
+    revokeAdmin();
+    window.location.href = "/";
+  };
 
   const currentTab = TABS.find((tab) => tab.key === activeTab);
   const todayDate = formatDateTime(new Date()).slice(0, 10);
@@ -460,21 +465,24 @@ const ManagerPage = () => {
   /* ---------------------------------------------------------------- 렌더 */
 
   return (
-    <Shell>
+    <Shell data-admin-console>
+      <Global styles={consoleReset} />
       <Seo title="Admin Console - 타임테이블" noindex />
+      {/* 1023px 이하: 사이드바 대신 이 머리줄과 위쪽 탭 줄. 햄버거를 열지 않고 한 번에 탭을 옮긴다. */}
       <MobileBar>
         <Brand>
           <FiShield size={16} />
-          <span>Admin</span>
+          <div>
+            <strong>Admin</strong>
+            <span>자체 행동 계측 제외 · GA·Clarity 별도</span>
+          </div>
         </Brand>
-        <IconButton onClick={() => setSidebarOpen((v) => !v)} aria-label="메뉴">
-          {sidebarOpen ? <FiX size={16} /> : <FiMenu size={16} />}
+        <IconButton onClick={logout} aria-label="로그아웃">
+          <FiLogOut size={16} />
         </IconButton>
       </MobileBar>
 
-      {sidebarOpen && <Scrim onClick={() => setSidebarOpen(false)} />}
-
-      <Sidebar $open={sidebarOpen}>
+      <Sidebar>
         <SidebarBrand>
           <FiShield size={17} />
           <div>
@@ -483,18 +491,22 @@ const ManagerPage = () => {
           </div>
         </SidebarBrand>
 
-        <Nav>
+        <Nav aria-label="관리 메뉴" data-tabstrip>
           {TABS.map((tab) => (
             <NavItem
               key={tab.key}
+              type="button"
               $active={activeTab === tab.key}
-              onClick={() => {
+              aria-current={activeTab === tab.key ? "page" : undefined}
+              onClick={(event) => {
                 setActiveTab(tab.key);
-                setSidebarOpen(false);
                 if (tab.key !== "blog" && period === 0) setPeriod(30);
+                // 탭 줄에서 고른 탭이 화면 밖에 걸쳐 있으면 보이게 끌어온다.
+                event.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+                if (window.scrollY > 0) window.scrollTo(0, 0);
               }}
             >
-              <tab.icon size={15} />
+              <tab.icon size={15} aria-hidden="true" />
               {tab.label}
             </NavItem>
           ))}
@@ -502,13 +514,7 @@ const ManagerPage = () => {
 
         <SidebarFoot>
           <ExcludedNote>자체 행동 계측 제외 · GA·Clarity 별도</ExcludedNote>
-          <NavItem
-            as="button"
-            onClick={() => {
-              revokeAdmin();
-              window.location.href = "/";
-            }}
-          >
+          <NavItem type="button" onClick={logout}>
             <FiLogOut size={15} />
             로그아웃
           </NavItem>
@@ -518,7 +524,7 @@ const ManagerPage = () => {
       <Main>
         <TopBar>
           <div>
-            <SectionTitle>{currentTab?.label}</SectionTitle>
+            <TopTitle>{currentTab?.label}</TopTitle>
             <SectionCaption>
               {activeTab === "dashboard" && "핵심 지표와 일별 추이"}
               {activeTab === "monthly" && "테이블 생성 수를 월별로 확인"}
@@ -562,8 +568,10 @@ const ManagerPage = () => {
               {activeTab === "dashboard" && (
                 <Stack>
                   {trends ? <>
-                  <SectionCaption>보조 지표 · 선택 기간에 발생한 방문·생성·참여 등록 기록입니다. 참여 등록은 사람 수나 시간 입력 완료를 뜻하지 않습니다.</SectionCaption>
-                  <Grid $min="200px">
+                  <Explain label="지표 설명">
+                    <SectionCaption>보조 지표 · 선택 기간에 발생한 방문·생성·참여 등록 기록입니다. 참여 등록은 사람 수나 시간 입력 완료를 뜻하지 않습니다.</SectionCaption>
+                  </Explain>
+                  <Grid $min="200px" $mobileCols={2}>
                     {trends.metrics.map((metric) => (
                       <StatTile
                         key={metric.key}
@@ -575,26 +583,33 @@ const ManagerPage = () => {
                     ))}
                   </Grid>
 
-                  <Card as="section" aria-label="오늘 통계">
-                    <CardTitle>오늘 · {todayDate}</CardTitle>
-                    <CardSubtitle>한국시간 기준 · 조회 시점까지의 누적 수치입니다.</CardSubtitle>
-                    {!todayStats && <SectionCaption>오늘 통계를 불러오지 못했습니다. 다시 조회해 주세요.</SectionCaption>}
-                    <Grid $min="180px" style={{ marginTop: t.space(4) }}>
-                      {["visits", "tables", "signUps", "logins"].map((key) => (
-                        <StatTile key={key} label={METRIC_LABELS[key]} value={todayStats?.[key]} showComparison={false} />
-                      ))}
-                    </Grid>
-                  </Card>
-
-                  <SectionHeader>
+                  {/* 오늘 네 수치는 한 줄 띠로 둔다. 타일 네 장이면 일별 추이가 첫 화면 밖으로 밀린다(2026-09-28). */}
+                  <TodayStrip as="section" aria-label="오늘 통계">
                     <div>
+                      <CardTitle>오늘 · {todayDate}</CardTitle>
+                      <CardSubtitle>한국시간 기준 · 조회 시점까지의 누적 수치입니다.</CardSubtitle>
+                      {!todayStats && <SectionCaption>오늘 통계를 불러오지 못했습니다. 다시 조회해 주세요.</SectionCaption>}
+                    </div>
+                    <TodayStats>
+                      {["visits", "tables", "signUps", "logins"].map((key) => (
+                        <TodayStat key={key}>
+                          <span>{METRIC_LABELS[key]}</span>
+                          <strong>{formatStat(todayStats?.[key])}</strong>
+                        </TodayStat>
+                      ))}
+                    </TodayStats>
+                  </TodayStrip>
+
+                  <div>
+                  <SectionHeader>
+                    <TrendHead>
                       <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
                         일별 추이
                       </SectionTitle>
                       <SectionCaption>
                         한국시간 기준 · 최신 날짜부터 표시합니다. 그래프 보기로 전환할 수 있습니다.
                       </SectionCaption>
-                    </div>
+                    </TrendHead>
                     <Button onClick={() => setShowTrendTable((v) => !v)}>
                       {showTrendTable ? (
                         <>
@@ -609,8 +624,9 @@ const ManagerPage = () => {
                   </SectionHeader>
 
                   {showTrendTable ? (
+                    <Anchor ref={trendPages.anchor}>
                     <Card style={{ padding: 0, overflowX: "auto" }}>
-                      <DataTable>
+                      <DataTable $compact $dense>
                         <thead>
                           <tr>
                             <th>날짜</th>
@@ -621,7 +637,7 @@ const ManagerPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {[...trends.series].reverse().map((row) => (
+                          {trendPages.rows.map((row) => (
                             <tr key={row.date}>
                               <td className="mono">{row.date}</td>
                               <td className="num strong">{row.visits.toLocaleString()}</td>
@@ -633,6 +649,10 @@ const ManagerPage = () => {
                         </tbody>
                       </DataTable>
                     </Card>
+                    <div style={{ marginTop: t.space(3) }}>
+                      <Pagination paged={trendPages} label="일별 추이 쪽" />
+                    </div>
+                    </Anchor>
                   ) : (
                     <Grid $min="300px">
                       {[
@@ -655,6 +675,7 @@ const ManagerPage = () => {
                       ))}
                     </Grid>
                   )}
+                  </div>
 
                   </> : <Card>
                     <CardTitle>방문·등록 통계</CardTitle>
@@ -736,18 +757,22 @@ const ManagerPage = () => {
                     {funnelFailed && <Button onClick={() => setFunnelRefresh((n) => n + 1)}>보조 지표 다시 조회</Button>}
                   </Card>}
                   {!funnelLoading && !funnelFailed && funnelReport && <>
-                    <Notice>
-                      행동 기록은 <strong>선택 기간에 이벤트를 남긴 브라우저</strong> 기준입니다.
-                      같은 표·실제 행동 순서를 보장하지 않으며 차이만으로 이탈 원인을 확정할 수 없습니다.
-                      관리자 인증 중인 브라우저의 자체 행동 기록은 제외합니다. GA·Clarity 자동 수집은 별도 설정입니다.
-                    </Notice>
+                    <Explain label="행동 기록 기준">
+                      <Notice>
+                        행동 기록은 <strong>선택 기간에 이벤트를 남긴 브라우저</strong> 기준입니다.
+                        같은 표·실제 행동 순서를 보장하지 않으며 차이만으로 이탈 원인을 확정할 수 없습니다.
+                        관리자 인증 중인 브라우저의 자체 행동 기록은 제외합니다. GA·Clarity 자동 수집은 별도 설정입니다.
+                      </Notice>
+                    </Explain>
                     {funnelReport.funnels?.filter((funnel) => funnel.key !== "maturity").map((funnel) => (
                       <FunnelCard key={funnel.key} funnel={funnel} startDate={funnelReport.startDate} />
                     ))}
-                    <Notice>
-                      등록 인원 현황은 <strong>선택 기간에 생성되어 현재 남아 있는 표</strong> 기준입니다.
-                      현재 등록 이름 수를 보므로 참여 취소·표 삭제에 따라 줄어들며, 마감까지의 참여 달성률과 다릅니다.
-                    </Notice>
+                    <Explain label="등록 인원 현황 기준">
+                      <Notice>
+                        등록 인원 현황은 <strong>선택 기간에 생성되어 현재 남아 있는 표</strong> 기준입니다.
+                        현재 등록 이름 수를 보므로 참여 취소·표 삭제에 따라 줄어들며, 마감까지의 참여 달성률과 다릅니다.
+                      </Notice>
+                    </Explain>
                     {funnelReport.funnels?.filter((funnel) => funnel.key === "maturity").map((funnel) => (
                       <FunnelCard key={funnel.key} funnel={funnel} startDate={funnelReport.startDate} />
                     ))}
@@ -758,7 +783,7 @@ const ManagerPage = () => {
               {/* ------------------------------------------------ 사용자 분석 */}
               {activeTab === "audience" && audience && (
                 <Stack>
-                  <Grid $min="200px">
+                  <Grid $min="200px" $mobileCols={2}>
                     <StatTile
                       label="측정된 방문자"
                       value={audience.totalVisitors}
@@ -855,7 +880,7 @@ const ManagerPage = () => {
 
                   {!blogStats.error && (
                     <>
-                      <Grid $min="200px">
+                      <Grid $min="200px" $mobileCols={2}>
                         <StatTile
                           label="조회수"
                           value={blogStats.total.views}
@@ -990,10 +1015,12 @@ const ManagerPage = () => {
                           <SectionTitle as="h3" style={{ fontSize: "0.9375rem" }}>
                             글별 조회
                           </SectionTitle>
-                          <SectionCaption>
-                            조회가 0인 글은 교체 후보입니다. 발행한 지 오래됐는데도 0이면 제목이나 주제를
-                            바꿔 보세요.
-                          </SectionCaption>
+                          <Explain label="읽는 법">
+                            <SectionCaption>
+                              조회가 0인 글은 교체 후보입니다. 발행한 지 오래됐는데도 0이면 제목이나 주제를
+                              바꿔 보세요.
+                            </SectionCaption>
+                          </Explain>
                         </div>
                         <FilterRow>
                           <Select
@@ -1015,11 +1042,12 @@ const ManagerPage = () => {
                         </FilterRow>
                       </SectionHeader>
 
+                      <Anchor ref={blogPages.anchor}>
                       <Card style={{ padding: 0, overflowX: "auto" }}>
                         {blogRows.length === 0 ? (
                           <Empty>조회가 0인 글이 없습니다. 모든 글이 최소 한 번은 읽혔습니다.</Empty>
                         ) : (
-                          <DataTable>
+                          <DataTable $stack>
                             <thead>
                               <tr>
                                 <th scope="col" style={{ minWidth: 260 }}>
@@ -1034,9 +1062,9 @@ const ManagerPage = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {blogRows.map((row) => (
+                              {blogPages.rows.map((row) => (
                                 <tr key={row.slug}>
-                                  <td className={row.listed ? "strong" : "mono"}>
+                                  <td className={row.listed ? "strong title" : "mono title"}>
                                     {row.listed ? (
                                       row.title
                                     ) : (
@@ -1055,10 +1083,10 @@ const ManagerPage = () => {
                                       <Tag>{row.views.toLocaleString()}회</Tag>
                                     )}
                                   </td>
-                                  <td className="num">{row.visitors.toLocaleString()}</td>
-                                  <td className="mono nowrap">{formatDateTime(row.lastViewedAt)}</td>
-                                  <td className="mono nowrap">{row.listed ? row.date : "—"}</td>
-                                  <td>
+                                  <td className="num" data-label="방문자">{row.visitors.toLocaleString()}</td>
+                                  <td className="mono nowrap" data-label="마지막 조회">{formatDateTime(row.lastViewedAt)}</td>
+                                  <td className="mono nowrap" data-label="발행일">{row.listed ? row.date : "—"}</td>
+                                  <td className="actions">
                                     {row.listed && (
                                       <IconButton
                                         as="a"
@@ -1077,6 +1105,10 @@ const ManagerPage = () => {
                           </DataTable>
                         )}
                       </Card>
+                      <div style={{ marginTop: t.space(3) }}>
+                        <Pagination paged={blogPages} label="글별 조회 쪽" />
+                      </div>
+                      </Anchor>
                     </>
                   )}
                 </Stack>
@@ -1085,7 +1117,9 @@ const ManagerPage = () => {
               {/* ------------------------------------------------ 테이블 관리 */}
               {activeTab === "tables" && (
                 <Stack>
-                  <Notice>등록 인원은 현재 표에 남아 있는 이름 수입니다. 시간 입력 여부나 마감 전 등록 여부를 구분하지 않으므로 3인 참여 달성률의 집계 인원과 다를 수 있습니다.</Notice>
+                  <Explain label="등록 인원 기준">
+                    <Notice>등록 인원은 현재 표에 남아 있는 이름 수입니다. 시간 입력 여부나 마감 전 등록 여부를 구분하지 않으므로 3인 참여 달성률의 집계 인원과 다를 수 있습니다.</Notice>
+                  </Explain>
                   <FilterRow>
                     <SearchBox>
                       <FiSearch size={14} />
@@ -1095,23 +1129,24 @@ const ManagerPage = () => {
                         onChange={(e) => setQuery(e.target.value)}
                       />
                     </SearchBox>
-                    <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <Select aria-label="테이블 정렬" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                       <option value="recent">최신순</option>
                       <option value="oldest">오래된순</option>
                       <option value="participants">등록 인원 많은순</option>
                       <option value="title">제목순</option>
                     </Select>
-                    <Toggle $active={onlyEmpty} onClick={() => setOnlyEmpty((v) => !v)}>
+                    <Toggle $active={onlyEmpty} aria-pressed={onlyEmpty} onClick={() => setOnlyEmpty((v) => !v)}>
                       등록 인원 0명만
                     </Toggle>
                     <ResultCount>{visibleTables.length.toLocaleString()}개</ResultCount>
                   </FilterRow>
 
+                  <Anchor ref={tablePages.anchor}>
                   <Card style={{ padding: 0, overflowX: "auto" }}>
-                    {pagedTables.length === 0 ? (
+                    {tablePages.rows.length === 0 ? (
                       <Empty>조건에 맞는 테이블이 없습니다.</Empty>
                     ) : (
-                      <DataTable>
+                      <DataTable $stack>
                         <thead>
                           <tr>
                             <th>제목</th>
@@ -1123,33 +1158,31 @@ const ManagerPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {pagedTables.map((table) => (
+                          {tablePages.rows.map((table) => (
                             <tr key={table.tableId}>
-                              <td className="strong">
+                              <td className="strong title">
                                 <LinkTitle onClick={() => openDetail(table.tableId)}>
                                   {table.title}
                                 </LinkTitle>
                               </td>
                               <td className="num">
-                                <Tag
-                                  style={
-                                    (table.participantCount || 0) === 0
-                                      ? { color: t.color.critical, borderColor: `${t.color.critical}40` }
-                                      : undefined
-                                  }
-                                >
-                                  {table.participantCount || 0}명
-                                </Tag>
+                                {(table.participantCount || 0) === 0 ? (
+                                  <Tag $tone="critical">
+                                    <FiAlertCircle size={11} aria-hidden="true" /> {table.participantCount || 0}명
+                                  </Tag>
+                                ) : (
+                                  <Tag>{table.participantCount}명</Tag>
+                                )}
                               </td>
                               <td className="num">
                                 {table.dates?.length || 0}일 · {table.startHour}~{table.endHour}
                               </td>
-                              <td className="mono">{formatDateTime(table.createdAt)}</td>
-                              <td className="mono">{table.tableId.slice(0, 8)}</td>
-                              <td>
+                              <td className="mono" data-label="생성일">{formatDateTime(table.createdAt)}</td>
+                              <td className="mono" data-label="ID">{table.tableId.slice(0, 8)}</td>
+                              <td className="actions">
                                 <Actions>
                                   <IconButton
-                                    $$color={t.color.series1}
+                                    $color={t.color.series1}
                                     onClick={() => setEditing({ ...table })}
                                     aria-label="수정"
                                   >
@@ -1165,7 +1198,7 @@ const ManagerPage = () => {
                                     <FiExternalLink size={13} />
                                   </IconButton>
                                   <IconButton
-                                    $$color={t.color.critical}
+                                    $color={t.color.critical}
                                     onClick={() => handleDelete(table)}
                                     aria-label="삭제"
                                   >
@@ -1179,30 +1212,21 @@ const ManagerPage = () => {
                       </DataTable>
                     )}
                   </Card>
+                  </Anchor>
 
-                  {totalPages > 1 && (
-                    <Pager>
-                      <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                        이전
-                      </Button>
-                      <span>
-                        {page} / {totalPages}
-                      </span>
-                      <Button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
-                        다음
-                      </Button>
-                    </Pager>
-                  )}
+                  <Pagination paged={tablePages} label="테이블 목록 쪽" />
                 </Stack>
               )}
 
               {/* ------------------------------------------------ 채팅 */}
               {activeTab === "chats" && chatFeed && (
                 <Stack>
-                  <Notice>
-                    익명 서비스라 스팸이나 욕설이 올라와도 알아채기 어렵습니다. 최근 메시지를 최신순으로
-                    모아 두었으니 훑어보고 문제가 있으면 해당 테이블을 조치하세요.
-                  </Notice>
+                  <Explain label="모니터링 안내">
+                    <Notice>
+                      익명 서비스라 스팸이나 욕설이 올라와도 알아채기 어렵습니다. 최근 메시지를 최신순으로
+                      모아 두었으니 훑어보고 문제가 있으면 해당 테이블을 조치하세요.
+                    </Notice>
+                  </Explain>
 
                   <FilterRow>
                     <SearchBox>
@@ -1216,12 +1240,13 @@ const ManagerPage = () => {
                     <ResultCount>{visibleChats.length.toLocaleString()}건</ResultCount>
                   </FilterRow>
 
+                  <Anchor ref={chatPages.anchor}>
                   <Card style={{ padding: 0 }}>
                     {visibleChats.length === 0 ? (
                       <Empty>메시지가 없습니다.</Empty>
                     ) : (
-                      visibleChats.map((message, i) => (
-                        <ChatRow key={`${message.tableId}-${i}`}>
+                      chatPages.rows.map((message, i) => (
+                        <ChatRow key={`${message.tableId}-${chatPages.page}-${i}`}>
                           <ChatHead>
                             <ChatName>{message.name}</ChatName>
                             <ChatTable onClick={() => openDetail(message.tableId)}>
@@ -1234,6 +1259,8 @@ const ManagerPage = () => {
                       ))
                     )}
                   </Card>
+                  </Anchor>
+                  <Pagination paged={chatPages} label="채팅 쪽" />
                 </Stack>
               )}
 
@@ -1401,6 +1428,17 @@ const ManagerPage = () => {
 
 /* ------------------------------------------------------------------ 레이아웃 */
 
+/**
+ * 콘솔 안 제목·문단의 브라우저 기본 여백(위아래 1em)을 없앤다. 전역 초기화가 없어 타일 이름 한 줄에도
+ * 위아래 12px씩 붙어 화면이 성겼다(2026-09-28). :where()로 우선순위를 0으로 둬서
+ * 부품이 직접 정한 여백(CardSubtitle의 margin-top 등)은 그대로 이긴다.
+ */
+const consoleReset = css`
+  :where([data-admin-console]) :where(p, h1, h2, h3, h4, dl, dd) {
+    margin: 0;
+  }
+`;
+
 const Shell = styled.div`
   display: flex;
   min-height: 100vh;
@@ -1408,7 +1446,7 @@ const Shell = styled.div`
   color: ${t.color.ink};
   font-family: ${t.font.sans};
 
-  @media (max-width: 1023px) {
+  @media ${t.media.compact} {
     flex-direction: column;
   }
 `;
@@ -1416,40 +1454,43 @@ const Shell = styled.div`
 const MobileBar = styled.header`
   display: none;
 
-  @media (max-width: 1023px) {
-    position: sticky;
-    top: 0;
-    z-index: 30;
+  @media ${t.media.compact} {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 56px;
-    padding: 0 ${t.space(4)};
+    gap: ${t.space(3)};
+    padding: 0 ${t.space(2)} 0 ${t.space(4)};
     background: ${t.color.surface};
-    border-bottom: 1px solid ${t.color.border};
   }
 `;
 
+// 모바일 머리줄은 한 줄로 둔다. 좁으면 안내 문구가 다음 줄로 내려간다.
 const Brand = styled.div`
   display: flex;
   align-items: center;
   gap: ${t.space(2)};
-  font-size: 0.875rem;
-  font-weight: 600;
-`;
+  min-width: 0;
 
-const Scrim = styled.div`
-  display: none;
-
-  @media (max-width: 1023px) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    background: rgba(11, 11, 11, 0.4);
+  svg {
+    flex-shrink: 0;
+  }
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: ${t.space(2)};
+  }
+  strong {
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  span {
+    font-size: 0.75rem;
+    color: ${t.color.muted};
   }
 `;
 
+/* 1023px 이하에서는 같은 메뉴를 위쪽에 붙는 가로 탭 줄로 바꾼다. 버튼은 한 벌만 둔다. */
 const Sidebar = styled.aside`
   display: flex;
   flex-direction: column;
@@ -1458,13 +1499,13 @@ const Sidebar = styled.aside`
   background: ${t.color.sidebar};
   color: ${t.color.onDarkMuted};
 
-  @media (max-width: 1023px) {
-    position: fixed;
+  @media ${t.media.compact} {
+    position: sticky;
     top: 0;
-    bottom: 0;
-    left: ${(p) => (p.$open ? "0" : "-232px")};
-    z-index: 50;
-    transition: left 0.22s ease;
+    z-index: 30;
+    width: 100%;
+    background: ${t.color.surface};
+    border-bottom: 1px solid ${t.color.border};
   }
 `;
 
@@ -1485,8 +1526,12 @@ const SidebarBrand = styled.div`
   span {
     display: block;
     margin-top: 1px;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: ${t.color.onDarkMuted};
+  }
+
+  @media ${t.media.compact} {
+    display: none;
   }
 `;
 
@@ -1496,9 +1541,21 @@ const Nav = styled.nav`
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  @media ${t.media.compact} {
+    flex-direction: row;
+    gap: 0;
+    padding: 0 ${t.space(2)};
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 `;
 
-const NavItem = styled.div`
+const NavItem = styled.button`
   display: flex;
   align-items: center;
   gap: ${t.space(3)};
@@ -1519,18 +1576,51 @@ const NavItem = styled.div`
     background: ${t.color.sidebarHover};
     color: ${t.color.onDark};
   }
+  &:focus-visible {
+    outline: 2px solid ${t.color.onDark};
+    outline-offset: -2px;
+  }
+
+  @media ${t.media.compact} {
+    flex-shrink: 0;
+    width: auto;
+    min-height: ${t.touch};
+    gap: ${t.space(1)};
+    padding: 0 ${t.space(3)};
+    border-radius: 0;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: ${(p) => (p.$active ? t.color.ink : t.color.ink2)};
+    background: none;
+    box-shadow: ${(p) => (p.$active ? `inset 0 -2px 0 ${t.color.ink}` : "none")};
+
+    &:hover {
+      background: none;
+      color: ${t.color.ink};
+    }
+    &:focus-visible {
+      outline-color: ${t.color.series1};
+    }
+    svg {
+      display: none;
+    }
+  }
 `;
 
 const SidebarFoot = styled.div`
   padding: ${t.space(3)};
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  @media ${t.media.compact} {
+    display: none;
+  }
 `;
 
 const ExcludedNote = styled.p`
   padding: 0 ${t.space(3)} ${t.space(3)};
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.42);
+  color: ${t.color.onDarkMuted};
 `;
 
 const Main = styled.main`
@@ -1546,34 +1636,144 @@ const TopBar = styled.div`
   justify-content: space-between;
   flex-wrap: wrap;
   gap: ${t.space(4)};
-  padding: ${t.space(7)} ${t.space(8)} ${t.space(5)};
+  padding: ${t.space(5)} ${t.space(8)} ${t.space(4)};
   border-bottom: 1px solid ${t.color.border};
   background: ${t.color.surface};
 
-  @media (max-width: 640px) {
-    padding: ${t.space(5)} ${t.space(4)} ${t.space(4)};
+  /* 모바일: 설명 한 줄과 기간 버튼을 한 줄에 두고, 안 들어가면 다음 줄로 넘긴다. */
+  @media ${t.media.mobile} {
+    align-items: center;
+    gap: ${t.space(2)} ${t.space(3)};
+    padding: ${t.space(2)} ${t.space(4)};
+
+    & > div:first-of-type {
+      flex: 1 1 120px;
+      min-width: 0;
+    }
+    p {
+      margin-top: 0;
+    }
+  }
+`;
+
+// 모바일에서는 바로 위 탭 줄이 같은 이름을 보여 주므로 제목은 화면 읽기용으로만 남긴다.
+const TopTitle = styled(SectionTitle)`
+  @media ${t.media.mobile} {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 `;
 
 const Content = styled.div`
   flex: 1;
-  padding: ${t.space(8)};
+  padding: ${t.space(6)} ${t.space(8)} ${t.space(8)};
   opacity: ${(p) => (p.$dim ? 0.55 : 1)};
   transition: opacity 0.15s ease;
 
-  @media (max-width: 640px) {
-    padding: ${t.space(4)};
+  @media ${t.media.mobile} {
+    padding: ${t.space(3)};
   }
 `;
 
 const Stack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${t.space(6)};
+  gap: ${t.space(4)};
+
+  @media ${t.media.mobile} {
+    gap: ${t.space(3)};
+  }
+`;
+
+const TodayStrip = styled(Card)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: ${t.space(3)} ${t.space(8)};
+  padding: ${t.space(4)} ${t.space(6)};
+
+  @media ${t.media.mobile} {
+    padding: ${t.space(3)} ${t.space(4)};
+  }
+`;
+
+const TodayStats = styled.div`
+  flex: 1 1 480px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: ${t.space(4)};
+
+  @media ${t.media.mobile} {
+    flex-basis: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: ${t.space(1)} ${t.space(4)};
+  }
+`;
+
+const TodayStat = styled.div`
+  span {
+    display: block;
+    font-size: 0.75rem;
+    color: ${t.color.ink2};
+  }
+  strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: ${t.color.ink};
+  }
+
+  /* 모바일은 이름과 값을 한 줄에 둔다. */
+  @media ${t.media.mobile} {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: ${t.space(2)};
+
+    strong {
+      margin-top: 0;
+      font-size: 1rem;
+    }
+  }
+`;
+
+// 일별 추이 제목과 설명을 PC에서는 한 줄로 둔다.
+const TrendHead = styled.div`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: ${t.space(3)};
+
+  p {
+    margin-top: 0;
+  }
+
+  /* 모바일: 제목과 버튼을 한 줄에, 설명은 그 아래 줄에 둔다. */
+  @media ${t.media.mobile} {
+    display: contents;
+
+    h3 {
+      flex: 1;
+    }
+    p {
+      order: 2;
+      flex-basis: 100%;
+    }
+  }
 `;
 
 const Notice = styled.p`
   padding: ${t.space(4)};
+
+  @media ${t.media.mobile} {
+    padding: ${t.space(3)};
+  }
   border: 1px solid ${t.color.border};
   border-radius: ${t.radius.md};
   background: ${t.color.surface};
@@ -1616,7 +1816,7 @@ const TotalsRow = styled.div`
 const Total = styled.div`
   span {
     display: block;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: ${t.color.muted};
   }
   strong {
@@ -1639,6 +1839,11 @@ const SearchBox = styled.div`
   position: relative;
   flex: 1;
   min-width: 200px;
+
+  @media ${t.media.mobile} {
+    flex-basis: 100%;
+    min-width: 0;
+  }
   display: flex;
   align-items: center;
 
@@ -1663,6 +1868,15 @@ const Toggle = styled.button`
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${t.color.series1};
+    outline-offset: 1px;
+  }
+
+  @media ${t.media.mobile} {
+    min-height: ${t.touch};
+  }
 `;
 
 const ResultCount = styled.span`
@@ -1681,8 +1895,18 @@ const LinkTitle = styled.button`
   text-align: left;
 
   &:hover {
-    color: ${t.color.series1};
     text-decoration: underline;
+  }
+  &:focus-visible {
+    outline: 2px solid ${t.color.series1};
+    outline-offset: 2px;
+  }
+
+  @media ${t.media.mobile} {
+    font-size: 0.9375rem;
+    text-decoration: underline;
+    text-decoration-color: ${t.color.grid};
+    text-underline-offset: 3px;
   }
 `;
 
@@ -1691,18 +1915,12 @@ const Actions = styled.div`
   gap: ${t.space(2)};
 `;
 
-const Pager = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${t.space(4)};
-  font-size: 0.8125rem;
-  color: ${t.color.ink2};
-  font-variant-numeric: tabular-nums;
-`;
-
 const ChatRow = styled.div`
   padding: ${t.space(4)} ${t.space(5)};
+
+  @media ${t.media.mobile} {
+    padding: ${t.space(3)} ${t.space(4)};
+  }
   border-bottom: 1px solid ${t.color.grid};
 
   &:last-child {
@@ -1727,23 +1945,26 @@ const ChatName = styled.span`
   color: ${t.color.ink};
 `;
 
+// 13px 이하 글자는 series1(4.30:1)로 쓰지 않는다. 링크임은 밑줄로 알린다.
 const ChatTable = styled.button`
   border: none;
   background: none;
   padding: 0;
   font-family: inherit;
-  font-size: 0.6875rem;
-  color: ${t.color.series1};
+  font-size: 0.75rem;
+  color: ${t.color.ink2};
+  text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 
   &:hover {
-    text-decoration: underline;
+    color: ${t.color.ink};
   }
 `;
 
 const ChatTime = styled.span`
   margin-left: auto;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: ${t.color.muted};
   font-variant-numeric: tabular-nums;
 `;
@@ -1764,6 +1985,10 @@ const Overlay = styled.div`
   justify-content: center;
   padding: ${t.space(5)};
   background: rgba(11, 11, 11, 0.45);
+
+  @media ${t.media.mobile} {
+    padding: ${t.space(3)};
+  }
 `;
 
 const Modal = styled.div`
@@ -1810,7 +2035,7 @@ const MiniStat = styled.div`
 
   span {
     display: block;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: ${t.color.muted};
   }
   strong {

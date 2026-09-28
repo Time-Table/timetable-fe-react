@@ -61,7 +61,7 @@ const click = async (element) => { fireEvent.click(element); await flushUpdates(
 
 const openParticipation = async () => {
   await screen.findByText("123");
-  await click(screen.getByText("3인 참여 달성률", { selector: "div" }));
+  await click(screen.getByText("3인 참여 달성률", { selector: "button" }));
 };
 
 test("참여 달성률은 별도 탭에서만 조회하고 대시보드는 표로 시작한다", async () => {
@@ -75,7 +75,7 @@ test("참여 달성률은 별도 탭에서만 조회하고 대시보드는 표�
   expect(await screen.findByText("75%")).toBeTruthy();
   expect(screen.getByText("종료 · 미달")).toBeTruthy();
   expect(getFunnels.mock.calls.map(([days])=>days)).toEqual([0]);
-  await click(screen.getByText("퍼널 분석", {selector: "div"}));
+  await click(screen.getByText("퍼널 분석", {selector: "button"}));
   await waitFor(()=>expect(getFunnels).toHaveBeenCalledWith(30));
   expect(screen.queryByText("75%")).toBeNull();
 });
@@ -110,7 +110,7 @@ test("월별 추이는 별도 메뉴에서 최근 3개월로 시작하고 기간
     { date: "2026-08-01", todayTableCreateCount: 3 },
   ] });
   render(<ManagerPage />); await flushUpdates();
-  await click(screen.getByText("월별 추이", { selector: "div" }));
+  await click(screen.getByText("월별 추이", { selector: "button" }));
   expect(await screen.findByRole("heading", { name: "월별 테이블 생성 수" })).toBeTruthy();
   const periods = screen.getByRole("group", { name: "월별 추이 기간" });
   expect(within(periods).getByRole("button", { name: "최근 3개월" }).getAttribute("aria-pressed")).toBe("true");
@@ -129,7 +129,7 @@ test("월별 기록의 빈 상태와 조회 실패를 구분하고 재시도한�
   getTrackVisit.mockResolvedValueOnce({ data: [] }).mockResolvedValueOnce("failed")
     .mockResolvedValueOnce({ data: [] });
   render(<ManagerPage />); await flushUpdates();
-  await click(screen.getByText("월별 추이", { selector: "div" }));
+  await click(screen.getByText("월별 추이", { selector: "button" }));
   expect(await screen.findByText("월별 생성 기록을 불러오지 못했습니다.")).toBeTruthy();
   await click(screen.getByRole("button", { name: "다시 조회" }));
   expect(await screen.findByText("아직 기록된 생성 통계가 없습니다.")).toBeTruthy();
@@ -148,7 +148,7 @@ test("KPI 조회 실패를 표시하고 재시도로 회복한다", async () => 
 test("방문 통계가 실패해도 참여 탭은 독립적으로 조회된다",async()=>{
   getTrends.mockResolvedValue(null); render(<ManagerPage />); await flushUpdates();
   expect(await screen.findByText("방문·등록 통계를 불러오지 못했습니다.")).toBeTruthy();
-  await click(screen.getByText("3인 참여 달성률",{selector:"div"}));
+  await click(screen.getByText("3인 참여 달성률",{selector: "button"}));
   expect(await screen.findByText("75%")).toBeTruthy();
 });
 
@@ -177,7 +177,7 @@ test("참여 기간과 대시보드 기간은 탭 이동에도 독립적으로 �
   await openParticipation(); expect(await screen.findByText("17.2%")).toBeTruthy();
   await click(within(screen.getByRole("group",{name:"참여 달성 집계 기간"})).getByRole("button",{name:"30일",exact:true}));
   expect(await screen.findByText("48.6%")).toBeTruthy();
-  await click(screen.getByText("대시보드",{selector:"div"}));
+  await click(screen.getByText("대시보드",{selector: "button"}));
   await openParticipation(); expect(await screen.findByText("48.6%")).toBeTruthy();
   expect(getTrends).not.toHaveBeenCalledWith(0);
 });
@@ -193,7 +193,7 @@ test("전체 보관 표와 기존 카운터를 각 탭에서 보존한다",async
 
 test("블로그 조회가 0건이어도 글별 목록을 보여주고 전체 기간의 기록 한계를 알린다", async () => {
   render(<ManagerPage />); await flushUpdates();
-  await click(screen.getByText("블로그", { selector: "div" }));
+  await click(screen.getByText("블로그", { selector: "button" }));
   expect(await screen.findByRole("heading", { name: "글별 조회" })).toBeTruthy();
   expect(screen.getByRole("table")).toBeTruthy();
   expect(screen.queryByText(/전환 기록은 최근 180일까지만 보관됩니다/)).toBeNull();
@@ -208,7 +208,7 @@ const localTable = { tableId: "local-delete-target", title: "로컬 삭제 검�
 const openTableDeletion = async () => {
   getAllTables.mockResolvedValue({ data: [localTable] });
   render(<ManagerPage />); await flushUpdates();
-  await click(screen.getByText("테이블 관리", { selector: "div" }));
+  await click(screen.getByText("테이블 관리", { selector: "button" }));
   await screen.findByText(localTable.title);
   await click(screen.getByRole("button", { name: "삭제" }));
 };

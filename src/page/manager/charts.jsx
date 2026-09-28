@@ -166,7 +166,8 @@ export const TrendChart = ({ series, valueKey, color = t.color.series1, label })
 export const MonthlyBarChart = ({ series }) => {
   const wrapRef = useRef(null);
   const width = useWidth(wrapRef);
-  const chartWidth = Math.max(width, series.length * 44 + 88, 320);
+  // 모바일 카드 안쪽 폭(약 310px)보다 크게 잡으면 3개월만 봐도 가로 스크롤이 생긴다.
+  const chartWidth = Math.max(width, series.length * 44 + 88, 280);
   const top = 32;
   const bottom = 52;
   const left = 64;
@@ -191,7 +192,7 @@ export const MonthlyBarChart = ({ series }) => {
               <line x1={left} x2={chartWidth - right} y1={y(tick)} y2={y(tick)}
                 stroke={t.color.grid} strokeWidth="1" />
               <text x={left - 12} y={y(tick) + 4} textAnchor="end"
-                fill={t.color.muted} fontSize="11">{tick.toLocaleString()}</text>
+                fill={t.color.muted} fontSize="12">{tick.toLocaleString()}</text>
             </g>
           ))}
           <rect x={left} y={top} width={plotWidth} height={plotHeight}
@@ -211,17 +212,17 @@ export const MonthlyBarChart = ({ series }) => {
                   {row.count.toLocaleString()}
                 </text>
                 <text x={x + barWidth / 2} y={top + plotHeight + 22}
-                  textAnchor="middle" fill={t.color.muted} fontSize="11">
+                  textAnchor="middle" fill={t.color.muted} fontSize="12">
                   {label}
                 </text>
               </g>
             );
           })}
           <text x={left + plotWidth / 2} y={height - 6} textAnchor="middle"
-            fill={t.color.ink2} fontSize="11">생성 월 (한국시간)</text>
+            fill={t.color.ink2} fontSize="12">생성 월 (한국시간)</text>
           <text x="18" y={top + plotHeight / 2} textAnchor="middle"
             transform={`rotate(-90 18 ${top + plotHeight / 2})`}
-            fill={t.color.ink2} fontSize="11">생성 수 (개)</text>
+            fill={t.color.ink2} fontSize="12">생성 수 (개)</text>
         </svg>
       )}
     </MonthlyChartScroll>
@@ -265,7 +266,7 @@ const ChartWrap = styled.div`
   }
   .tick {
     fill: ${t.color.muted};
-    font-size: 10px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
   rect {
@@ -294,7 +295,7 @@ const Tooltip = styled.div`
   border-radius: ${t.radius.sm};
   background: ${t.color.sidebar};
   color: ${t.color.onDark};
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   pointer-events: none;
   box-shadow: ${t.shadow.raised};
@@ -351,6 +352,7 @@ const BarValue = styled.span`
 
   small {
     margin-left: ${t.space(2)};
+    font-size: 0.75rem;
     font-weight: 400;
     color: ${t.color.muted};
   }

@@ -62,3 +62,26 @@ export const getInquiries = async (limit = 100) => {
     return { error: "failed" };
   }
 };
+
+/**
+ * 문의 상태 변경·삭제. 실패하면 { error }를 돌려준다.
+ * 404는 두 가지다: 라우트가 없으면(BE 미배포) Express 기본 응답이라 success 필드가 없고,
+ * 문의가 이미 지워졌으면 컨트롤러가 { success: false }를 준다.
+ */
+const writeInquiry = async (request) => {
+  try {
+    const res = await request();
+    return res?.success ? res : { error: "failed" };
+  } catch (error) {
+    const { status, data } = error.response || {};
+    if (status === 404) return { error: data?.success === false ? "notFound" : "notDeployed" };
+    console.error("/api/admin/inquiries write error: ", error.response);
+    return { error: "failed" };
+  }
+};
+
+export const updateInquiryStatus = (id, status) =>
+  writeInquiry(() => axios.patch(`/api/admin/inquiries/${encodeURIComponent(id)}`, { status }));
+
+export const deleteInquiry = (id) =>
+  writeInquiry(() => axios.delete(`/api/admin/inquiries/${encodeURIComponent(id)}`));

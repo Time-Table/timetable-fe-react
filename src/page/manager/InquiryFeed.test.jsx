@@ -1,8 +1,14 @@
-import { fireEvent, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import Swal from "sweetalert2";
 import InquiryFeed from "./InquiryFeed";
-import { getInquiries } from "../../api/admin";
+import { getInquiries, updateInquiryStatus, deleteInquiry } from "../../api/admin";
 
-jest.mock("../../api/admin", () => ({ getInquiries: jest.fn() }));
+jest.mock("../../api/admin", () => ({
+  getInquiries: jest.fn(),
+  updateInquiryStatus: jest.fn(),
+  deleteInquiry: jest.fn(),
+}));
+jest.mock("sweetalert2", () => ({ fire: jest.fn() }));
 // 설치된 testing-library와 React 18.3의 act API를 맞춘다.
 jest.mock("react-dom/test-utils", () => ({
   ...jest.requireActual("react-dom/test-utils"),
@@ -78,4 +84,77 @@ test("전체보다 적게 불러왔으면 일부만 표시한다고 알려 준�
   getInquiries.mockResolvedValue({ total: 250, inquiries: [inquiry] });
   await renderFeed();
   expect(screen.getByText(/최근 1건만 표시합니다/)).toBeInTheDocument();
+});
+
+const flush = () => act(async () => { await Promise.resolve(); });
+const statusOf = (summary = inquiry.summary) => screen.getByRole("combobox", { name: `처리 상태: ${summary}` });
+
+test("상태가 없는 옛 문의는 새 문의로 보이고, 고른 상태를 저장한다", async () => {
+  getInquiries.mockResolvedValue({ total: 1, inquiries: [inquiry] });
+  updateInquiryStatus.mockResolvedValue({ success: true, data: { id: "1", status: "planned" } });
+  await renderFeed();
+
+  expect(statusOf()).toHaveValue("new");
+  expect([...statusOf().options].map((o) => o.textContent)).toEqual(["새 문의", "예정", "완료", "보류", "무시"]);
+  fireEvent.change(statusOf(), { target: { value: "planned" } });
+  await flush();
+  expect(updateInquiryStatus).toHaveBeenCalledWith("1", "planned");
+  expect(statusOf()).toHaveValue("planned");
+});
+
+test("상태 저장에 실패하면 이전 상태로 되돌리고 이유를 알린다", async () => {
+  getInquiries.mockResolvedValue({ total: 1, inquiries: [{ ...inquiry, status: "onHold" }] });
+  updateInquiryStatus.mockResolvedValue({ error: "notDeployed" });
+  await renderFeed();
+
+  fireEvent.change(statusOf(), { target: { value: "done" } });
+  await flush();
+  expect(statusOf()).toHaveValue("onHold");
+  expect(screen.getByRole("alert")).toHaveTextContent("백엔드부터 배포하세요");
+});
+
+test("삭제는 확인한 뒤에만 요청하고, 성공하면 목록과 전체 건수에서 뺀다", async () => {
+  const second = { ...inquiry, id: "2", summary: "다른 문의" };
+  getInquiries.mockResolvedValue({ total: 300, inquiries: [inquiry, second] });
+  deleteInquiry.mockResolvedValue({ success: true });
+  await renderFeed();
+
+  Swal.fire.mockResolvedValueOnce({ isConfirmed: false });
+  fireEvent.click(screen.getByRole("button", { name: `문의 삭제: ${inquiry.summary}` }));
+  await flush();
+  expect(Swal.fire.mock.calls[0][0].text).toContain("복구할 수 없습니다");
+  expect(deleteInquiry).not.toHaveBeenCalled();
+
+  Swal.fire.mockResolvedValueOnce({ isConfirmed: true });
+  fireEvent.click(screen.getByRole("button", { name: `문의 삭제: ${inquiry.summary}` }));
+  await flush();
+  expect(deleteInquiry).toHaveBeenCalledWith("1");
+  expect(screen.queryByText(inquiry.summary)).not.toBeInTheDocument();
+  expect(screen.getByText("다른 문의")).toBeInTheDocument();
+  expect(screen.getByText(/전체 299건/)).toBeInTheDocument();
+});
+
+test("삭제에 실패하면 목록에 남기고 이유를 알린다", async () => {
+  getInquiries.mockResolvedValue({ total: 1, inquiries: [inquiry] });
+  deleteInquiry.mockResolvedValue({ error: "failed" });
+  Swal.fire.mockResolvedValue({ isConfirmed: true });
+  await renderFeed();
+
+  fireEvent.click(screen.getByRole("button", { name: `문의 삭제: ${inquiry.summary}` }));
+  await flush();
+  expect(screen.getByText(inquiry.summary)).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("저장하지 못했습니다");
+});
+
+test("문의는 10건씩 나눠 보여 주고 다음 쪽으로 넘길 수 있다", async () => {
+  const many = Array.from({ length: 12 }, (_, i) => ({ ...inquiry, id: String(i), summary: `문의 ${i + 1}` }));
+  getInquiries.mockResolvedValue({ total: 12, inquiries: many });
+  await renderFeed();
+
+  expect(screen.getByText("문의 10")).toBeInTheDocument();
+  expect(screen.queryByText("문의 11")).not.toBeInTheDocument();
+  expect(screen.getByText("1 / 2")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "다음" }));
+  expect(screen.getByText("문의 11")).toBeInTheDocument();
+  expect(screen.queryByText("문의 1")).not.toBeInTheDocument();
 });

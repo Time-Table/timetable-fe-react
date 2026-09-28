@@ -19,7 +19,9 @@ const tokens = {
     // 잉크
     ink: "#0b0b0b",
     ink2: "#52514e",
-    muted: "#898781",
+    // 보조 글자. 2026-09-28 #898781(surface 3.50:1)에서 AA를 넘는 값으로 낮췄다.
+    // surface 5.03 · bg 4.90 · surfaceSunken 4.58:1.
+    muted: "#6f6d68",
     onDark: "#ffffff",
     onDarkMuted: "#c3c2b7",
 
@@ -33,6 +35,9 @@ const tokens = {
     series2: "#eb6834",
     series3: "#1baf7a",
 
+    // 주 버튼 바탕. series1에 흰 글자는 4.42:1이라 AA 미달이어서 한 단계 어둡게 둔다(흰 글자 4.92:1).
+    accent: "#2470cc",
+
     // 상태 (계열색과 겹치지 않음. 항상 아이콘/라벨과 함께 쓸 것)
     good: "#0ca30c",
     goodText: "#006300",
@@ -41,6 +46,15 @@ const tokens = {
   },
 
   radius: { sm: "6px", md: "10px", lg: "14px" },
+
+  // 화면 폭 기준. compact는 사이드바 대신 위쪽 탭 줄, mobile은 표를 카드로 바꾸고 설명을 접는다.
+  media: {
+    compact: "(max-width: 1023px)",
+    mobile: "(max-width: 640px)",
+  },
+
+  // 모바일 터치 최소 크기
+  touch: "44px",
 
   // 4px 리듬
   space: (n) => `${n * 4}px`,

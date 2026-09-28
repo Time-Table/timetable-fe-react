@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { FiArrowUpRight, FiArrowDownRight, FiMinus } from "react-icons/fi";
 import t from "./tokens";
 
-const compact = (value) => {
+export const formatStat = (value) => {
   if (value === null || value === undefined) return "—";
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 10_000) return `${(value / 1000).toFixed(1)}K`;
@@ -26,7 +26,7 @@ const StatTile = ({ label, value, delta, deltaLabel, higherIsBetter = true, hint
   return (
     <Tile>
       <Label>{label}</Label>
-      <Value>{compact(value)}</Value>
+      <Value>{formatStat(value)}</Value>
       {showComparison && <Foot>
         {hasDelta ? (
           <Delta $tone={flat ? "flat" : good ? "good" : "bad"}>
@@ -51,7 +51,12 @@ const Tile = styled.div`
   border: 1px solid ${t.color.border};
   border-radius: ${t.radius.lg};
   box-shadow: ${t.shadow.card};
-  padding: ${t.space(5)};
+  padding: ${t.space(4)} ${t.space(5)};
+
+  @media ${t.media.mobile} {
+    min-width: 0;
+    padding: ${t.space(3)} ${t.space(4)};
+  }
 `;
 
 const Label = styled.p`
@@ -62,20 +67,25 @@ const Label = styled.p`
 
 /* 큰 숫자는 비례 자간(기본값)을 쓴다. tabular-nums는 표에서만. */
 const Value = styled.p`
-  margin-top: ${t.space(2)};
+  margin-top: ${t.space(1)};
   font-size: 1.75rem;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: ${t.color.ink};
+
+  @media ${t.media.mobile} {
+    margin-top: ${t.space(1)};
+    font-size: 1.375rem;
+  }
 `;
 
 const Foot = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${t.space(2)};
-  margin-top: ${t.space(3)};
+  gap: ${t.space(1)} ${t.space(2)};
+  margin-top: ${t.space(2)};
 `;
 
 const Delta = styled.span`
@@ -90,13 +100,13 @@ const Delta = styled.span`
 `;
 
 const Compare = styled.span`
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: ${t.color.muted};
 `;
 
 const Hint = styled.p`
   margin-top: ${t.space(2)};
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   line-height: 1.5;
   color: ${t.color.muted};
 `;

@@ -3,6 +3,7 @@ import styled from "@emotion/styled";
 import { FiChevronDown, FiAlertCircle } from "react-icons/fi";
 import t from "./tokens";
 import { Card, CardTitle, CardSubtitle } from "./ui";
+import Explain from "./Explain";
 
 /**
  * 퍼널 하나를 단계별 막대로 보여준다.
@@ -37,10 +38,14 @@ const FunnelCard = ({ funnel, startDate }) => {
         </Summary>
       </Head>
 
-      <Meaning>
-        {funnel.meaning}
-        {!isMaturity && " 각 막대는 해당 줄까지의 행동이 모두 기록된 브라우저 수입니다. 표시 순서는 실제 행동 순서가 아닙니다."}
-      </Meaning>
+      <MeaningWrap>
+        <Explain label="이 퍼널 읽는 법">
+          <Meaning>
+            {funnel.meaning}
+            {!isMaturity && " 각 막대는 해당 줄까지의 행동이 모두 기록된 브라우저 수입니다. 표시 순서는 실제 행동 순서가 아닙니다."}
+          </Meaning>
+        </Explain>
+      </MeaningWrap>
 
       {funnel.entered === 0 ? (
         <EmptyNote>
@@ -130,6 +135,11 @@ const Head = styled.div`
   gap: ${t.space(5)};
   flex-wrap: wrap;
   padding-bottom: ${t.space(4)};
+
+  @media ${t.media.mobile} {
+    gap: ${t.space(3)};
+    padding-bottom: ${t.space(3)};
+  }
   border-bottom: 1px solid ${t.color.border};
 `;
 
@@ -143,9 +153,16 @@ const Summary = styled.div`
   text-align: right;
   flex-shrink: 0;
 
+  @media ${t.media.mobile} {
+    display: flex;
+    align-items: baseline;
+    gap: ${t.space(2)};
+    text-align: left;
+  }
+
   span {
     display: block;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: ${t.color.muted};
   }
   strong {
@@ -156,8 +173,11 @@ const Summary = styled.div`
   }
 `;
 
+const MeaningWrap = styled.div`
+  margin: ${t.space(3)} 0 ${t.space(5)};
+`;
+
 const Meaning = styled.p`
-  margin: ${t.space(4)} 0 ${t.space(6)};
   padding: ${t.space(3)} ${t.space(4)};
   background: ${t.color.surfaceSunken};
   border-left: 2px solid ${t.color.series1};
@@ -210,6 +230,7 @@ const StepValue = styled.span`
 
   small {
     margin-left: ${t.space(2)};
+    font-size: 0.75rem;
     font-weight: 400;
     color: ${t.color.muted};
   }
@@ -236,7 +257,7 @@ const Connector = styled.div`
   align-items: center;
   gap: ${t.space(1)};
   padding: ${t.space(2)} 0 ${t.space(2)} ${t.space(2)};
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: ${(p) => (p.$warn ? t.color.critical : t.color.muted)};
 
   span {
@@ -254,9 +275,10 @@ const Badge = styled.span`
   margin-left: ${t.space(1)};
   padding: 2px ${t.space(2)};
   border-radius: 999px;
-  background: ${t.color.critical}14;
+  background: ${t.color.surface};
+  border: 1px solid ${t.color.critical}40;
   color: ${t.color.critical};
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
 `;
 
@@ -281,15 +303,16 @@ const Detail = styled.div`
     border-top: 1px solid ${t.color.grid};
     color: ${t.color.ink2};
 
+    /* warning(1.79:1)은 아이콘으로도 안 보인다. Notice와 같이 critical을 쓴다. */
     svg {
       flex-shrink: 0;
       margin-top: 3px;
-      color: ${t.color.warning};
+      color: ${t.color.critical};
     }
   }
 
   .note {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: ${t.color.muted};
   }
 `;

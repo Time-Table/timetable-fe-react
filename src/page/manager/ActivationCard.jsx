@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { Card, CardTitle, CardSubtitle, Grid, Tag, Button, Segmented, SegmentedItem } from "./ui";
 import StatTile from "./StatTile";
+import Explain from "./Explain";
 import t from "./tokens";
 
 const date = (value) => value ? new Date(value).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }) : null;
@@ -48,14 +49,18 @@ export default function ActivationCard({ report, loading = false, failed = false
         </Tag>
       </Header>
       {periodPicker}
-      <Copy>
-        생성자를 포함해 서로 다른 이름 3명 이상이 표 생성부터 마감까지 참여 등록한 표를 셉니다.
-        시간 입력 여부와 관계없이 현재 표와 과거 표를 함께 집계합니다.
-      </Copy>
+      <ExplainGap>
+        <Explain label="집계 정의">
+          <Copy>
+            생성자를 포함해 서로 다른 이름 3명 이상이 표 생성부터 마감까지 참여 등록한 표를 셉니다.
+            시간 입력 여부와 관계없이 현재 표와 과거 표를 함께 집계합니다.
+          </Copy>
+        </Explain>
+      </ExplainGap>
       {report.asOf && <Copy>집계 기준: {new Date(report.asOf).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false })} (한국시간)</Copy>}
       {!partial && ended.total === 0 && <Copy role="status">선택 기간에 종료된 집계 대상 표가 없습니다.</Copy>}
       <Period>{range}에 종료된 표</Period>
-      <Grid $min="180px">
+      <Grid $min="180px" $mobileCols={2}>
         <StatTile showComparison={false} label="전체 보관 표" value={quality.existingTables}
           hint={`전체 기간 · 관리자 제외 ${quality.excludedAdminTables}개 · 기간 오류 ${quality.invalidTables}개`} />
         <StatTile showComparison={false} label="종료된 표의 달성률" value={partial ? "—" : rate}
@@ -74,18 +79,22 @@ export default function ActivationCard({ report, loading = false, failed = false
       {!compact && <>
       <Copy>달성한 표와 미달성 표의 합계가 선택 기간의 평가 대상입니다.</Copy>
       <SubTitle>진행 중인 표 · 전체 보관 기간</SubTitle>
-      <Grid $min="180px">
+      <Grid $min="180px" $mobileCols={2}>
         <StatTile showComparison={false} label="이미 달성" value={ongoing.achieved} hint="종료 전이므로 위 비율에서 제외" />
         <StatTile showComparison={false} label="아직 미달" value={ongoing.notAchieved} hint="마감 전 추가 참여 가능" />
         <StatTile showComparison={false} label="진행 중 전체" value={ongoing.total} hint="마감 전이므로 달성률 분모에서 제외" />
       </Grid>
       </>}
       {compact && partial && <Copy>수집 공백이 있어 비율을 숨겼습니다. 상세에서 누락 범위를 확인해 주세요.</Copy>}
-      <Copy>
-        과거·현재 모두 현재 남아 있는 표와 참여 기록으로 판단합니다.
-        참여 취소·표 삭제·기간 수정에 따라 과거 수치도 변경됩니다. 삭제된 표와 취소한 참여자는 제외합니다.
-        같은 표의 같은 이름은 한 명으로 세며, 실제 인원 확인이나 시간 입력 완료·약속 확정을 뜻하지 않습니다.
-      </Copy>
+      <ExplainGap>
+        <Explain label="해석할 때 주의">
+          <Copy>
+            과거·현재 모두 현재 남아 있는 표와 참여 기록으로 판단합니다.
+            참여 취소·표 삭제·기간 수정에 따라 과거 수치도 변경됩니다. 삭제된 표와 취소한 참여자는 제외합니다.
+            같은 표의 같은 이름은 한 명으로 세며, 실제 인원 확인이나 시간 입력 완료·약속 확정을 뜻하지 않습니다.
+          </Copy>
+        </Explain>
+      </ExplainGap>
       {compact ? <Button onClick={onDetails}>참여 달성 상세 보기</Button> : <Details>
         <summary>집계 범위와 데이터 품질</summary>
         <Copy>
@@ -126,6 +135,13 @@ const Copy = styled.p`
   line-height: 1.7;
   overflow-wrap: anywhere;
 `;
+const ExplainGap = styled.div`
+  margin-top: ${t.space(3)};
+
+  p:first-of-type {
+    margin-top: 0;
+  }
+`;
 const Period = styled.p`
   margin: ${t.space(5)} 0 ${t.space(3)};
   color: ${t.color.ink2};
@@ -143,5 +159,10 @@ const Details = styled.details`
   padding-top: ${t.space(4)};
   color: ${t.color.ink2};
   font-size: 0.8125rem;
-  summary { cursor: pointer; }
+  summary {
+    cursor: pointer;
+    @media ${t.media.mobile} {
+      padding: ${t.space(2)} 0;
+    }
+  }
 `;
