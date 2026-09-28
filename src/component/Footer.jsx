@@ -1,11 +1,15 @@
 import React from "react";
 import styled from "@emotion/styled";
 import theme from "../theme";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 
 const Footer = () => {
   const email = "timetable2official@gmail.com";
+  const location = useLocation();
+  // /contact의 문의 모달이 "어느 페이지에서 눌렀는지"를 함께 보낼 수 있게 지금 경로를 넘긴다.
+  // 이미 /contact라면 처음 넘겨받은 경로를 유지한다.
+  const contactFrom = location.pathname === "/contact" ? location.state?.from : location.pathname;
 
   const handleContactClick = (e) => {
     e.preventDefault();
@@ -73,7 +77,7 @@ const Footer = () => {
           </LinkGroup>
           <LinkGroup>
             <h4>고객지원</h4>
-            <Link to="/contact">문의하기</Link>
+            <Link to="/contact" state={{ from: contactFrom }}>문의하기</Link>
             <a href="#contact" onClick={handleContactClick}>이메일 Q&A</a>
           </LinkGroup>
         </FooterLinks>

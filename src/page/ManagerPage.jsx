@@ -19,6 +19,7 @@ import {
   FiTable,
   FiBookOpen,
   FiAlertCircle,
+  FiMail,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -61,6 +62,7 @@ import {
 import StatTile from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
+import InquiryFeed from "./manager/InquiryFeed";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
 import { createRequestSequence } from "./manager/latestRequest";
 import { monthlyCreationSeries } from "./manager/monthlyTrend";
@@ -84,6 +86,7 @@ const TABS = [
   { key: "blog", label: "블로그", icon: FiBookOpen, scoped: true },
   { key: "tables", label: "테이블 관리", icon: FiLayers, scoped: false },
   { key: "chats", label: "채팅 모니터링", icon: FiMessageSquare, scoped: false },
+  { key: "inquiries", label: "문의함", icon: FiMail, scoped: false },
 ];
 
 const PERIODS = [
@@ -525,6 +528,7 @@ const ManagerPage = () => {
               {activeTab === "blog" && "어떤 글이 읽히고, 읽은 사람이 서비스까지 오는지"}
               {activeTab === "tables" && `전체 ${tables.length.toLocaleString()}개`}
               {activeTab === "chats" && `전체 메시지 ${chatFeed?.total?.toLocaleString() || 0}건`}
+              {activeTab === "inquiries" && "문의하기 양식으로 들어온 문의 · 10년 보관"}
             </SectionCaption>
           </div>
 
@@ -1232,6 +1236,9 @@ const ManagerPage = () => {
                   </Card>
                 </Stack>
               )}
+
+              {/* ------------------------------------------------ 문의함 */}
+              {activeTab === "inquiries" && <InquiryFeed onOpenTable={openDetail} />}
             </>
           )}
         </Content>

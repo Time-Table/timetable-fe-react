@@ -13,6 +13,7 @@ const color = {
      primarySurfaceHover: "#FFE6E6", // primarySurface 위 hover 한 단계
      appSurface: "#F8F9FA", // 화면 바탕 (/table 의 PageWrapper 와 같은 값)
      surface: "#FFFFFF", // 카드·입력의 기본 표면. 리터럴 white 대신 이 토큰을 쓴다.
+     scrim: "rgba(26, 26, 26, 0.45)", // 모달 뒤를 덮는 반투명 막 (gamma[100] 45%)
 
      // 토요일 색. 색만으로 주말을 말하지 않는다 — 헤더에 '토' 글자가 이미 있고
      // 색은 그 위에 얹는 보강 채널이다. 일요일은 브랜드색을 쓴다.

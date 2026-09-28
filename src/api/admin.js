@@ -50,3 +50,15 @@ export const getBlogStats = async (days) => {
     return { error: "failed" };
   }
 };
+
+/** 문의함. 최신순 { total, inquiries }. 실패와 BE 미배포(404)를 구분한다. */
+export const getInquiries = async (limit = 100) => {
+  try {
+    const res = await axios.get("/api/admin/inquiries", { params: { limit } });
+    return res?.data || { error: "failed" };
+  } catch (error) {
+    if (error.response?.status === 404) return { error: "notDeployed" };
+    console.error("/api/admin/inquiries error: ", error.response);
+    return { error: "failed" };
+  }
+};

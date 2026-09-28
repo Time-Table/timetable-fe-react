@@ -5,14 +5,19 @@ import Swal from "sweetalert2";
 import { IoHelpCircleOutline } from "react-icons/io5";
 import { useNavigate, useLocation } from "react-router-dom";
 import { trackEvent, EVENTS } from "../utils/analytics";
+import InquiryModal from "./InquiryModal";
+import { readFromPath } from "../page/contact/inquiry";
 
 export default function Header() {
      const email = "timetable2official@gmail.com";
      const navigate = useNavigate();
+     const location = useLocation();
      // 랜딩(`/`)에서만 버튼을 단색으로 그린다(2026-09-27 새 랜딩 채택). 다른 페이지는 아직 기존 모양이다.
-     const isFlatCta = useLocation().pathname === "/";
+     const isFlatCta = location.pathname === "/";
 
      const [isScrolled, setIsScrolled] = useState(false);
+     // 문의는 페이지로 넘어가지 않고 모달에서 바로 보낸다.
+     const [inquiryOpen, setInquiryOpen] = useState(false);
 
      useEffect(() => {
           const handleScroll = () => {
@@ -45,43 +50,11 @@ export default function Header() {
                },
           });
      };
-     const handleContactClick = () => {
-          Swal.fire({
-               icon: "success",
-               iconColor: `${theme.color.primary}`,
-               title: "문의하기",
-               html: `사용 중 불편을 드렸다면 죄송합니다.<br>메일 보내주시면 확인 후 답변드리겠습니다.<br>감사합니다.<br><br><strong>${email}</strong>`,
-               confirmButtonText: "메일 복사",
-               confirmButtonColor: `${theme.color.button.blue}`,
-               showCancelButton: true,
-               cancelButtonText: "취소",
-               cancelButtonColor: `${theme.text.gamma[800]}`,
-               preConfirm: () => {
-                    return navigator.clipboard
-                         .writeText(email)
-                         .then(() => {
-                              Swal.fire({
-                                   icon: "success",
-                                   iconColor: `${theme.color.button.blue}`,
-                                   title: "메일 주소 복사됨",
-                                   text: "메일 주소가 클립보드에 복사되었습니다.",
-                                   showConfirmButton: false,
-                                   timer: 1700,
-                              });
-                         })
-                         .catch(() => {
-                              Swal.fire({
-                                   icon: "error",
-                                   iconColor: `${theme.color.primary}`,
-                                   title: "복사 실패",
-                                   text: "메일 주소를 복사하는 중 문제가 발생했습니다. 직접 복사해주세요.",
-                                   showConfirmButton: false,
-                                   timer: 2000,
-                              });
-                         });
-               },
-          });
-     };
+     // 문의를 누른 페이지. /contact에서 열었다면 그 페이지가 넘겨받은 경로를 쓴다.
+     const inquiryFrom =
+          location.pathname === "/contact"
+               ? readFromPath(location.state) || location.pathname
+               : location.pathname;
      const handleCreateClick = () => {
           trackEvent(EVENTS.CREATE_CTA_CLICK, undefined, "quick_create");
           navigate("/quick-create");
@@ -103,10 +76,17 @@ export default function Header() {
                          <IconButton onClick={handleHelpClick} aria-label="사이트 정보">
                               <IoHelpCircleOutline />
                          </IconButton>
-                         <ContactButton onClick={handleContactClick} />
+                         <ContactButton onClick={() => setInquiryOpen(true)} />
                          <PrimaryButton $flat={isFlatCta} onClick={handleCreateClick}>새 테이블</PrimaryButton>
                     </ActionContainer>
                </HeaderContainer>
+               {inquiryOpen && (
+                    <InquiryModal
+                         contactEmail={email}
+                         fromPath={inquiryFrom}
+                         onClose={() => setInquiryOpen(false)}
+                    />
+               )}
           </HeaderWrapper>
      );
 }
