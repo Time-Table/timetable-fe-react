@@ -25,6 +25,9 @@ export default function TimeGrid({
   // 요일·날짜 줄을 붙여 둘 위치(CSS 길이). 넘기면 시간을 아래로 내려도 그 줄이 화면 위에 남는다.
   // 넘기지 않으면 예전처럼 같이 스크롤된다(랜딩·빠른 생성 화면).
   stickyHeaderTop,
+  // 요일 글자를 랜딩 후보 날짜 달력처럼 토요일 파랑, 일요일 빨강으로 칠한다. 후보가 아닌 날은 칠하지 않는다.
+  // 넘기지 않으면 모두 회색이다(랜딩·빠른 생성의 잠금 칸).
+  weekendColors = false,
 }) {
   const gridRef = useRef(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -309,7 +312,7 @@ export default function TimeGrid({
       year: "numeric",
       timeZone: "UTC",
     });
-    return { day, weekday, monthYear };
+    return { day, weekday, dayOfWeek: date.getUTCDay(), monthYear };
   };
   const { monthYear } = formatDate(currentWeek[0] || new Date().toISOString());
 
@@ -383,8 +386,10 @@ export default function TimeGrid({
           <HeaderRow>
             <EmptyCell $stickyTop={stickyHeaderTop} />
             {currentWeek.map((date) => {
-              const { day, weekday } = formatDate(date);
+              const { day, weekday, dayOfWeek } = formatDate(date);
               const isToday = date === todayDateString;
+              const weekdayColor =
+                weekendColors && dates.includes(date) ? WEEKEND_COLOR[dayOfWeek] : undefined;
               return (
                 <HeaderCell
                   key={date}
@@ -395,7 +400,7 @@ export default function TimeGrid({
                   $isHighlighted={!!(readOnly && selectedDate && date === selectedDate)}
                   $stickyTop={stickyHeaderTop}
                 >
-                  <WeekdayBox>{weekday}</WeekdayBox>
+                  <WeekdayBox $color={weekdayColor}>{weekday}</WeekdayBox>
                   <DayBox $isToday={isToday}>{day}</DayBox>
                 </HeaderCell>
               );
@@ -673,10 +678,15 @@ const HeaderCell = styled.div`
       `}
     `}
 `;
+// 랜딩 후보 날짜 달력(StartPage의 DayHeadButton)과 같은 색. 키는 getUTCDay() 값(0 = 일, 6 = 토)이다.
+const WEEKEND_COLOR = {
+  0: theme.color.primaryText,
+  6: theme.color.weekdaySat,
+};
 const WeekdayBox = styled.div`
   font-family: "Pretendard-Regular";
   font-size: 13px;
-  color: ${theme.text.gamma[500]};
+  color: ${(props) => props.$color || theme.text.gamma[500]};
 `;
 const DayBox = styled.div`
   display: flex;

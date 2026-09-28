@@ -170,6 +170,7 @@ export default function PersonalSchedule({
                          banedCells={banedCells}
                          bgTimeInfo={bgTimeInfo}
                          stickyHeaderTop={stickyHeaderTop}
+                         weekendColors
                     />
                     <SaveButton
                          onClick={handleSave}

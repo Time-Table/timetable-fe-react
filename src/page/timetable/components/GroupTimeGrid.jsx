@@ -193,6 +193,7 @@ export default function GroupTimeGrid({
         onCellClick={handleCellClick}
         selectedCellKey={selectedCell?.time}
         stickyHeaderTop={stickyHeaderTop}
+        weekendColors
       />
 
       {selectedCell && createPortal(
