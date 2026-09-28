@@ -52,6 +52,16 @@ export const buildDatesAfter = (from, count) => {
 };
 
 /**
- * 내일부터 한 주치. 오늘을 넣지 않는 이유: 오늘 잡는 약속을 조율할 일은 거의 없다.
+ * 오늘부터 한 주치(2026-09-28 사용자 지시로 오늘 포함). 오늘의 이미 지난 시간도 막지 않는다.
+ *
+ * 오늘을 더하고도 7일로 두는 이유: 후보 날짜는 주 단위로 늘리고 줄인다.
+ * 그 대신 기본 표의 마지막 날이 하루 당겨져 3인 참여 지표의 마감도 하루 빨라진다(STATE.md에 변경일 기록).
  */
-export const buildDefaultDates = () => buildDatesAfter(new Date(), DAYS_PER_WEEK);
+export const buildDefaultDates = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return [
+    { key: formatDateKey(today), date: today, selected: true },
+    ...buildDatesAfter(today, DAYS_PER_WEEK - 1),
+  ];
+};

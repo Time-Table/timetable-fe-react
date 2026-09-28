@@ -206,7 +206,7 @@ const formatDayShort = (date) =>
  *   /table 화면 안내 문구(TimetablePage)와 이용 가이드(GuidePage)
  * - 골든타임 1~3위: /table 순위 탭 안내 문구
  * - 시간 잠금: 이 페이지의 확인 창
- * - 후보 날짜 기본값(내일부터 7일)·1~8주 조절·날짜 켜고 끄기: presets.js·이 페이지 달력
+ * - 후보 날짜 기본값(오늘부터 7일)·1~8주 조절·날짜 켜고 끄기: presets.js·이 페이지 달력
  * - 공유 창·복사: 이 페이지 완료 창(휴대폰은 공유 창, 컴퓨터는 복사가 주 버튼)
  * 동작이 바뀌면 여기도 같이 고친다.
  * 질문 문구는 이 페이지가 맡은 검색어(약속 시간 정하기·언제 만날까, specs/seo-strategy.md)를 자연스럽게 담는다.
@@ -218,7 +218,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "언제 만날지 아직 못 정했을 때도 쓸 수 있나요?",
-    a: "네. '언제 만날까'부터 정해야 할 때 쓰는 도구입니다. 후보 날짜를 여러 날 고르면 됩니다. 기본은 내일부터 7일이고, 1주에서 8주까지 늘리거나 줄이며 날짜를 하나씩 켜고 끌 수 있습니다. 참여자가 각자 가능한 시간을 표시하면 가장 많이 겹치는 시간을 골든타임으로 추천합니다.",
+    a: "네. '언제 만날까'부터 정해야 할 때 쓰는 도구입니다. 후보 날짜를 여러 날 고르면 됩니다. 기본은 오늘부터 7일이고, 1주에서 8주까지 늘리거나 줄이며 날짜를 하나씩 켜고 끌 수 있습니다. 참여자가 각자 가능한 시간을 표시하면 가장 많이 겹치는 시간을 골든타임으로 추천합니다.",
   },
   {
     q: "참여자는 가능한 시간을 어떻게 입력하나요?",
@@ -571,7 +571,7 @@ export default function StartPage() {
   }, [goldenKey, isCompact]);
 
   /**
-   * 첫 주에 후보가 하루뿐이면(예: 토요일에 열면 내일인 일요일 한 칸) 격자가 비어 보인다.
+   * 첫 주에 후보가 하루뿐이면(예: 일요일에 열면 오늘인 일요일 한 칸) 격자가 비어 보인다.
    * 골든타임이 있는 주를 먼저 보여준다. 사용자가 주를 넘긴 뒤에는 골든타임이 옮겨갈 때만 다시 맞춘다.
    */
   const goldenWeekIndex = mock?.golden
@@ -1461,7 +1461,7 @@ export default function StartPage() {
                     {dates.map((d, i) => {
                       const dow = d.date.getDay();
                       const tag =
-                        i === 0 ? "내일" : d.date.getDate() === 1 ? `${d.date.getMonth() + 1}월` : "";
+                        i === 0 ? "오늘" : d.date.getDate() === 1 ? `${d.date.getMonth() + 1}월` : "";
                       return (
                         <DateCell
                           key={d.key}
@@ -1478,7 +1478,7 @@ export default function StartPage() {
                           }}
                           $active={d.selected}
                           aria-pressed={d.selected}
-                          aria-label={`${i === 0 ? "내일, " : ""}${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${DAY_FULL[dow]}`}
+                          aria-label={`${i === 0 ? "오늘, " : ""}${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${DAY_FULL[dow]}`}
                           data-date={d.key}
                           onPointerDown={startDrag(d.key, d.selected)}
                           // 포인터로 이미 처리했다. 키보드(Enter/Space)로 온 클릭만 받는다.

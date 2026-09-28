@@ -51,7 +51,11 @@ export default function TimeGrid({
   const canHover =
     typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches;
 
-  const todayDateString = new Date().toISOString().split("T")[0];
+  // 오늘 강조는 사용자 기기의 날짜로 한다. toISOString은 UTC라 한국 시간 0~9시에는 어제가 오늘로 잡혔다.
+  const now = new Date();
+  const todayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate(),
+  ).padStart(2, "0")}`;
 
   // --- View Mode Logic ---
   useEffect(() => {
