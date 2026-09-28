@@ -20,13 +20,10 @@ export const PRESETS = [
   { key: "trip", label: "여행 · 나들이", title: "주말 나들이", startHour: "09:00", endHour: "21:00" },
 ];
 
-/** 후보 날짜는 주 단위로 늘리고 줄인다. */
 export const DAYS_PER_WEEK = 7;
-export const MIN_WEEKS = 1;
-export const MAX_WEEKS = 8;
 
 /** 서버가 받는 형식은 YYYY-MM-DD 고정이다. 로컬 시간 기준으로 만든다. */
-const formatDateKey = (date) => {
+export const formatDateKey = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -52,10 +49,10 @@ export const buildDatesAfter = (from, count) => {
 };
 
 /**
- * 오늘부터 한 주치(2026-09-28 사용자 지시로 오늘 포함). 오늘의 이미 지난 시간도 막지 않는다.
+ * 오늘부터 7일(2026-09-28 사용자 지시로 오늘 포함). 오늘의 이미 지난 시간도 막지 않는다.
  *
- * 오늘을 더하고도 7일로 두는 이유: 후보 날짜는 주 단위로 늘리고 줄인다.
- * 그 대신 기본 표의 마지막 날이 하루 당겨져 3인 참여 지표의 마감도 하루 빨라진다(STATE.md에 변경일 기록).
+ * 후보 날짜를 월 달력으로 바꾼 뒤에도(2026-09-28 사람 결정) 기본은 그대로 오늘부터 7일이다.
+ * 오늘을 넣으면서 기본 표의 마지막 날이 하루 당겨져 3인 참여 지표의 마감도 하루 빨라졌다(specs/product.md 비교 주의).
  */
 export const buildDefaultDates = () => {
   const today = new Date();

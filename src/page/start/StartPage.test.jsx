@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import StartPage from "./StartPage";
 import { createTable } from "../../api/table";
@@ -333,5 +333,182 @@ describe("헤더 밀어 올리기", () => {
     mount();
     expect(header.style.transform).toBe("");
     expect(header.style.visibility).toBe("");
+  });
+});
+
+describe("후보 날짜 달력", () => {
+  // 날짜만 2026-09-28(월)로 고정한다. 이 날 기준 고를 수 있는 마지막 날은 2027-09-30이다.
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-09-28T16:30:00"));
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const button = (name) => screen.getByRole("button", { name });
+  const pressed = (name) => button(name).getAttribute("aria-pressed");
+
+  test("오늘부터 7일이 선택된 채로 이번 달이 열리고, 달이 걸치면 달별 개수를 보여준다", () => {
+    mount();
+    expect(screen.getByText("2026년 9월")).toBeInTheDocument();
+    expect(pressed("오늘, 9월 28일 월요일")).toBe("true");
+    expect(pressed("9월 30일 수요일")).toBe("true");
+    // 지난 날은 누를 수 없다
+    expect(screen.queryByRole("button", { name: /9월 27일/ })).toBeNull();
+    expect(button("이전 달")).toBeDisabled();
+    expect(screen.getByText(/선택 · 9월 3일 · 10월 4일/)).toBeInTheDocument();
+  });
+
+  test("요일을 누르면 그 달의 그 요일 세로줄이 전부 켜지고, 다시 누르면 전부 꺼진다", () => {
+    mount();
+    fireEvent.click(button("다음 달"));
+    const thursday = button("10월 목요일 전부");
+    expect(thursday).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(thursday);
+    ["1", "8", "15", "22", "29"].forEach((d) => expect(pressed(`10월 ${d}일 목요일`)).toBe("true"));
+    expect(thursday).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(thursday);
+    ["1", "8", "15", "22", "29"].forEach((d) => expect(pressed(`10월 ${d}일 목요일`)).toBe("false"));
+    // 다른 요일은 그대로다
+    expect(pressed("10월 2일 금요일")).toBe("true");
+  });
+
+  test("주 번호를 누르면 그 주 가로줄만 켜고 끈다", () => {
+    mount();
+    fireEvent.click(button("다음 달"));
+    fireEvent.click(button("10월 2주 전부"));
+    expect(pressed("10월 5일 월요일")).toBe("true");
+    expect(pressed("10월 11일 일요일")).toBe("true");
+    expect(pressed("10월 12일 월요일")).toBe("false");
+
+    fireEvent.click(button("10월 2주 전부"));
+    expect(pressed("10월 5일 월요일")).toBe("false");
+    expect(pressed("10월 11일 일요일")).toBe("false");
+  });
+
+  test("'이번 달 전부'는 그 달에서 고를 수 있는 날만 켜고, 전부 켜져 있으면 전부 끈다", () => {
+    mount();
+    // 9월은 오늘부터 30일까지 사흘만 고를 수 있고, 기본값으로 이미 켜져 있다.
+    const september = button("9월 고를 수 있는 날 전부");
+    expect(september).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(september);
+    expect(pressed("오늘, 9월 28일 월요일")).toBe("false");
+    expect(screen.getByText(/선택 · 10월 4일/)).toBeInTheDocument();
+
+    fireEvent.click(button("다음 달"));
+    fireEvent.click(button("10월 고를 수 있는 날 전부"));
+    expect(screen.getByText(/선택 · 10월 31일/)).toBeInTheDocument();
+  });
+
+  test("다음 달은 12개월 뒤 달(2027년 9월)까지만 넘어가고, 그 달 말일까지 고를 수 있다", () => {
+    mount();
+    for (let i = 0; i < 12; i += 1) fireEvent.click(button("다음 달"));
+    expect(screen.getByText("2027년 9월")).toBeInTheDocument();
+    expect(button("다음 달")).toBeDisabled();
+    fireEvent.click(button("9월 30일 목요일"));
+    expect(pressed("9월 30일 목요일")).toBe("true");
+  });
+
+  test("한꺼번에 고른 날짜를 날짜순으로 보낸다", async () => {
+    createTable.mockResolvedValue({ success: false });
+    mount();
+    fireEvent.click(button("다음 달"));
+    fireEvent.click(button("10월 목요일 전부"));
+    fireEvent.click(screen.getAllByRole("button", { name: "이대로 만들기" })[0]);
+    act(() => {
+      jest.advanceTimersByTime(50);
+    });
+    fireEvent.click(button("링크 만들기"));
+    // 실패 응답으로 확인 창이 닫히는 갱신까지 기다린다.
+    await waitFor(() => expect(Swal.fire).toHaveBeenCalled());
+    expect(createTable.mock.calls[0][1]).toEqual([
+      "2026-09-28", "2026-09-29", "2026-09-30",
+      "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04",
+      "2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29",
+    ]);
+  });
+});
+
+describe("넓은 화면 제목", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+  });
+
+  test("스크롤하면 제목이 제자리에서 흐려지고, 맨 위로 돌아오면 다시 보인다", () => {
+    mount();
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(title.style.opacity).toBe("1");
+
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 200 });
+    fireEvent.scroll(window);
+    expect(title.style.opacity).toBe("0");
+
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    fireEvent.scroll(window);
+    expect(title.style.opacity).toBe("1");
+  });
+
+  test("한 줄로 쌓이는 화면에서는 이 흐려짐을 쓰지 않는다", () => {
+    mockMatchMedia(true, true);
+    mount();
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 200 });
+    fireEvent.scroll(window);
+    expect(screen.getByRole("heading", { level: 1 }).style.opacity).not.toBe("0");
+  });
+});
+
+describe("첫 화면 순서와 명단 시점", () => {
+  test("제목이 카톡방 그림보다 먼저 온다(휴대폰에서 위에 쌓인다)", () => {
+    mockMatchMedia(true, true);
+    mount();
+    const title = screen.getByRole("heading", { level: 1 });
+    const room = screen.getByText("팀플 단체 톡방");
+    expect(title.compareDocumentPosition(room) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("넓은 화면은 골든타임 명단을 입력칸 유도가 끝난 8초 뒤에 연다", () => {
+    jest.useFakeTimers();
+    try {
+      mount();
+      // jsdom은 칸 위치가 0이라 명단 카드 자체는 그려지지 않는다. 칸 버튼의 열림 표시로 확인한다.
+      const opened = () => screen.queryAllByRole("button", { expanded: true });
+      expect(opened()).toHaveLength(0);
+      act(() => {
+        jest.advanceTimersByTime(7900);
+      });
+      expect(opened()).toHaveLength(0);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+      expect(opened()).toHaveLength(1);
+      expect(opened()[0]).toHaveAccessibleName(/6명 가능/);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe("휴대폰 시간 선택 창", () => {
+  test("시간 칸을 누르면 아래 창에서 고르고, 고르면 닫힌다. Esc로도 닫힌다", () => {
+    mockMatchMedia(true, true);
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "시작 시간 10:00" }));
+    const sheet = screen.getByRole("dialog", { name: "시작 시간" });
+    expect(within(sheet).getAllByRole("button", { pressed: false })).toHaveLength(23);
+    fireEvent.click(within(sheet).getByRole("button", { name: "13:00" }));
+    expect(screen.queryByRole("dialog", { name: "시작 시간" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "시작 시간 13:00" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "종료 시간 20:00" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "종료 시간" })).not.toBeInTheDocument();
+  });
+
+  test("넓은 화면은 기본 선택 목록을 쓴다", () => {
+    mount();
+    expect(screen.getByRole("combobox", { name: "시작 시간" })).toHaveValue("10:00");
   });
 });

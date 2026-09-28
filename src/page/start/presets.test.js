@@ -30,7 +30,7 @@ test("새벽·아침에 열어도 오늘은 기기 날짜 기준이다", () => {
   expect(buildDefaultDates()[0].key).toBe("2026-09-28");
 });
 
-test("주를 늘릴 때 쓰는 buildDatesAfter는 기준일 다음 날부터 이어 붙인다", () => {
+test("buildDatesAfter는 기준일 다음 날부터 이어 붙인다", () => {
   at("2026-09-28T16:30:00");
   const dates = buildDefaultDates();
   const next = buildDatesAfter(dates[dates.length - 1].date, DAYS_PER_WEEK);

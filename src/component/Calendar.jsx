@@ -4,6 +4,7 @@ import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaPlusCircle } from "react-icons/fa";
+import { getLastSelectableDate, monthIndex } from "../utils/dateLimit";
 
 const toYYYYMMDD = (date) => {
      const year = date.getFullYear();
@@ -101,9 +102,8 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
           const prevMonthDisabled =
                currentDate.getMonth() <= new Date().getMonth() &&
                currentDate.getFullYear() === new Date().getFullYear();
-          const maxDate = new Date();
-          maxDate.setMonth(maxDate.getMonth() + 11);
-          const nextMonthDisabled = currentDate >= maxDate;
+          // 랜딩 달력과 같은 상한(이번 달부터 12개월 뒤 달)까지만 넘긴다.
+          const nextMonthDisabled = monthIndex(currentDate) >= monthIndex(getLastSelectableDate());
 
           return (
                <MonthControl>
@@ -144,6 +144,7 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
      const cells = () => {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
+          const lastDate = getLastSelectableDate(today);
           const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
           const startDate = new Date(monthStart);
           startDate.setDate(startDate.getDate() - startDate.getDay());
@@ -153,7 +154,8 @@ export default function Calendar({ selectedDates, setSelectedDates }) {
           while (startDate <= monthEnd || days.length % 7 !== 0) {
                for (let i = 0; i < 7; i++) {
                     const dateString = toYYYYMMDD(startDate);
-                    const isPastDate = startDate < today;
+                    // 지난 날과 상한 뒤의 날(마지막 달 뒤에 붙는 다음 달 칸)은 고를 수 없다.
+                    const isPastDate = startDate < today || startDate > lastDate;
                     const isSelected = selectedDates.includes(dateString);
                     const isDifferentMonth = startDate.getMonth() !== currentDate.getMonth();
                     days.push(

@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import styled from "@emotion/styled";
 import isPropValid from "@emotion/is-prop-valid";
-import { keyframes } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import {
   AnimatePresence,
   motion,
@@ -25,8 +25,6 @@ import {
   FiUsers,
   FiInfo,
   FiX,
-  FiPlus,
-  FiMinus,
   FiSearch,
   FiPhone,
   FiVideo,
@@ -47,13 +45,12 @@ import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../uti
 import {
   PRESETS,
   buildDefaultDates,
-  buildDatesAfter,
+  formatDateKey,
   formatDayLabel,
   HOURS,
   DAYS_PER_WEEK,
-  MIN_WEEKS,
-  MAX_WEEKS,
 } from "./presets";
+import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
@@ -61,6 +58,13 @@ const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일
 const DAY_SHORT = ["월", "화", "수", "목", "금", "토", "일"];
 /** getDay()(일=0)를 월요일 시작 열 번호(월=0)로 옮긴다. */
 const colOf = (date) => (date.getDay() + 6) % 7;
+/** 후보 날짜 달력은 달마다 줄 수(4~6)가 달라도 6줄 높이를 잡아 둔다. 달을 넘겨도 아래 폼이 밀리지 않는다. */
+const MONTH_ROWS = 6;
+/** "YYYY-MM-DD"를 로컬 자정 날짜로 읽는다. */
+const parseDateKey = (key) => {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
 const TOAST_MS = 3000;
 /** 셀 팝업 크기. /table 의 GroupTimeGrid 와 같은 값이다. */
 const POPUP_WIDTH = 260;
@@ -79,13 +83,29 @@ const COMPACT_QUERY = `(max-width: ${parseInt(theme.breakpoint.xl, 10) - 1}px)`;
 const STACKED_QUERY = `(max-width: ${parseInt(theme.breakpoint.lg, 10) - 1}px)`;
 /** 줄인 미리보기에 그리는 시간 행 수. 골든타임을 가운데 두고 자른다. */
 const COMPACT_ROWS = 5;
-/** 사이트 헤더(Header.jsx HeaderWrapper) 높이. 헤더가 위에 붙어 있어 고정 미리보기를 그 아래에 둔다. */
+/** 사이트 헤더(Header.jsx HeaderWrapper) 높이. 헤더가 위에 붙어 있어 넓은 화면의 제목을 그 아래에 둔다. */
 const HEADER_PX = 72;
 const HEADER_HEIGHT = `${HEADER_PX}px`;
-/** 넓은 화면에서 미리보기 칸이 헤더 아래에 붙는 간격(px). theme.space[6]과 같다. */
-const PREVIEW_STICKY_GAP = 24;
+/** 넓은 화면에서 헤더와 본문 첫 줄(제목·단톡방) 사이 간격(px). theme.space[6]과 같다. */
+const TOP_GAP = 24;
 /** 한 줄로 쌓이는 화면에서 스크롤해 단톡방이 사라지면 제목 자리에 보여 줄 입력 유도 문구(2026-09-27 사람 선택). */
 const TITLE_PROMPT = "모임 이름부터 바꿔 보세요";
+/** 휴대폰 입력 유도 문구 막대 높이(px). 카톡방이 멈췄던 화면 맨 위 자리에 붙는다. */
+const PROMPT_BAR_PX = 56;
+/** 넓은 화면 모임 이름 입력칸 유도: 기다림 3초 + 강조색·느린 깜빡임 두 번 5초(2026-09-28 사람 지시). */
+const NUDGE_DELAY_MS = 3000;
+const NUDGE_MS = 5000;
+/**
+ * 첫 화면 등장 순서(2026-09-28 사람 지시): 제목 → 카톡방(말풍선 차례로) → 나머지.
+ * 제목은 처음부터 보인다(가장 큰 글자라 LCP 후보). 값은 초 단위, [휴대폰, 넓은 화면].
+ * 넓은 화면은 말풍선을 약 1초·2초에 띄우고 3초에 입력칸 유도가 이어진다.
+ */
+const INTRO = {
+  room: [0.3, 0.3],
+  ask: [0.7, 1.0],
+  link: [1.1, 2.0],
+  rest: [1.5, 2.4],
+};
 
 const matchesQuery = (query) =>
   typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -206,7 +226,8 @@ const formatDayShort = (date) =>
  *   /table 화면 안내 문구(TimetablePage)와 이용 가이드(GuidePage)
  * - 골든타임 1~3위: /table 순위 탭 안내 문구
  * - 시간 잠금: 이 페이지의 확인 창
- * - 후보 날짜 기본값(오늘부터 7일)·1~8주 조절·날짜 켜고 끄기: presets.js·이 페이지 달력
+ * - 후보 날짜 기본값(오늘부터 7일)·12개월 뒤 달까지·요일·주·한 달 한꺼번에 고르기:
+ *   presets.js·utils/dateLimit.js·이 페이지 달력
  * - 공유 창·복사: 이 페이지 완료 창(휴대폰은 공유 창, 컴퓨터는 복사가 주 버튼)
  * 동작이 바뀌면 여기도 같이 고친다.
  * 질문 문구는 이 페이지가 맡은 검색어(약속 시간 정하기·언제 만날까, specs/seo-strategy.md)를 자연스럽게 담는다.
@@ -218,7 +239,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "언제 만날지 아직 못 정했을 때도 쓸 수 있나요?",
-    a: "네. '언제 만날까'부터 정해야 할 때 쓰는 도구입니다. 후보 날짜를 여러 날 고르면 됩니다. 기본은 오늘부터 7일이고, 1주에서 8주까지 늘리거나 줄이며 날짜를 하나씩 켜고 끌 수 있습니다. 참여자가 각자 가능한 시간을 표시하면 가장 많이 겹치는 시간을 골든타임으로 추천합니다.",
+    a: "네. '언제 만날까'부터 정해야 할 때 쓰는 도구입니다. 후보 날짜를 여러 날 고르면 됩니다. 기본은 오늘부터 7일이고, 달력에서 12개월 뒤 달까지 날짜를 하나씩 켜고 끄거나 요일·주·한 달 단위로 한꺼번에 고를 수 있습니다. 참여자가 각자 가능한 시간을 표시하면 가장 많이 겹치는 시간을 골든타임으로 추천합니다.",
   },
   {
     q: "참여자는 가능한 시간을 어떻게 입력하나요?",
@@ -269,7 +290,17 @@ export default function StartPage() {
   const reduceMotion = useReducedMotion();
 
   const [title, setTitle] = useState(PRESETS[0].title);
-  const [dates, setDates] = useState(buildDefaultDates);
+  // 오늘은 화면을 연 날로 고정한다. 자정을 넘겨도 오늘 칸이 갑자기 막히지 않게 한다.
+  const [today] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const lastSelectable = useMemo(() => getLastSelectableDate(today), [today]);
+  // 선택한 날의 키("YYYY-MM-DD")를 날짜순으로 둔다.
+  const [selectedKeys, setSelectedKeys] = useState(() => buildDefaultDates().map((d) => d.key));
+  // 달력에 보이는 달(그 달 1일).
+  const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [startHour, setStartHour] = useState(PRESETS[0].startHour);
   const [endHour, setEndHour] = useState(PRESETS[0].endHour);
   const [isLoading, setIsLoading] = useState(false);
@@ -290,7 +321,6 @@ export default function StartPage() {
   const popupRef = useRef(null);
   // 마지막으로 잰 팝업 높이. 팝업을 감춘 동안에도 이 값으로 자리를 판단해야 보였다 숨었다를 반복하지 않는다.
   const popupHeightRef = useRef(POPUP_H_ESTIMATE);
-  const previewColumnRef = useRef(null);
   const [isLockOpen, setLockOpen] = useState(false);
   const [isLockExpanded, setLockExpanded] = useState(false);
   const [banedCells, setBanedCells] = useState([]);
@@ -322,48 +352,80 @@ export default function StartPage() {
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   /**
-   * 한 줄로 쌓이는 화면(휴대폰·태블릿 세로)의 스크롤 연출.
-   * 단톡방이 헤더 밑으로 올라가는 만큼(0→1) 작아지며 옅어지고, 거의 사라지면 제목 자리에
-   * 입력 유도 문구가 올라온다. 시간이 아니라 스크롤 위치에 묶어 있어 되돌리면 그대로 되돌아온다.
-   * 모양(transform·opacity)만 바꾸므로 아래 내용이 당겨 올라오지 않는다(스크롤 튐·CLS 없음).
-   * 원래 제목(h1)은 문서에 그대로 남고 보이지만 않는다. 검색엔진·스크린리더는 원래 제목을 읽는다.
+   * 한 줄로 쌓이는 화면(휴대폰·태블릿 세로)의 스크롤 연출(2026-09-28 사람 지시로 제목·카톡방 순서를 바꾸며 새로 짬).
+   * - 제목(맨 위)이 사이트 헤더를 데리고 올라가고, 화면 위 끝을 지나며 흐려진다.
+   * - 제목이 거의 사라지면 입력 유도 문구 막대가 카톡방 윗변에 나타나 함께 올라오다가 화면 맨 위에 멈춘다.
+   *   모임 입력 상자가 올라오면 거둔다.
+   * - 카톡방은 화면 맨 위에 멈춘 채(sticky) 흐려지고, 미리보기가 그 위로 덮으며 올라온다.
+   * 시간이 아니라 스크롤 위치에 묶어 있어 되돌리면 그대로 되돌아온다. 원래 제목(h1)은 문서에 그대로 남는다.
    * 사용자가 제목을 한 번 고쳤으면(직접 입력·빠른 제목) 문구를 띄우지 않는다.
    */
   const roomRef = useRef(null);
+  const titleWrapRef = useRef(null);
+  const previewColumnRef = useRef(null);
+  const builderRef = useRef(null);
   const [isTitleTouched, setTitleTouched] = useState(false);
-  const { scrollYProgress: roomOut } = useScroll({
-    target: roomRef,
-    offset: [`start ${HEADER_HEIGHT}`, `end ${HEADER_HEIGHT}`],
+  // 넓은 화면의 제목 입력 유도(3초 뒤 강조색·두 번 깜빡임)는 입력칸을 한 번 누르면 멈춘다(색은 제목을 고칠 때까지 남는다).
+  const [isTitleVisited, setTitleVisited] = useState(false);
+  // 제목 윗변이 화면 위 끝에 닿을 때 0, 아래 끝이 닿을 때 1.
+  const { scrollYProgress: titleOut } = useScroll({
+    target: titleWrapRef,
+    offset: ["start start", "end start"],
   });
-  const roomScale = useTransform(roomOut, [0, 1], [1, 0.9]);
-  // 헤더가 접히는 지점(0.7)보다 먼저 다 사라져야 헤더가 빠진 자리로 옅은 방이 비쳐 보이지 않는다.
-  const roomOpacity = useTransform(roomOut, [0.05, 0.65], [1, 0]);
-  // 스크롤을 어디서 멈춰도 문구가 흐릿하게 걸려 있지 않도록 방이 다 사라지기 전에 바꿈을 끝낸다.
-  // 원래 제목이 다 사라진 뒤에 문구가 올라온다. 둘이 겹치면 두 문장이 반씩 포개져 지저분했다.
-  const titleOpacity = useTransform(roomOut, [0.4, 0.6], [1, 0]);
-  const titleY = useTransform(roomOut, [0.4, 0.6], [0, -8]);
-  const promptOpacity = useTransform(roomOut, [0.6, 0.8], [0, 1]);
-  const promptY = useTransform(roomOut, [0.6, 0.8], [8, 0]);
+  const titleOpacity = useTransform(titleOut, [0, 0.6], [1, 0]);
+  const promptOpacity = useTransform(titleOut, [0.6, 0.9], [0, 1]);
+  // 카톡방이 맨 위에 멈춘 뒤 미리보기 윗변이 카톡방 아래 끝에서 화면 위 끝까지 올라오는 동안 0→1.
+  const [roomHeight, setRoomHeight] = useState(160);
+  useLayoutEffect(() => {
+    const room = roomRef.current;
+    if (!room) return undefined;
+    const measure = () => setRoomHeight(Math.max(1, Math.round(room.offsetHeight)));
+    measure();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(room);
+    return () => observer?.disconnect();
+  }, []);
+  const { scrollYProgress: roomCover } = useScroll({
+    target: previewColumnRef,
+    offset: [`start ${roomHeight}px`, "start start"],
+  });
+  const roomOpacity = useTransform(roomCover, [0, 0.8], [1, 0]);
+  // 다 흐려진 방이 맨 위에 남아 아래 입력칸 터치를 가로채지 않게 한다.
+  const roomVisibility = useTransform(roomCover, (v) => (v >= 0.8 ? "hidden" : "visible"));
+  // 모임 입력 상자 윗변이 문구 막대 세 칸 높이에서 막대 아래 끝까지 올라오는 동안 문구를 거둔다.
+  const { scrollYProgress: promptOut } = useScroll({
+    target: builderRef,
+    offset: [`start ${PROMPT_BAR_PX * 3}px`, `start ${PROMPT_BAR_PX}px`],
+  });
+  const promptBarOpacity = useTransform([promptOpacity, promptOut], ([a, b]) => a * (1 - b));
   const [isPromptShown, setPromptShown] = useState(false);
+  const [isPromptTappable, setPromptTappable] = useState(false);
   // 휴대폰에서 제목을 입력하는 동안에는 하단 고정 막대를 내린다. 키보드 바로 위에 붙어 입력칸 주변을 가렸다.
   const [isTitleFocused, setTitleFocused] = useState(false);
-  useMotionValueEvent(roomOut, "change", (v) => {
+  // 휴대폰 시간 선택 창. "start" | "end" | null
+  const [timeSheet, setTimeSheet] = useState(null);
+  const closeTimeSheet = useCallback(() => setTimeSheet(null), []);
+  useMotionValueEvent(titleOut, "change", (v) => {
     const shown = v > 0.7;
     setPromptShown((prev) => (prev === shown ? prev : shown));
+  });
+  useMotionValueEvent(promptBarOpacity, "change", (v) => {
+    const tappable = v > 0.5;
+    setPromptTappable((prev) => (prev === tappable ? prev : tappable));
   });
   const showsPrompt = isStacked && !isTitleTouched;
   const promptActive = showsPrompt && isPromptShown;
 
   /**
-   * 사이트 헤더도 단톡방과 같은 속도로 밀려 올라가며 옅어진다(2026-09-27 사람 지시: 시간으로 접히면 경박하다).
-   * 단톡방 아래 끝이 헤더 두 칸 높이(144px)에서 헤더 아래 끝(72px)까지 올라가는 72px 동안
-   * 헤더도 72px 올라간다. 스크롤 1px에 1px이라 방과 헤더 사이 간격이 그대로 유지된 채 함께 사라지고,
+   * 사이트 헤더도 맨 위 제목과 같은 속도로 밀려 올라가며 옅어진다(2026-09-27 사람 지시: 시간으로 접히면 경박하다).
+   * 제목 아래 끝이 헤더 두 칸 높이(144px)에서 헤더 아래 끝(72px)까지 올라가는 72px 동안
+   * 헤더도 72px 올라간다. 스크롤 1px에 1px이라 제목과 헤더 사이 간격이 그대로 유지된 채 함께 사라지고,
    * 되돌리면 그대로 내려온다. 끝까지 올라가면 visibility로 키보드·스크린리더에서도 뺀다.
    * 헤더는 모든 페이지가 같이 쓰므로 여기서 그 요소([data-site-header])의 인라인 스타일만 바꾸고,
    * 넓은 화면·확인/완료 창이 떠 있을 때·이 페이지를 떠날 때는 되돌린다.
    */
   const { scrollYProgress: headerOut } = useScroll({
-    target: roomRef,
+    target: titleWrapRef,
     offset: [`end ${HEADER_PX * 2}px`, `end ${HEADER_PX}px`],
   });
   const pushesHeader = isStacked && !isLockOpen && !created;
@@ -440,8 +502,12 @@ export default function StartPage() {
     };
   }, []);
 
-  const selectedDays = useMemo(() => dates.filter((d) => d.selected), [dates]);
-  const selectedDates = useMemo(() => selectedDays.map((d) => d.key), [selectedDays]);
+  const selectedSet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
+  const selectedDays = useMemo(
+    () => selectedKeys.map((key) => ({ key, date: parseDateKey(key), selected: true })),
+    [selectedKeys]
+  );
+  const selectedDates = selectedKeys;
 
   // 미리보기에 채울 가짜 참여 현황. 실제 /table 화면과 같은 히트맵을 그리기 위한 것이다.
   const mock = useMemo(
@@ -501,15 +567,86 @@ export default function StartPage() {
   };
 
   const toggleDate = (key) =>
-    setDates((prev) => prev.map((d) => (d.key === key ? { ...d, selected: !d.selected } : d)));
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key].sort()
+    );
 
   /** 드래그로 지나간 날짜에 같은 동작(켜기/끄기)을 적용한다. 이미 그 상태면 건드리지 않는다. */
   const applyDrag = useCallback((key, action) => {
     if (!key || !action) return;
-    setDates((prev) =>
-      prev.map((d) => (d.key === key ? { ...d, selected: action === "select" } : d))
-    );
+    setSelectedKeys((prev) => {
+      const has = prev.includes(key);
+      if (action === "select" && !has) return [...prev, key].sort();
+      if (action === "deselect" && has) return prev.filter((k) => k !== key);
+      return prev;
+    });
   }, []);
+
+  /**
+   * 보고 있는 달의 칸. 요일 열·주 줄·달 전체 묶음에는 고를 수 있는 날(오늘 ~ 상한)만 넣는다.
+   * 지난 날과 상한 뒤의 날은 숫자만 흐리게 보인다.
+   */
+  const monthGrid = useMemo(() => {
+    const y = viewMonth.getFullYear();
+    const m = viewMonth.getMonth();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const lead = colOf(viewMonth);
+    const cells = [];
+    const cols = Array.from({ length: DAYS_PER_WEEK }, () => []);
+    const weeks = Array.from({ length: MONTH_ROWS }, () => []);
+    const all = [];
+    for (let i = 0; i < MONTH_ROWS * DAYS_PER_WEEK; i += 1) {
+      const day = i - lead + 1;
+      if (day < 1 || day > daysInMonth) {
+        cells.push(null);
+        continue;
+      }
+      const date = new Date(y, m, day);
+      const key = formatDateKey(date);
+      const selectable = date >= today && date <= lastSelectable;
+      cells.push({ key, date, day, selectable });
+      if (selectable) {
+        all.push(key);
+        cols[i % DAYS_PER_WEEK].push(key);
+        weeks[Math.floor(i / DAYS_PER_WEEK)].push(key);
+      }
+    }
+    return { cells, cols, weeks, all, rows: Math.ceil((lead + daysInMonth) / DAYS_PER_WEEK) };
+  }, [viewMonth, today, lastSelectable]);
+
+  /** 묶음 상태. "empty"=고를 날 없음(비활성), "on"=전부 켜짐, "off"=하나라도 꺼짐. */
+  const groupState = (keys) =>
+    !keys.length ? "empty" : keys.every((k) => selectedSet.has(k)) ? "on" : "off";
+
+  /** 묶음이 전부 켜져 있으면 전부 끄고, 하나라도 꺼져 있으면 전부 켠다. */
+  const toggleGroup = (keys) => {
+    if (!keys.length) return;
+    const turnOn = !keys.every((k) => selectedSet.has(k));
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      keys.forEach((k) => (turnOn ? next.add(k) : next.delete(k)));
+      return [...next].sort();
+    });
+  };
+
+  const canPrevMonth = monthIndex(viewMonth) > monthIndex(today);
+  const canNextMonth = monthIndex(viewMonth) < monthIndex(lastSelectable);
+  const moveMonth = (delta) =>
+    setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+
+  /** 선택이 여러 달에 걸치면 보고 있는 달 밖의 선택이 안 보인다. 달별 개수로 알려 준다. */
+  const monthSummary = useMemo(() => {
+    const groups = [];
+    selectedDays.forEach(({ date }) => {
+      const last = groups[groups.length - 1];
+      if (last && monthIndex(last.date) === monthIndex(date)) last.count += 1;
+      else groups.push({ date, count: 1 });
+    });
+    const name = (date) =>
+      `${date.getFullYear() !== today.getFullYear() ? `${date.getFullYear()}년 ` : ""}${date.getMonth() + 1}월`;
+    if (groups.length <= 3) return groups.map((g) => `${name(g.date)} ${g.count}일`).join(" · ");
+    return `${name(groups[0].date)} ~ ${name(groups[groups.length - 1].date)}`;
+  }, [selectedDays, today]);
 
   const startDrag = (key, selected) => (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -537,38 +674,61 @@ export default function StartPage() {
     };
   }, [dragAction, applyDrag]);
 
-  const weekCount = Math.ceil(dates.length / DAYS_PER_WEEK);
-
   /**
-   * 미리보기 격자를 달력 주(일~토) 단위로 자른다. 실제 /table 화면도 한 주씩 보여준다.
-   * 후보가 8주까지 늘어날 수 있어 전부 한 줄에 늘어놓으면 읽을 수 없다.
-   * 빈 자리는 `null` — 후보에 없는 날이라 비활성으로 그린다.
+   * 미리보기 격자를 달력 주(월~일) 단위로 자른다. 실제 /table 화면도 한 주씩 보여준다.
+   * 후보가 몇 달에 걸칠 수 있어 전부 한 줄에 늘어놓으면 읽을 수 없다.
+   * 선택한 날이 하나라도 있는 주만 만들고, 그 주의 나머지 날은 `selected: false`로 흐리게 그린다.
    */
   const previewWeeks = useMemo(() => {
-    if (!dates.length) return [];
     const out = [];
-    let week = new Array(colOf(dates[0].date)).fill(null);
-    dates.forEach((d) => {
-      week.push(d);
-      if (colOf(d.date) === 6) {
-        out.push(week);
-        week = [];
+    let mondayKey = null;
+    selectedDays.forEach((d) => {
+      const monday = new Date(d.date);
+      monday.setDate(monday.getDate() - colOf(d.date));
+      const key = formatDateKey(monday);
+      if (key !== mondayKey) {
+        mondayKey = key;
+        out.push(
+          Array.from({ length: DAYS_PER_WEEK }, (_, c) => {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + c);
+            return { key: formatDateKey(date), date, selected: false };
+          })
+        );
       }
+      out[out.length - 1][colOf(d.date)] = d;
     });
-    if (week.length) out.push([...week, ...new Array(DAYS_PER_WEEK - week.length).fill(null)]);
     return out;
-  }, [dates]);
+  }, [selectedDays]);
 
   const shownWeek = previewWeeks[Math.min(previewIndex, previewWeeks.length - 1)] || [];
 
   /** 골든타임 칸의 키. 미리보기를 열면 여기가 기본으로 펼쳐져 있다. */
   const goldenKey = mock?.golden ? `${mock.golden.day.key}|${mock.golden.from}` : null;
 
+  /**
+   * 넓은 화면은 골든타임 명단을 입력칸 유도가 끝난 뒤(8초)에 연다(2026-09-28 사람 결정).
+   * 처음부터 열어 두면 시선이 제목 → 카톡방 다음에 모임 입력 상자가 아니라 명단으로 떨어졌다.
+   * 그 전에 사용자가 칸을 열었으면 그대로 둔다.
+   */
+  const [isIntroDone, setIntroDone] = useState(false);
+  const isIntroDoneRef = useRef(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isIntroDoneRef.current = true;
+      setIntroDone(true);
+    }, NUDGE_DELAY_MS + NUDGE_MS);
+    return () => clearTimeout(timer);
+  }, []);
   // 날짜·시간을 바꾸면 골든타임이 옮겨간다. 열려 있던 칸을 새 골든타임으로 다시 맞춘다.
   // 줄인 미리보기는 첫 화면에서 입력창 바로 위에 있어, 팝업을 먼저 띄우면 입력창을 가린다.
   useEffect(() => {
-    setOpenCell(isCompact ? null : goldenKey);
+    if (isCompact) setOpenCell(null);
+    else if (isIntroDoneRef.current) setOpenCell(goldenKey);
   }, [goldenKey, isCompact]);
+  useEffect(() => {
+    if (isIntroDone && !isCompact) setOpenCell((prev) => prev ?? goldenKey);
+  }, [isIntroDone, isCompact, goldenKey]);
 
   /**
    * 첫 주에 후보가 하루뿐이면(예: 일요일에 열면 오늘인 일요일 한 칸) 격자가 비어 보인다.
@@ -710,29 +870,50 @@ export default function StartPage() {
   }, [openCell, placePopup, popupPos.visible]);
 
   /**
-   * 넓은 화면에서 미리보기 칸은 폼 옆에 붙어 따라온다(sticky). 칸이 화면보다 길면(00~24시 등)
-   * 붙는 위치를 그만큼 위로 올려, 페이지를 내리는 것만으로 칸 끝(만들기 버튼)까지 보이게 한다.
-   * 예전에는 칸 안에 따로 스크롤을 두고 overscroll-behavior: contain 을 걸었는데, 크롬은 넘치지 않는
-   * 칸에서도 휠을 가둬 미리보기 위에서는 페이지가 내려가지 않았다(2026-09-28 사람 보고).
+   * 넓은 화면: 폼 상자와 미리보기가 같은 줄에서 같은 높이로 선다. 스크롤하면 제목은 제자리(sticky)에서
+   * 흐려지고 폼 상자가 그 위로 올라온다(2026-09-28 사람 지시). 폼 상자 윗변이 제목 아래 끝에 닿는
+   * 스크롤 거리까지 다 흐려지게 그 거리를 잰다. 칸 높이가 바뀌면(글꼴 로딩·창 크기) 다시 잰다.
+   * 예전에는 미리보기 칸만 sticky로 따라왔는데, 폼 상자가 한 화면에 들어오면서 필요 없어졌다.
    */
+  const titleFadeEnd = useRef(1);
   useLayoutEffect(() => {
-    const col = previewColumnRef.current;
-    if (!col || isStacked) return undefined;
-    const place = () => {
-      const top = Math.min(
-        HEADER_PX + PREVIEW_STICKY_GAP,
-        window.innerHeight - col.offsetHeight - PREVIEW_STICKY_GAP
+    if (isStacked) return undefined;
+    const measure = () => {
+      const title = titleWrapRef.current;
+      const builder = builderRef.current;
+      if (!title || !builder) return;
+      const builderTop = builder.getBoundingClientRect().top + window.scrollY;
+      titleFadeEnd.current = Math.max(
+        1,
+        builderTop - (HEADER_PX + TOP_GAP + title.offsetHeight)
       );
-      col.style.setProperty("--preview-sticky-top", `${Math.round(top)}px`);
     };
-    place();
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(place) : null;
-    observer?.observe(col);
-    window.addEventListener("resize", place);
+    measure();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    [titleWrapRef.current, roomRef.current].forEach((el) => el && observer?.observe(el));
+    window.addEventListener("resize", measure);
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", place);
-      col.style.removeProperty("--preview-sticky-top");
+      window.removeEventListener("resize", measure);
+    };
+  }, [isStacked]);
+  // 투명도는 스크롤 이벤트에서 제목 요소에 바로 쓴다(헤더 밀어 올리기와 같은 방식).
+  // framer-motion의 페이지 scrollY는 개발 미리보기에서 첫 변화 뒤 갱신이 멈추는 경우가 있었다.
+  useEffect(() => {
+    if (isStacked) return undefined;
+    const title = titleWrapRef.current?.querySelector("h1");
+    if (!title) return undefined;
+    const apply = () => {
+      const p = Math.min(Math.max(window.scrollY / titleFadeEnd.current, 0), 1);
+      title.style.opacity = String(1 - p);
+    };
+    apply();
+    window.addEventListener("scroll", apply, { passive: true });
+    window.addEventListener("resize", apply);
+    return () => {
+      window.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+      title.style.opacity = "";
     };
   }, [isStacked]);
 
@@ -751,21 +932,6 @@ export default function StartPage() {
       isGolden: can.length > 0 && can.length === mock.maxCount,
     };
   }, [mock, openCell, selectedDays]);
-
-  const addWeek = () =>
-    setDates((prev) =>
-      prev.length >= MAX_WEEKS * DAYS_PER_WEEK
-        ? prev
-        : [...prev, ...buildDatesAfter(prev[prev.length - 1].date, DAYS_PER_WEEK)]
-    );
-
-  // 줄일 때 선택 상태는 남은 날짜 그대로 둔다. 다시 늘리면 새 날짜만 전부 선택으로 들어온다.
-  const removeWeek = () =>
-    setDates((prev) =>
-      prev.length <= MIN_WEEKS * DAYS_PER_WEEK
-        ? prev
-        : prev.slice(0, prev.length - DAYS_PER_WEEK)
-    );
 
   // 순위는 그룹 이야기, 격자는 개인 이야기다. 서로 닫지 않고 함께 볼 수 있게 둔다.
   const selectPreviewName = (name) => setPreviewName(name);
@@ -997,22 +1163,54 @@ export default function StartPage() {
       <PageWrapper>
         {/* 넓은 화면 양옆은 AdSense 자동 광고(사이드 레일) 자리다. 이 칸 위로는 광고가 겹치지 않게 한다. */}
         <StartShell google-side-rail-overlap="false">
+          <TitleWrap ref={titleWrapRef}>
+            <PageTitle
+              style={
+                showsPrompt
+                  ? { opacity: titleOpacity, y: 0 }
+                  : isStacked
+                    ? { opacity: 1, y: 0 }
+                    : { y: 0 }
+              }
+            >
+              단체 약속 잡기,{" "}
+              <br />
+              이 링크 하나면 끝
+            </PageTitle>
+          </TitleWrap>
+          {/* 입력 유도 문구 막대. 높이 0인 sticky 자리라 흐름을 밀지 않는다. 카톡방 윗변에서 나타나 함께 올라오다가
+              화면 맨 위(카톡방이 멈추는 자리)에 멈춘다. 누르면 입력칸으로 간다.
+              키보드·스크린리더는 입력칸에 바로 갈 수 있어 이 문구는 건너뛴다(aria-hidden, 초점 없음). */}
+          {showsPrompt && (
+            <PromptDock>
+              <TitlePrompt
+                aria-hidden="true"
+                data-nosnippet
+                onClick={focusTitle}
+                style={{
+                  opacity: promptBarOpacity,
+                  pointerEvents: isPromptShown && isPromptTappable ? "auto" : "none",
+                }}
+              >
+                {TITLE_PROMPT}
+                <FiArrowDown size={20} />
+              </TitlePrompt>
+            </PromptDock>
+          )}
           {/* 카카오톡 단체 톡방 화면 윗부분을 줄여 옮긴 그림. 방 모양은 사람이 준 실제 아이폰 카카오톡 캡처를 따른다.
               그림이라 스크린리더는 건너뛰고(aria-hidden) 뜻은 제목이 말한다. 제목(h1) 밖에 두어
               방 이름·보낸 사람 같은 그림 속 글자가 제목에 섞이지 않게 한다. 링크 글자는 CSS로 그린다.
-              좁은 화면은 방 → 제목 → 미리보기 → 폼 순으로 쌓고, 넓은 화면은 방을 오른쪽 미리보기 위에 둔다
-              (링크 말풍선 바로 아래에 그 링크로 만들어질 화면이 온다). */}
+              좁은 화면은 제목 → 방 → 미리보기 → 폼 순으로 쌓고(2026-09-28 사람 지시로 제목을 먼저), 넓은 화면은
+              방을 오른쪽 미리보기 위에 둔다(링크 말풍선 바로 아래에 그 링크로 만들어질 화면이 온다). */}
           {/* data-nosnippet: 그림 속 가짜 글자(방 이름·"언제 시간 돼?")가 검색결과 요약으로 뽑히지 않게 한다. 색인에는 영향이 없다. */}
           <ChatRoom
             ref={roomRef}
             aria-hidden="true"
             data-nosnippet
             style={
-              isStacked && !reduceMotion
-                ? { scale: roomScale, opacity: roomOpacity, originY: 0 }
-                : isStacked
-                  ? { opacity: roomOpacity }
-                  : { scale: 1, opacity: 1 }
+              isStacked
+                ? { opacity: roomOpacity, visibility: roomVisibility }
+                : { opacity: 1, visibility: "visible" }
             }
           >
             <RoomHeader>
@@ -1056,36 +1254,6 @@ export default function StartPage() {
               </SentBubble>
             </RoomBody>
           </ChatRoom>
-          <TitleWrap>
-            <PageTitle
-              style={
-                showsPrompt
-                  ? { opacity: titleOpacity, y: reduceMotion ? 0 : titleY }
-                  : { opacity: 1, y: 0 }
-              }
-            >
-              단체 약속 잡기,{" "}
-              <br />
-              이 링크 하나면 끝
-            </PageTitle>
-            {/* 제목 위에 겹친 입력 유도 문구. 누르면 입력칸으로 간다.
-                키보드·스크린리더는 입력칸에 바로 갈 수 있어 이 문구는 건너뛴다(aria-hidden, 초점 없음). */}
-            {showsPrompt && (
-              <TitlePrompt
-                aria-hidden="true"
-                data-nosnippet
-                onClick={focusTitle}
-                style={{
-                  opacity: promptOpacity,
-                  y: reduceMotion ? 0 : promptY,
-                  pointerEvents: isPromptShown ? "auto" : "none",
-                }}
-              >
-                {TITLE_PROMPT}
-                <FiArrowDown size={20} />
-              </TitlePrompt>
-            )}
-          </TitleWrap>
 
         {/* data-nosnippet: 미리보기의 예시 이름·시간·"예시 데이터입니다…"가 검색결과 요약으로 뽑히지 않게 한다. */}
         <PreviewColumn ref={previewColumnRef} data-nosnippet>
@@ -1148,6 +1316,7 @@ export default function StartPage() {
                     <PreviewScroll>
                       <PreviewGrid
                         $cols={DAYS_PER_WEEK}
+                        $rows={shownHours.length}
                         role="group"
                         aria-label="예시 시간표 — 칸을 누르면 그 시간에 가능한 사람이 나옵니다"
                       >
@@ -1189,6 +1358,8 @@ export default function StartPage() {
                                   $off={off}
                                   data-cell={cellKey || undefined}
                                   $clickable={members.length > 0}
+                                  aria-haspopup={members.length ? "dialog" : undefined}
+                                  aria-expanded={members.length ? openCell === cellKey : undefined}
                                   aria-label={
                                     members.length
                                       ? `${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${String(h).padStart(2, "0")}시 · ${members.length}명 가능`
@@ -1208,7 +1379,7 @@ export default function StartPage() {
                                   {/* 가장 위 골든타임 칸을 누르게 하는 안내. 명단이 열려 있으면 감춘다.
                                       앞쪽 요일(월~수)이면 왼쪽 공간이 없어 오른쪽에 둔다.
                                       칸 버튼 안에 있어 안내를 눌러도 이 칸의 명단이 열린다. */}
-                                  {cellKey === goldenKey && !openCell && !isTapHintDismissed && (
+                                  {cellKey === goldenKey && !openCell && !isTapHintDismissed && (isStacked || isIntroDone) && (
                                     <TapHint $side={i >= 3 ? "left" : "right"} aria-hidden="true">
                                       눌러서 명단 보기
                                     </TapHint>
@@ -1385,7 +1556,7 @@ export default function StartPage() {
             <SideCta>{renderCta("start-cta-hint-side")}</SideCta>
         </PreviewColumn>
 
-        <Builder aria-busy={isLoading}>
+        <Builder ref={builderRef} aria-busy={isLoading}>
           <SrOnly role="status">{presetAnnounce}</SrOnly>
 
           <FieldBlock>
@@ -1399,9 +1570,20 @@ export default function StartPage() {
                   setTitleTouched(true);
                   setTitle(e.target.value);
                 }}
-                onFocus={() => setTitleFocused(true)}
+                onFocus={() => {
+                  setTitleFocused(true);
+                  setTitleVisited(true);
+                }}
                 onBlur={() => setTitleFocused(false)}
-                $nudge={promptActive}
+                $nudge={
+                  promptActive
+                    ? "steady"
+                    : !isStacked && !isTitleTouched
+                      ? isTitleVisited
+                        ? "steady"
+                        : "blink"
+                      : null
+                }
                 placeholder="예: 팀 프로젝트 회의"
                 aria-describedby="start-title-count"
               />
@@ -1438,107 +1620,155 @@ export default function StartPage() {
 
           <DateFieldset disabled={isLoading}>
             <DateLegend>후보 날짜</DateLegend>
-            <SrOnly id="start-dates-hint">눌러서 켜고 끄기 · 최소 하루</SrOnly>
+            <SrOnly id="start-dates-hint">
+              날짜를 눌러 켜고 끄기 · 요일이나 주 번호를 누르면 그 줄 전체 · 최소 하루
+            </SrOnly>
             <DateSummary>
-              <b>{selectedDays.length}일</b> 선택 · {weekCount}주
+              <b>{selectedDays.length}일</b> 선택{monthSummary && ` · ${monthSummary}`}
             </DateSummary>
 
-            {/* quick-create 의 Calendar 와 같은 시각 언어 — 테두리 없는 7열, 원형 셀,
-                선택은 원이 스프링으로 붙는다. 조작 방식(눌러 토글)은 그대로다. */}
+            {/* 월 달력(2026-09-28 사람 결정, 시안 1안). quick-create 의 Calendar 와 같은 시각 언어 —
+                테두리 없는 원형 셀, 선택은 원이 스프링으로 붙는다. 요일 머리글·주 번호·'이번 달 전부'는
+                보고 있는 달에서 고를 수 있는 날만 한꺼번에 켜고 끈다. */}
             <DateCalendar $invalid={selectedDays.length === 0}>
+              <MonthBar>
+                <MonthNav>
+                  <MonthArrow
+                    type="button"
+                    onClick={() => moveMonth(-1)}
+                    disabled={!canPrevMonth}
+                    aria-label="이전 달"
+                  >
+                    <FiChevronRight size={18} style={{ transform: "rotate(180deg)" }} aria-hidden="true" />
+                  </MonthArrow>
+                  <MonthLabel aria-live="polite">
+                    {viewMonth.getFullYear()}년 {viewMonth.getMonth() + 1}월
+                  </MonthLabel>
+                  <MonthArrow
+                    type="button"
+                    onClick={() => moveMonth(1)}
+                    disabled={!canNextMonth}
+                    aria-label="다음 달"
+                  >
+                    <FiChevronRight size={18} aria-hidden="true" />
+                  </MonthArrow>
+                </MonthNav>
+                {(() => {
+                  const state = groupState(monthGrid.all);
+                  return (
+                    <MonthAllButton
+                      type="button"
+                      $on={state === "on"}
+                      disabled={state === "empty"}
+                      aria-pressed={state === "on"}
+                      aria-label={`${viewMonth.getMonth() + 1}월 고를 수 있는 날 전부`}
+                      onClick={() => toggleGroup(monthGrid.all)}
+                    >
+                      {state === "on" && <FiCheck size={14} aria-hidden="true" />}
+                      이번 달 전부
+                    </MonthAllButton>
+                  );
+                })()}
+              </MonthBar>
               <DateGridScroll>
                 <DateGrid role="group" aria-describedby="start-dates-hint start-dates-error">
-                  {DAY_SHORT.map((w, i) => (
-                    <DayHead key={w} aria-hidden="true" $col={i}>
-                      {w}
-                    </DayHead>
-                  ))}
-                  {/* 첫 날을 자기 요일 칸에 맞추기 위한 빈 칸 */}
-                  {Array.from({ length: dates.length ? colOf(dates[0].date) : 0 }, (_, i) => (
-                    <DatePad key={`lead-${i}`} aria-hidden="true" />
-                  ))}
-                  <AnimatePresence initial={false}>
-                    {dates.map((d, i) => {
-                      const dow = d.date.getDay();
-                      const tag =
-                        i === 0 ? "오늘" : d.date.getDate() === 1 ? `${d.date.getMonth() + 1}월` : "";
-                      return (
-                        <DateCell
-                          key={d.key}
+                  <GridCorner aria-hidden="true">주</GridCorner>
+                  {DAY_SHORT.map((w, c) => {
+                    const state = groupState(monthGrid.cols[c]);
+                    return (
+                      <DayHeadButton
+                        key={w}
+                        type="button"
+                        $col={c}
+                        $on={state === "on"}
+                        disabled={state === "empty"}
+                        aria-pressed={state === "on"}
+                        aria-label={`${viewMonth.getMonth() + 1}월 ${DAY_FULL[(c + 1) % 7]} 전부`}
+                        onClick={() => toggleGroup(monthGrid.cols[c])}
+                      >
+                        {w}
+                      </DayHeadButton>
+                    );
+                  })}
+                  {Array.from({ length: monthGrid.rows }, (_, r) => {
+                    const rowCells = monthGrid.cells.slice(r * DAYS_PER_WEEK, (r + 1) * DAYS_PER_WEEK);
+                    const state = groupState(monthGrid.weeks[r]);
+                    return (
+                      <Fragment key={`row-${r}`}>
+                        <WeekRowButton
                           type="button"
-                          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: theme.motion.riseY }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{
-                            duration: theme.duration.sec.fast,
-                            ease: theme.easing.arr.out,
-                            delay: reduceMotion
-                              ? 0
-                              : Math.min(Math.floor(i / 7) * theme.motion.stagger, theme.motion.staggerMax),
-                          }}
-                          $active={d.selected}
-                          aria-pressed={d.selected}
-                          aria-label={`${i === 0 ? "오늘, " : ""}${d.date.getMonth() + 1}월 ${d.date.getDate()}일 ${DAY_FULL[dow]}`}
-                          data-date={d.key}
-                          onPointerDown={startDrag(d.key, d.selected)}
-                          // 포인터로 이미 처리했다. 키보드(Enter/Space)로 온 클릭만 받는다.
-                          onClick={(e) => e.detail === 0 && toggleDate(d.key)}
+                          disabled={state === "empty"}
+                          aria-pressed={state === "on"}
+                          aria-label={`${viewMonth.getMonth() + 1}월 ${r + 1}주 전부`}
+                          onClick={() => toggleGroup(monthGrid.weeks[r])}
                         >
-                          <CircleWrap data-circle>
-                            <AnimatePresence>
-                              {d.selected && (
-                                <SelectedCircle
-                                  initial={reduceMotion ? { opacity: 0 } : { scale: 0 }}
-                                  animate={reduceMotion ? { opacity: 1 } : { scale: 1 }}
-                                  exit={reduceMotion ? { opacity: 0 } : { scale: 0 }}
-                                  transition={
-                                    reduceMotion
-                                      ? { duration: theme.duration.sec.fast }
-                                      : theme.motion.select
-                                  }
-                                />
-                              )}
-                            </AnimatePresence>
-                            <DateNumber $active={d.selected}>{d.date.getDate()}</DateNumber>
-                          </CircleWrap>
-                          <DateTag $strong={i === 0}>{tag}</DateTag>
-                        </DateCell>
-                      );
-                    })}
-                  </AnimatePresence>
-                  {dates.length > 0 &&
-                    Array.from(
-                      { length: (7 - ((colOf(dates[0].date) + dates.length) % 7)) % 7 },
-                      (_, i) => <DatePad key={`trail-${i}`} aria-hidden="true" />
-                    )}
+                          <WeekChip data-on={state === "on" || undefined}>{r + 1}주</WeekChip>
+                        </WeekRowButton>
+                        {rowCells.map((cell, c) => {
+                          if (!cell) return <DatePad key={`pad-${c}`} aria-hidden="true" />;
+                          if (!cell.selectable) {
+                            return (
+                              <DateSlot key={cell.key} aria-hidden="true">
+                                <CircleWrap>
+                                  <DateNumber $muted>{cell.day}</DateNumber>
+                                </CircleWrap>
+                              </DateSlot>
+                            );
+                          }
+                          const on = selectedSet.has(cell.key);
+                          const isToday = cell.date.getTime() === today.getTime();
+                          return (
+                            <DateCell
+                              key={cell.key}
+                              type="button"
+                              $active={on}
+                              aria-pressed={on}
+                              aria-label={`${isToday ? "오늘, " : ""}${cell.date.getMonth() + 1}월 ${cell.day}일 ${DAY_FULL[cell.date.getDay()]}`}
+                              data-date={cell.key}
+                              onPointerDown={startDrag(cell.key, on)}
+                              // 포인터로 이미 처리했다. 키보드(Enter/Space)로 온 클릭만 받는다.
+                              onClick={(e) => e.detail === 0 && toggleDate(cell.key)}
+                            >
+                              <CircleWrap data-circle>
+                                <AnimatePresence>
+                                  {on && (
+                                    <SelectedCircle
+                                      initial={reduceMotion ? { opacity: 0 } : { scale: 0 }}
+                                      animate={reduceMotion ? { opacity: 1 } : { scale: 1 }}
+                                      exit={reduceMotion ? { opacity: 0 } : { scale: 0 }}
+                                      transition={
+                                        reduceMotion
+                                          ? { duration: theme.duration.sec.fast }
+                                          : theme.motion.select
+                                      }
+                                    />
+                                  )}
+                                </AnimatePresence>
+                                {/* 날짜 아래 글자 줄을 따로 두지 않고 오늘 칸은 숫자 대신 "오늘"이라고 쓴다. */}
+                                <DateNumber $active={on} $today={isToday}>
+                                  {isToday ? "오늘" : cell.day}
+                                </DateNumber>
+                              </CircleWrap>
+                            </DateCell>
+                          );
+                        })}
+                      </Fragment>
+                    );
+                  })}
+                  {/* 안내는 마지막 줄 바로 아래에 같은 간격으로 붙인다. 스크린리더는 start-dates-hint로 듣는다. */}
+                  <DateHint aria-hidden="true">요일이나 주 번호를 누르면 그 줄을 한꺼번에 켜고 끕니다</DateHint>
+                  {/* 줄이 적은 달도 6줄 높이를 지킨다(좁은 화면만). */}
+                  {Array.from({ length: MONTH_ROWS - monthGrid.rows }, (_, r) => (
+                    <SpacerRow key={`spacer-${r}`} aria-hidden="true">
+                      <DatePad />
+                      <DateSlot>
+                        <CircleWrap />
+                      </DateSlot>
+                    </SpacerRow>
+                  ))}
                 </DateGrid>
               </DateGridScroll>
             </DateCalendar>
-
-            {/* 후보 기간은 주 단위로만 늘리고 줄인다. 달력 격자가 한 줄씩 붙고 떨어진다. */}
-            <WeekControls>
-              <WeekButton
-                type="button"
-                onClick={removeWeek}
-                disabled={weekCount <= MIN_WEEKS}
-                aria-label="후보 기간 한 주 줄이기"
-              >
-                <FiMinus size={16} aria-hidden="true" />
-              </WeekButton>
-              <WeekCount aria-live="polite">{weekCount}주</WeekCount>
-              <WeekButton
-                type="button"
-                onClick={addWeek}
-                disabled={weekCount >= MAX_WEEKS}
-                aria-label="후보 기간 한 주 늘리기"
-              >
-                <FiPlus size={16} aria-hidden="true" />
-              </WeekButton>
-            </WeekControls>
-            {/* 눌러보기 전에 왜 비활성인지 알 수 있어야 한다. */}
-            <Hint style={{ textAlign: "center" }}>
-              {MIN_WEEKS}주 ~ {MAX_WEEKS}주 사이에서 조절합니다
-            </Hint>
 
             {selectedDays.length === 0 && (
               <Warning id="start-dates-error" role="alert">
@@ -1549,32 +1779,62 @@ export default function StartPage() {
             {isLoading && <Hint role="status">만드는 중에는 후보 날짜를 바꿀 수 없습니다.</Hint>}
           </DateFieldset>
 
-          <FieldBlock>
+          <TimeBlock>
             <FieldLabel as="span">시간 범위</FieldLabel>
+            {/* 휴대폰은 기본 선택 목록 대신 아래에서 올라오는 시간 격자 창을 쓴다(2026-09-28 사람 지시).
+                기본 목록은 25줄이라 작은 화면을 넘고, 스크롤하면 손가락에서 멀어져 누르기 어려웠다. */}
             <TimeRow>
-              <TimeSelect
-                aria-label="시작 시간"
-                value={startHour}
-                onChange={(e) => setStartHour(e.target.value)}
-              >
-                {HOURS.slice(0, -1).map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </TimeSelect>
-              <span aria-hidden="true">~</span>
-              <TimeSelect
-                aria-label="종료 시간"
-                value={endHour}
-                onChange={(e) => setEndHour(e.target.value)}
-              >
-                {HOURS.slice(1).map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </TimeSelect>
+              {isStacked ? (
+                <>
+                  <TimeField
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={timeSheet === "start"}
+                    aria-label={`시작 시간 ${startHour}`}
+                    onClick={() => setTimeSheet("start")}
+                  >
+                    {startHour}
+                    <FiChevronDown size={18} aria-hidden="true" />
+                  </TimeField>
+                  <span aria-hidden="true">~</span>
+                  <TimeField
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={timeSheet === "end"}
+                    aria-label={`종료 시간 ${endHour}`}
+                    onClick={() => setTimeSheet("end")}
+                  >
+                    {endHour}
+                    <FiChevronDown size={18} aria-hidden="true" />
+                  </TimeField>
+                </>
+              ) : (
+                <>
+                  <TimeSelect
+                    aria-label="시작 시간"
+                    value={startHour}
+                    onChange={(e) => setStartHour(e.target.value)}
+                  >
+                    {HOURS.slice(0, -1).map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </TimeSelect>
+                  <span aria-hidden="true">~</span>
+                  <TimeSelect
+                    aria-label="종료 시간"
+                    value={endHour}
+                    onChange={(e) => setEndHour(e.target.value)}
+                  >
+                    {HOURS.slice(1).map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </TimeSelect>
+                </>
+              )}
             </TimeRow>
             {startHour >= endHour && (
               <Warning role="alert">
@@ -1582,7 +1842,7 @@ export default function StartPage() {
                 종료 시간이 시작 시간보다 늦어야 합니다.
               </Warning>
             )}
-          </FieldBlock>
+          </TimeBlock>
         </Builder>
 
         {/* 좁은 화면: 폼을 다 고친 자리에서 누르는 버튼. 여기가 보이면 하단 고정 막대를 거둔다. */}
@@ -1590,6 +1850,22 @@ export default function StartPage() {
           {renderCta("start-cta-hint")}
         </CtaBlock>
         </StartShell>
+
+        {timeSheet &&
+          createPortal(
+            <TimeSheet
+              title={timeSheet === "start" ? "시작 시간" : "종료 시간"}
+              value={timeSheet === "start" ? startHour : endHour}
+              options={timeSheet === "start" ? HOURS.slice(0, -1) : HOURS.slice(1)}
+              onPick={(h) => {
+                if (timeSheet === "start") setStartHour(h);
+                else setEndHour(h);
+                setTimeSheet(null);
+              }}
+              onClose={closeTimeSheet}
+            />,
+            document.body
+          )}
 
         {/* 좁은 화면 하단 고정 버튼. 첫 화면에서 미리보기·입력창과 함께 보이게 한다. */}
         {isInlineCtaBelow && !isLockOpen && !created && !(isTouchDevice && isTitleFocused) && (
@@ -1956,6 +2232,31 @@ const withRailAttr = {
  * 좁은 화면의 폭 제한(720px)을 여기서 건다. 폼 카드에 margin: auto를 주면
  * 그리드 칸을 채우지 않고 내용 폭으로 줄어든다.
  */
+/* 첫 화면 등장(INTRO). 기다리는 동안은 0% 모습(투명)으로 두고, 끝나면 애니메이션이 빠진다(fill: backwards).
+   그래서 카톡방처럼 스크롤로 투명도를 바꾸는 요소도 등장이 끝나면 인라인 값이 그대로 산다. */
+const appearIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+const intro = ([mobile, wide]) => css`
+  animation: ${appearIn} 0.45s ${theme.easing.out} ${mobile}s backwards;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    animation-delay: ${wide}s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
 const StartShell = styled("div", withRailAttr)`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1970,10 +2271,11 @@ const StartShell = styled("div", withRailAttr)`
   @media (min-width: ${theme.breakpoint.lg}) {
     max-width: 1240px;
     grid-template-columns: 440px minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr;
+    /* 폼 상자와 미리보기를 같은 줄에 두어 위·아래 끝을 맞춘다(2026-09-28 사람 지시).
+       윗줄은 제목과 단톡방 그림이고, 스크롤하면 제목은 제자리에서 흐려진다. */
+    grid-template-rows: auto auto;
     grid-template-areas:
       "title room"
-      "form room"
       "form preview";
     column-gap: ${theme.space[6]};
     /* 높이 768px 노트북에서도 만들기 버튼까지 첫 화면에 들어오게 간격을 줄인다. */
@@ -1995,18 +2297,25 @@ const StartShell = styled("div", withRailAttr)`
 
 const PreviewColumn = styled.div`
   min-width: 0;
+  /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
+  position: relative;
+  z-index: 1;
+  ${intro(INTRO.rest)}
 
+  /* 폼 상자와 같은 높이로 늘어난다. 늘어난 만큼은 미리보기 시간표 칸이 나눠 갖는다. */
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: preview;
-    align-self: start;
-    position: sticky;
-    /* 사이트 헤더도 위에 붙어 있다. 그 아래에 붙여야 미리보기 윗부분이 헤더에 가리지 않는다.
-       칸이 화면보다 길면 스크립트가 붙는 위치를 위로 올린다(--preview-sticky-top). */
-    top: var(--preview-sticky-top, calc(${HEADER_HEIGHT} + ${PREVIEW_STICKY_GAP}px));
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
   }
 `;
 
 const CtaBlock = styled.div`
+  position: relative;
+  z-index: 1;
+  ${intro(INTRO.rest)}
+
   @media (min-width: ${theme.breakpoint.lg}) {
     display: none;
   }
@@ -2024,6 +2333,7 @@ const SideCta = styled.div`
 
 /* 좁은 화면 하단 고정 막대. 안내 문구까지 넣으면 첫 화면의 입력창을 가려 버튼만 둔다. */
 const MobileCtaBar = styled.div`
+  ${intro(INTRO.rest)}
   position: fixed;
   left: 0;
   right: 0;
@@ -2066,22 +2376,44 @@ const TitleWrap = styled.div`
     margin-bottom: 0;
   }
 
+  /* 넓은 화면: 스크롤해도 제목은 제자리에 있고 흐려지기만 한다. 폼 상자가 그 위로 올라온다. */
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: title;
     margin-bottom: 0;
+    position: sticky;
+    top: calc(${HEADER_HEIGHT} + ${TOP_GAP}px);
+    z-index: 0;
   }
 `;
 
 /* 제목 두 줄 자리 한가운데에 한 줄로 뜬다. 화살표만 강조색으로 입력칸 쪽(아래)을 가리킨다. */
+/* 높이 0인 sticky 자리. 카톡방과 같은 격자 칸(2행)에 겹쳐 두어 격자 간격을 하나 더 만들지 않는다.
+   따로 한 줄을 차지하면 높이가 0이어도 제목과 카톡방 사이에 간격이 두 번 붙었다. */
+const PromptDock = styled.div`
+  grid-row: 2;
+  grid-column: 1;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 0;
+`;
+
+/* 입력 유도 문구 막대. 아래로 지나가는 미리보기·폼이 글자 뒤로 비치지 않게 페이지 바탕색을 깐다. */
 const TitlePrompt = styled(motion.div)`
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: ${PROMPT_BAR_PX}px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: ${theme.space[1]};
+  background: ${theme.text.gamma[950]};
+  box-shadow: 0 1px 0 ${theme.text.gamma[900]};
   font-family: ${theme.font.family.bold};
-  font-size: 22px;
+  font-size: ${theme.font.size.title3};
   line-height: 1.3;
   color: ${theme.text.gamma[100]};
   cursor: pointer;
@@ -2090,10 +2422,6 @@ const TitlePrompt = styled(motion.div)`
   svg {
     flex-shrink: 0;
     color: ${theme.color.primary};
-  }
-
-  @media (min-width: ${theme.breakpoint.sm}) {
-    font-size: ${theme.font.size.title2};
   }
 `;
 
@@ -2130,6 +2458,17 @@ const KAKAO_BUBBLE = "#FAE64D"; // 보낸 메시지
    한 줄로 쌓이는 화면에서는 스크롤에 맞춰 작아지고 옅어진다(style로 받는 모션 값). */
 const ChatRoom = styled(motion.div)`
   margin: 0;
+  ${intro(INTRO.room)}
+
+  /* 휴대폰: 화면 맨 위에 닿으면 멈춘 채 흐려지고(투명도는 스크롤에 묶음), 미리보기가 그 위로 올라온다.
+     입력 유도 문구 자리(PromptDock)와 같은 칸에 놓이도록 2행을 정해 둔다. 나머지는 자동으로 1·3·4…행에 들어간다. */
+  @media (max-width: ${parseInt(theme.breakpoint.lg, 10) - 1}px) {
+    grid-row: 2;
+    grid-column: 1;
+    position: sticky;
+    top: 0;
+    z-index: 0;
+  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: room;
@@ -2239,6 +2578,7 @@ const SentBubble = styled.span`
   position: relative;
   align-self: flex-end;
   margin-right: 7px;
+  ${intro(INTRO.link)}
   padding: ${theme.space[2]} ${theme.space[3]};
   border-radius: 14px 0 14px 14px;
   background: ${KAKAO_BUBBLE};
@@ -2273,6 +2613,7 @@ const Received = styled.div`
   display: flex;
   align-items: flex-start;
   gap: ${theme.space[2]};
+  ${intro(INTRO.ask)}
 `;
 
 const ReceivedBody = styled.div`
@@ -2336,27 +2677,64 @@ const LinkText = styled.span`
   }
 `;
 
+/* 테두리는 미리보기 카드(PreviewCard)와 같게 둔다(2026-09-28 사람 지시). 두 상자가 나란히·위아래로 놓여 한 벌로 보이게. */
 const Builder = styled.section`
+  /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
+  position: relative;
+  z-index: 1;
+  ${intro(INTRO.rest)}
   background: white;
-  border: 1px solid ${theme.text.gamma[900]};
-  border-radius: ${theme.radius.xl};
+  border: 1px solid ${theme.text.gamma[800]};
+  border-radius: ${theme.radius.lg};
   padding: 34px;
 
   /* 좌우 패딩을 space[3]으로 맞춰야 DateGridScroll의 bleed가 정확히 상쇄된다. */
   @media (max-width: 639px) {
     padding: ${theme.space[4]} ${theme.space[3]} ${theme.space[6]};
-    border-radius: 18px;
   }
 
-  /* 좌우로 갈라진 화면에서 폼 칸이 가장 좁을 때(440px)도 후보 날짜 격자가 잘리지 않게 여백을 줄인다. */
+  /* 좌우로 갈라진 화면에서 폼 칸이 가장 좁을 때(440px)도 후보 날짜 격자가 잘리지 않게 여백을 줄인다.
+     미리보기와 같은 높이로 늘어나고, 스크롤하면 흐려지는 제목 위로 올라온다. */
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: form;
-    padding: 28px;
+    align-self: stretch;
+    padding: ${theme.space[5]};
   }
 `;
 
 const FieldBlock = styled.div`
   margin-bottom: 26px;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    margin-bottom: ${theme.space[4]};
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+`;
+
+/* 넓은 화면은 "시간 범위"를 선택 상자와 한 줄에 두어 폼 상자 높이를 줄인다. */
+const TimeBlock = styled(FieldBlock)`
+  @media (min-width: ${theme.breakpoint.lg}) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: ${theme.space[4]};
+
+    & > * {
+      grid-column: 1 / -1;
+    }
+
+    & > :first-child {
+      grid-column: 1;
+      margin-bottom: 0;
+    }
+
+    & > :nth-child(2) {
+      grid-column: 2;
+    }
+  }
 `;
 
 const FieldLabel = styled.label`
@@ -2365,6 +2743,10 @@ const FieldLabel = styled.label`
   font-size: ${theme.font.size.body};
   color: ${theme.text.gamma[100]};
   margin-bottom: 10px;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    margin-bottom: ${theme.space[2]};
+  }
 `;
 
 const Hint = styled.p`
@@ -2494,10 +2876,33 @@ const TitleCount = styled.span`
   color: ${theme.text.gamma[400]};
 `;
 
+/* 원래 테두리 → 강조색(0.4초) → 바깥 고리를 아주 느리게 두 번 켰다 끔(한 번에 약 2초) → 고리 없는 강조색.
+   앞의 3초 기다림 동안은 0% 모습(원래 테두리)이 걸려 있다(animation-fill-mode: both).
+   고리 두께는 3px에서 30%씩 두 번 줄인 1.47px(2026-09-28 사람 지시). */
+const titleNudgeBlink = keyframes`
+  0% {
+    border-color: ${theme.text.gamma[600]};
+    box-shadow: 0 0 0 0 transparent;
+  }
+  8%, 50%, 92%, 100% {
+    border-color: ${theme.color.primary};
+    box-shadow: 0 0 0 0 transparent;
+  }
+  29%, 71% {
+    border-color: ${theme.color.primary};
+    box-shadow: 0 0 0 1.47px ${theme.color.primaryTint};
+  }
+`;
+
 const TitleInput = styled.input`
   width: 100%;
   box-sizing: border-box;
   min-height: 52px;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    min-height: 44px;
+  }
+
   padding: 0 64px 0 16px;
   border: 1px solid ${theme.text.gamma[600]};
   border-radius: ${theme.radius.md};
@@ -2506,8 +2911,22 @@ const TitleInput = styled.input`
   color: ${theme.text.gamma[100]};
   background: ${theme.color.surface};
   transition: border-color ${theme.duration.fast} ${theme.easing.standard};
-  /* 제목 자리에 입력 유도 문구가 떠 있는 동안 테두리를 강조색으로. 반짝이지 않고 색만 바뀐다. */
+  /* 입력 유도: 테두리를 강조색으로 둔다.
+     - "steady"(휴대폰): 제목 자리에 입력 유도 문구가 떠 있는 동안. 반짝이지 않고 색만 바뀐다.
+     - "blink"(넓은 화면): 제목을 아직 고치지 않은 동안. 원래 테두리로 3초 있다가 강조색으로 바뀌고,
+       아주 느리게 두 번 깜빡인 뒤 강조색으로 멈춘다(2026-09-28 사람 지시). 입력칸을 한 번 누르면
+       "steady"로 바뀌어 바로 강조색이 되고 다시 깜빡이지 않는다. 움직임 줄이기 설정이면 처음부터 강조색만. */
   ${({ $nudge }) => ($nudge ? `border-color: ${theme.color.primary};` : "")}
+  ${({ $nudge }) =>
+    $nudge === "blink"
+      ? css`
+          animation: ${titleNudgeBlink} ${NUDGE_MS}ms ${theme.easing.standard} ${NUDGE_DELAY_MS}ms 1 both;
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
+        `
+      : ""}
 
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};
@@ -2524,14 +2943,26 @@ const DateFieldset = styled.fieldset`
   padding: 0;
   margin: 0 0 ${theme.space[6]};
   min-width: 0;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    margin-bottom: ${theme.space[4]};
+  }
 `;
 
+/* 넓은 화면은 "후보 날짜"와 선택 요약을 한 줄에 둔다(왼쪽 제목·오른쪽 요약). 폼 상자를 한 화면에 넣기 위해서다.
+   legend를 float으로 빼도 fieldset의 이름으로 그대로 읽힌다. */
 const DateLegend = styled.legend`
   padding: 0;
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.label};
   color: ${theme.text.gamma[100]};
   margin-bottom: ${theme.space[2]};
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    float: left;
+    margin-bottom: 0;
+    line-height: 20px;
+  }
 `;
 
 const DateSummary = styled.p`
@@ -2544,11 +2975,23 @@ const DateSummary = styled.p`
     font-family: ${theme.font.family.bold};
     color: ${theme.text.gamma[100]};
   }
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    margin: 0 0 ${theme.space[2]};
+    line-height: 20px;
+    text-align: right;
+  }
 `;
 
 /* 오류일 때만 옅은 면으로 감싼다. padding은 두 상태가 같아 격자가 밀리지 않는다. */
 const DateCalendar = styled.div`
   padding: ${theme.space[3]};
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    clear: both;
+    padding-block: ${theme.space[2]};
+  }
+
   border-radius: ${theme.radius.lg};
   transition:
     background ${theme.duration.fast} ${theme.easing.standard},
@@ -2566,50 +3009,108 @@ const DateCalendar = styled.div`
   }
 `;
 
-/* 테두리도 헤어라인도 없다. quick-create 캘린더와 같은 공기감. */
-const DateGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  column-gap: ${theme.space[2]};
-  row-gap: ${theme.space[2]};
-  min-width: 300px; /* 7 × 36px + 6 × 8px */
-  max-width: 436px;
-  margin: 0 auto;
+/* 달 넘기기와 '이번 달 전부'. 달력 위에 있어 달을 넘겨도 버튼 자리가 그대로다.
+   좌우 여백은 DateGridScroll과 같게 두어 격자 양 끝에 맞춘다(좁은 폰에서 버튼이 카드 테두리에 붙지 않게). */
+const MonthBar = styled.div`
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${theme.space[2]};
+  max-width: calc(436px + 2 * ${theme.space[2]});
+  margin: 0 auto ${theme.space[2]};
+  padding-inline: ${theme.space[2]};
 
-  @media (min-width: ${theme.breakpoint.sm}) {
-    column-gap: ${theme.space[3]};
-    row-gap: ${theme.space[3]};
-    min-width: 324px;
+  /* 320px 폰에서는 격자 폭이 254px뿐이다. 화살표·글자 자리·버튼 여백을 줄여 한 줄에 넣는다. */
+  @media (max-width: 359px) {
+    gap: ${theme.space[1]};
   }
 `;
 
-const WeekControls = styled.div`
+const MonthNav = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: ${theme.space[3]};
-  margin-top: ${theme.space[3]};
 `;
 
-const WeekButton = styled.button`
-  width: 44px;
-  height: 44px;
+const MonthArrow = styled.button`
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  padding: 0;
+  border: 0;
   border-radius: ${theme.radius.pill};
-  background: white;
-  border: 1px solid ${theme.text.gamma[600]};
-  color: ${theme.text.gamma[300]};
+  background: none;
+  color: ${theme.text.gamma[200]};
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  /* 보이는 크기는 36px, 누르는 자리는 위아래로 44px. */
+  ${theme.styles.hitArea(theme.space[1], "0px")}
+
+  @media (max-width: 359px) {
+    width: 28px;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${theme.text.gamma[900]};
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: ${theme.text.gamma[700]};
+    cursor: default;
+  }
+`;
+
+/* 폭을 잡아 두어 "9월"→"10월"로 바뀔 때 화살표가 흔들리지 않게 한다. */
+const MonthLabel = styled.span`
+  min-width: 92px;
+  text-align: center;
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.body};
+  color: ${theme.text.gamma[100]};
+  font-variant-numeric: tabular-nums;
+
+  @media (max-width: 359px) {
+    min-width: 84px;
+  }
+`;
+
+const MonthAllButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: ${theme.space[1]};
+  height: 36px;
+  padding: 0 ${theme.space[3]};
+  border: 1px solid ${({ $on }) => ($on ? theme.color.primaryBorder : theme.text.gamma[600])};
+  border-radius: ${theme.radius.pill};
+  background: ${({ $on }) => ($on ? theme.color.primarySurface : theme.color.surface)};
+  color: ${({ $on }) => ($on ? theme.color.primaryText : theme.text.gamma[300])};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.small};
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  ${theme.styles.hitArea(theme.space[1], "0px")}
   transition:
     background ${theme.duration.fast} ${theme.easing.standard},
     border-color ${theme.duration.fast} ${theme.easing.standard};
 
-  &:hover:not(:disabled) {
-    background: ${theme.color.primarySurface};
-    border-color: ${theme.color.primary};
-    color: ${theme.color.primary};
+  @media (max-width: 359px) {
+    padding: 0 ${theme.space[2]};
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: ${theme.color.primaryBorder};
+    }
   }
 
   &:focus-visible {
@@ -2621,16 +3122,26 @@ const WeekButton = styled.button`
     background: ${theme.text.gamma[950]};
     border-color: ${theme.text.gamma[800]};
     color: ${theme.text.gamma[700]};
-    cursor: not-allowed;
+    cursor: default;
   }
 `;
 
-const WeekCount = styled.span`
-  min-width: 40px;
-  text-align: center;
-  font-family: ${theme.font.family.bold};
-  font-size: ${theme.font.size.label};
-  color: ${theme.text.gamma[100]};
+/* 테두리도 헤어라인도 없다. quick-create 캘린더와 같은 공기감.
+   맨 왼쪽 좁은 열은 주 번호 자리다. 날짜 열은 폭을 나눠 가져 320px 폰에서도 가로로 넘치지 않는다. */
+const DATE_GRID_COLUMNS = "28px repeat(7, minmax(0, 1fr))";
+
+const DateGrid = styled.div`
+  display: grid;
+  grid-template-columns: ${DATE_GRID_COLUMNS};
+  column-gap: ${theme.space[1]};
+  row-gap: ${theme.space[1]};
+  max-width: 436px;
+  margin: 0 auto;
+
+  @media (min-width: ${theme.breakpoint.sm}) {
+    column-gap: ${theme.space[2]};
+    row-gap: ${theme.space[2]};
+  }
 `;
 
 /* 격자가 좁은 화면에서 넘칠 때만 스크롤한다.
@@ -2641,31 +3152,162 @@ const DateGridScroll = styled.div`
   padding-inline: ${theme.space[2]};
 `;
 
-const DayHead = styled.div`
-  min-height: 20px;
-  text-align: center;
+const GridCorner = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  font-family: ${theme.font.family.medium};
+  font-size: ${theme.font.size.footnote};
+  color: ${theme.text.gamma[400]};
+`;
+
+/**
+ * 요일 머리글이 곧 버튼이다. 누르면 보고 있는 달의 그 요일 세로줄을 한꺼번에 켜고 끈다.
+ * 평소에는 달력 머리글처럼 글자만 두고, 켜짐·hover일 때만 면을 깐다(시안 1안).
+ * 누르는 글자라 일요일은 primary(2.72:1) 대신 primaryText로 쓴다.
+ */
+const DayHeadButton = styled.button`
+  min-height: 32px;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    min-height: 28px;
+  }
+
+  padding: 0;
+  border: 0;
+  border-radius: ${theme.radius.sm};
+  background: ${({ $on }) => ($on ? theme.color.primarySurface : "none")};
   font-family: ${theme.font.family.medium};
   font-size: ${theme.font.size.label};
-  color: ${({ $col }) =>
-    $col === 6
-      ? theme.color.primary
+  color: ${({ $on, $col }) =>
+    $on || $col === 6
+      ? theme.color.primaryText
       : $col === 5
         ? theme.color.weekdaySat
         : theme.text.gamma[400]};
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background ${theme.duration.fast} ${theme.easing.standard};
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ $on }) => ($on ? theme.color.primarySurface : theme.text.gamma[900])};
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: ${theme.text.gamma[700]};
+    cursor: default;
+  }
+`;
+
+/** 주 번호. 버튼은 줄 높이 전체를 차지해 누르기 쉽게 하고, 보이는 칩은 가운데에 둔다. */
+const WeekRowButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: ${theme.radius.sm};
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) > span:not([data-on]) {
+      background: ${theme.text.gamma[900]};
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+`;
+
+const WeekChip = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border-radius: ${theme.radius.sm};
+  font-family: ${theme.font.family.medium};
+  font-size: ${theme.font.size.footnote};
+  color: ${theme.text.gamma[400]};
+  transition: background ${theme.duration.fast} ${theme.easing.standard};
+
+  &[data-on] {
+    background: ${theme.color.primarySurface};
+    color: ${theme.color.primaryText};
+  }
+
+  button:disabled > & {
+    color: ${theme.text.gamma[700]};
+  }
 `;
 
 const DatePad = styled.div``;
 
+/* 고를 수 없는 날(지난 날·상한 뒤)과 이 달에 없는 줄의 자리. DateCell과 같은 모양이라 줄 높이가 같다. */
+const DateSlot = styled.div`
+  display: grid;
+`;
+
 /**
- * 원형 셀. 셀 = 원(정사각 비율) + 아래 캡션 한 줄.
- * 캡션 자리는 비어 있어도 예약해 두어 행 높이가 흔들리지 않는다.
+ * 줄이 적은 달도 6줄 높이를 지키는 빈 줄. 격자와 칸 나눔이 같아 원 크기, 곧 줄 높이가 정확히 같다.
+ * 넓은 화면에는 두지 않는다. 폼 상자와 미리보기가 같은 줄에서 함께 늘고 줄어 높이를 고정할 까닭이 없고,
+ * 빈 줄이 안내 문구와 "시간 범위" 사이를 벌려 놓았다(2026-09-28 사람 지시: PC에서 시간 범위를 올려 달라).
+ */
+const SpacerRow = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: ${DATE_GRID_COLUMNS};
+  column-gap: ${theme.space[1]};
+  visibility: hidden;
+
+  @media (min-width: ${theme.breakpoint.sm}) {
+    column-gap: ${theme.space[2]};
+  }
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    display: none;
+  }
+`;
+
+/* 달력 마지막 줄 아래 안내. 격자 한 줄을 통째로 쓰고, 줄 간격과 합쳐 달력에서 24px 떨어진다.
+   다른 힌트(13px·gamma[400])보다 한 단계 크고 진하게 둔다(2026-09-28 사람 지시: 띄우고 더 잘 읽히게). */
+const DateHint = styled.p`
+  grid-column: 1 / -1;
+  margin: ${theme.space[5]} 0 0;
+  text-align: center;
+  font-family: ${theme.font.family.medium};
+  font-size: ${theme.font.size.label};
+  line-height: 1.5;
+  color: ${theme.text.gamma[300]};
+  word-break: keep-all;
+
+  @media (min-width: ${theme.breakpoint.sm}) {
+    margin-top: ${theme.space[4]};
+  }
+`;
+
+/**
+ * 원형 셀. 한 달(최대 6줄)이 한 화면에 들어오도록 원만 둔다. 오늘은 원 안에 "오늘"이라고 쓴다.
  */
 const DateCell = styled(motion.button, {
   shouldForwardProp: (p) => !p.startsWith("$"),
 })`
   display: grid;
-  grid-template-rows: auto auto;
-  gap: 2px;
   width: 100%;
   padding: 0;
   border: 0;
@@ -2676,8 +3318,8 @@ const DateCell = styled(motion.button, {
   /* 드래그 중 브라우저가 스크롤을 가져가지 않게 한다. 모바일에서 필수다. */
   touch-action: none;
 
-  /* 원을 키우지 않고 히트 영역만 좌우로 넓힌다. gap의 절반이라 이웃과 겹치지 않는다. */
-  ${theme.styles.hitArea("0px", theme.space[1])}
+  /* 원을 키우지 않고 히트 영역만 좌우로 넓힌다. 휴대폰 gap(4px)의 절반이라 이웃과 겹치지 않는다. */
+  ${theme.styles.hitArea("0px", "2px")}
 
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};
@@ -2701,9 +3343,15 @@ const CircleWrap = styled.span`
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 52px;
+  /* 한 달(최대 6줄)을 보여 주므로 한 주만 보이던 때(52px)보다 작게 둔다.
+     넓은 화면은 폼 상자가 한 화면에 들어오도록 조금 더 줄인다. */
+  max-width: 40px;
   margin-inline: auto;
   aspect-ratio: 1 / 1;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    max-width: 36px;
+  }
   border-radius: 50%;
   transition: box-shadow ${theme.duration.fast} ${theme.easing.standard};
 `;
@@ -2723,22 +3371,18 @@ const DateNumber = styled.span`
   font-size: ${theme.font.size.bodyLg};
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: ${({ $active }) => ($active ? theme.color.surface : theme.text.gamma[200])};
+  color: ${({ $active, $muted }) =>
+    $muted ? theme.text.gamma[700] : $active ? theme.color.surface : theme.text.gamma[200]};
+  ${({ $today }) =>
+    $today &&
+    `
+    font-family: ${theme.font.family.bold};
+    font-size: ${theme.font.size.footnote};
+  `}
   transition: color ${theme.duration.fast} ${theme.easing.standard};
   pointer-events: none;
 `;
 
-/* height가 아니라 min-height — 200% 확대에서 글자가 잘리지 않게. */
-const DateTag = styled.span`
-  min-height: 16px;
-  line-height: 1.2;
-  text-align: center;
-  font-size: ${theme.font.size.footnote};
-  word-break: keep-all;
-  font-family: ${({ $strong }) =>
-    $strong ? theme.font.family.semiBold : theme.font.family.medium};
-  color: ${({ $strong }) => ($strong ? theme.text.gamma[300] : theme.text.gamma[400])};
-`;
 
 const TimeRow = styled.div`
   display: flex;
@@ -2749,6 +3393,191 @@ const TimeRow = styled.div`
 `;
 
 /* 모바일에서는 두 셀렉트가 남는 폭을 반씩 나눠 갖는다. */
+/* 휴대폰 시간 칸. 기본 선택 칸(TimeSelect)과 같은 모양의 버튼이다. */
+const TimeField = styled.button`
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${theme.space[2]};
+  padding: 0 14px;
+  border: 1px solid ${theme.text.gamma[600]};
+  border-radius: ${theme.radius.md};
+  background: ${theme.color.surface};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.body};
+  color: ${theme.text.gamma[100]};
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    flex-shrink: 0;
+    color: ${theme.text.gamma[400]};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+    border-color: ${theme.color.primary};
+  }
+`;
+
+const sheetUp = keyframes`
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+`;
+
+/* 시간 선택 창 바탕. 누르면 닫힌다. */
+const SheetScrim = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: ${theme.color.scrim};
+`;
+
+/* 아래에서 올라오는 창. 시간 25칸이 한 화면에 들어와 스크롤이 필요 없고, 엄지가 닿는 아래쪽에 있다. */
+const Sheet = styled.div`
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  padding: ${theme.space[4]} ${theme.space[4]} calc(${theme.space[5]} + env(safe-area-inset-bottom));
+  border-radius: ${theme.radius.xl} ${theme.radius.xl} 0 0;
+  background: ${theme.color.surface};
+  animation: ${sheetUp} 0.22s ${theme.easing.out};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const SheetHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${theme.space[3]};
+`;
+
+const SheetTitle = styled.h2`
+  margin: 0;
+  font-family: ${theme.font.family.bold};
+  font-size: ${theme.font.size.title3};
+  color: ${theme.text.gamma[100]};
+`;
+
+const SheetClose = styled.button`
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: -${theme.space[2]};
+  padding: 0;
+  border: 0;
+  border-radius: ${theme.radius.pill};
+  background: none;
+  color: ${theme.text.gamma[300]};
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+  }
+`;
+
+const HourGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: ${theme.space[2]};
+`;
+
+const HourChip = styled.button`
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid ${theme.text.gamma[800]};
+  border-radius: ${theme.radius.md};
+  background: ${theme.color.surface};
+  font-family: ${theme.font.family.semiBold};
+  font-size: ${theme.font.size.body};
+  font-variant-numeric: tabular-nums;
+  color: ${theme.text.gamma[200]};
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &[aria-pressed="true"] {
+    border-color: ${theme.color.primaryBorder};
+    background: ${theme.color.primarySurface};
+    color: ${theme.color.primaryText};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.color.focusRing};
+    outline-offset: 2px;
+  }
+`;
+
+/**
+ * 휴대폰 시간 선택 창. 고르면 바로 닫힌다. 바탕·닫기·Esc로도 닫힌다.
+ * 열리면 고른 칸에 초점을 두고, 닫히면 연 칸으로 초점을 돌려준다. 열린 동안 페이지 스크롤을 막는다.
+ */
+function TimeSheet({ title, value, options, onPick, onClose }) {
+  const selectedRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const opener = document.activeElement;
+    selectedRef.current?.focus();
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      opener?.focus?.();
+    };
+  }, []);
+  return (
+    <SheetScrim onClick={onClose}>
+      <Sheet
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="start-time-sheet-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SheetHead>
+          <SheetTitle id="start-time-sheet-title">{title}</SheetTitle>
+          <SheetClose type="button" aria-label="닫기" onClick={onClose}>
+            <FiX size={22} aria-hidden="true" />
+          </SheetClose>
+        </SheetHead>
+        <HourGrid role="group" aria-label={title}>
+          {options.map((h) => (
+            <HourChip
+              key={h}
+              type="button"
+              ref={h === value ? selectedRef : undefined}
+              aria-pressed={h === value}
+              onClick={() => onPick(h)}
+            >
+              {h}
+            </HourChip>
+          ))}
+        </HourGrid>
+      </Sheet>
+    </SheetScrim>
+  );
+}
+
 const TimeSelect = styled.select`
   min-height: 48px;
   padding: 0 14px;
@@ -2781,6 +3610,12 @@ const PreviewCard = styled.div`
   border-radius: ${theme.radius.lg};
   overflow: hidden;
   background: ${theme.color.surface};
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 /**
@@ -2817,6 +3652,11 @@ const PreviewLayout = styled.div`
 
   @media (min-width: ${theme.breakpoint.sm}) {
     padding: ${theme.space[5]};
+  }
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    flex: 1 1 auto;
+    align-items: stretch;
   }
 
   /* 오른쪽 칸(순위·참여자)은 1280px부터만 보인다. 그보다 좁은 화면에서 두 칸으로 나누면
@@ -2886,6 +3726,12 @@ const PaneNote = styled.p`
 /* 넓은 콘텐츠는 자기 컨테이너 안에서만 가로 스크롤한다. */
 const PreviewScroll = styled.div`
   overflow-x: auto;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 /* 날짜가 한둘만 남아도 칸이 과하게 넓어지지 않도록 위쪽을 막아 둔다. */
@@ -2899,6 +3745,13 @@ const PreviewGrid = styled.div`
   @media (min-width: ${theme.breakpoint.sm}) {
     grid-template-columns: 48px repeat(${({ $cols }) => $cols || 1}, minmax(36px, 1fr));
     min-width: ${({ $cols }) => 48 + ($cols || 1) * 36}px;
+  }
+
+  /* 넓은 화면은 폼 상자 높이에 맞춰 늘어난 만큼 시간 줄이 똑같이 나눠 갖는다(최소 24px). */
+  @media (min-width: ${theme.breakpoint.lg}) {
+    flex: 1 0 auto;
+    width: 100%;
+    grid-template-rows: auto repeat(${({ $rows }) => $rows || 1}, minmax(24px, 1fr));
   }
 `;
 
@@ -2975,7 +3828,8 @@ const PreviewCell = styled.div`
   }
 
   @media (min-width: ${theme.breakpoint.lg}) {
-    height: 24px;
+    height: auto;
+    min-height: 24px;
   }
 
   /* 키보드로 왔을 때만 보이는 표시. 검정 대신 브랜드색을 쓴다. */
@@ -3546,6 +4400,7 @@ const CreateButton = styled.button`
 const Faq = styled("section", withRailAttr)`
   max-width: 720px;
   margin: 56px auto 0;
+  ${intro(INTRO.rest)}
 
   /* 제목만 가운데. 질문 목록은 읽기 쉽게 왼쪽 정렬 그대로 둔다(2026-09-27 사람 지시). */
   h2 {
