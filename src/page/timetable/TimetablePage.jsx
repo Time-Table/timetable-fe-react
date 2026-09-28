@@ -15,7 +15,8 @@ import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
-import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../utils/analytics";
+import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi } from "../../utils/analytics";
+import { isTableAbOn, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
 import { clearTableScopedStorage } from "../../utils/storage";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -25,6 +26,7 @@ import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
 import Arrow from "../../assets/svg/Arrow";
 import GuideOverlay from "./components/GuideOverlay";
+import TableUiBand from "./components/TableUiBand";
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -231,6 +233,27 @@ export default function TimetablePage() {
     ++tableRequestId.current;
     ++scheduleRequestId.current;
   }, [tableId]);
+
+  // 테이블 A/B(specs/api-contract.md "테이블 A/B 1회차"). 화면은 표 정보(만든 시각)를 받은 뒤에 정한다.
+  // 꺼져 있으면 모두 A이고 띠도 기록도 없다. uiChoice는 이 화면에서 띠로 바꾼 값이며 다른 표면 쓰지 않는다.
+  const [uiChoice, setUiChoice] = useState(null);
+  const abTableId = isTableAbOn() && tableInfo?.tableId === tableId ? tableId : null;
+  let uiVersion = "A";
+  if (abTableId) {
+    uiVersion = uiChoice?.tableId === abTableId ? uiChoice.version : resolveTableUi(abTableId, tableInfo.createdAt);
+  }
+
+  useEffect(() => {
+    if (!abTableId) return undefined;
+    setActiveTableUi(abTableId, uiVersion);
+    tagTableUi(uiVersion);
+    return () => setActiveTableUi(null);
+  }, [abTableId, uiVersion]);
+
+  const handleSwitchUi = (next) => {
+    switchTableUi(abTableId, next);
+    setUiChoice({ tableId: abTableId, version: next });
+  };
 
   const isAdReady =
     isValidTableId === true &&
@@ -530,159 +553,162 @@ export default function TimetablePage() {
   }
 
   return isValidTableId ? (
-    <PageWrapper>
-      <GuideOverlay isDesktop={isDesktop} tableId={tableId} />
-      <Seo
-        title={`${title || "테이블"}`}
-        description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
-      />
-
-      {isDesktop ? (
-        <DesktopContainer>
-          <LeftPanel id="guide-all-timetable">
-            {tableInfo && (
-              <GroupTimeGrid
-                banedCells={banedCells}
-                title={title}
-                dates={dates}
-                startHour={startHour}
-                endHour={endHour}
-                timeInfo={selectedName ? datesInfo() : timeInfo}
-                selectedName={selectedName}
-                setSelectedName={setSelectedName}
-                setTableInfo={setTableInfo}
-                tableId={tableId}
-                usersSchedule={usersScheduleList}
-                onRefresh={fetchAllData}
-              />
-            )}
-          </LeftPanel>
-          <RightPanel>
-            <HeaderContent />
-            <ResultCard />
-            <StepBar />
-            <ContentPanel>
-              <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
-            </ContentPanel>
-            <AdSense
-              slot="7512892307"
-              layout="in-article"
-              format="fluid"
-              isReady={isAdReady}
-            />
-          </RightPanel>
-        </DesktopContainer>
-      ) : (
-        <>
-          <MainContent>
-            <HeaderContent />
-            <ResultCard />
-            <ViewTimetableButton
-              id="guide-view-timetable"
-              type="button"
-              disabled={scheduleStatus !== "ready" || usersScheduleList.length === 0}
-              onClick={openGridModal}
-            >
-              <FiGrid size={20} />
-              전체 시간표 보기
-            </ViewTimetableButton>
-            <StepBar />
-            <ContentPanel>
-              <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
-            </ContentPanel>
-            <AdSense
-              slot="7512892307"
-              layout="in-article"
-              format="fluid"
-              isReady={isAdReady}
-            />
-          </MainContent>
-        </>
-      )}
-
-      <TableFooterSection>
-        {(() => {
-          const tips = TOGGLE_TIPS[selectedToggle] || TOGGLE_TIPS.default;
-          return (
-            <>
-              <div
-                className="accordion-header"
-                onClick={() => {
-                  trackClarityEvent(isTipsOpen ? CLARITY_EVENTS.TIPS_CLOSE : CLARITY_EVENTS.TIPS_OPEN);
-                  setIsTipsOpen(!isTipsOpen);
-                }}
-              >
-                <h3>{tips.emoji} 모임 시간 조율을 위한 팁</h3>
-                <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
-                  <Arrow width={16} height={16} angle={90} />
-                </motion.div>
-              </div>
-              <AnimatePresence>
-                {isTipsOpen && (
-                  <motion.div
-                    key={selectedToggle}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <div className="accordion-content">
-                      <p>{tips.description}</p>
-                      <div className="tip-grid">
-                        {tips.tips.map((tip, i) => (
-                          <div key={i} className="tip-item">
-                            <h4>{tip.title}</h4>
-                            <p>{tip.desc}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="last-p">{tips.lastP}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          );
-        })()}
-      </TableFooterSection>
-
-      {tableInfo && !isDesktop && (
-        <TimeGridModal
-          $isOpen={isGridModalOpen}
-          onClose={() => setIsGridModalOpen(false)}
-          banedCells={banedCells}
-          title={title}
-          dates={dates}
-          startHour={startHour}
-          endHour={endHour}
-          timeInfo={selectedName ? datesInfo() : timeInfo}
-          selectedName={selectedName}
-          setSelectedName={setSelectedName}
-          setTableInfo={setTableInfo}
-          tableId={tableId}
-          usersSchedule={usersScheduleList}
-          onRefresh={fetchAllData}
+    <>
+      {abTableId && <TableUiBand version={uiVersion} onSwitch={handleSwitchUi} />}
+      <PageWrapper>
+        <GuideOverlay isDesktop={isDesktop} tableId={tableId} />
+        <Seo
+          title={`${title || "테이블"}`}
+          description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
         />
-      )}
 
-      <RankingModal
-        isOpen={isRankingOpen}
-        onClose={() => setIsRankingOpen(false)}
-        timeInfo={timeInfo}
-        selectedName={selectedName}
-        setSelectedName={(newName) => {
-          setIsRankingOpen(false);
-          handleUserClickWrapper(newName);
-        }}
-        usersCount={usersScheduleList.length}
-        onGoJoin={(screen) => {
-          setIsRankingOpen(false);
-          setRightScreen(screen);
-          setSelectedToggle(null);
-        }}
-      />
-    </PageWrapper>
+        {isDesktop ? (
+          <DesktopContainer>
+            <LeftPanel id="guide-all-timetable">
+              {tableInfo && (
+                <GroupTimeGrid
+                  banedCells={banedCells}
+                  title={title}
+                  dates={dates}
+                  startHour={startHour}
+                  endHour={endHour}
+                  timeInfo={selectedName ? datesInfo() : timeInfo}
+                  selectedName={selectedName}
+                  setSelectedName={setSelectedName}
+                  setTableInfo={setTableInfo}
+                  tableId={tableId}
+                  usersSchedule={usersScheduleList}
+                  onRefresh={fetchAllData}
+                />
+              )}
+            </LeftPanel>
+            <RightPanel>
+              <HeaderContent />
+              <ResultCard />
+              <StepBar />
+              <ContentPanel>
+                <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+              </ContentPanel>
+              <AdSense
+                slot="7512892307"
+                layout="in-article"
+                format="fluid"
+                isReady={isAdReady}
+              />
+            </RightPanel>
+          </DesktopContainer>
+        ) : (
+          <>
+            <MainContent>
+              <HeaderContent />
+              <ResultCard />
+              <ViewTimetableButton
+                id="guide-view-timetable"
+                type="button"
+                disabled={scheduleStatus !== "ready" || usersScheduleList.length === 0}
+                onClick={openGridModal}
+              >
+                <FiGrid size={20} />
+                전체 시간표 보기
+              </ViewTimetableButton>
+              <StepBar />
+              <ContentPanel>
+                <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+              </ContentPanel>
+              <AdSense
+                slot="7512892307"
+                layout="in-article"
+                format="fluid"
+                isReady={isAdReady}
+              />
+            </MainContent>
+          </>
+        )}
+
+        <TableFooterSection>
+          {(() => {
+            const tips = TOGGLE_TIPS[selectedToggle] || TOGGLE_TIPS.default;
+            return (
+              <>
+                <div
+                  className="accordion-header"
+                  onClick={() => {
+                    trackClarityEvent(isTipsOpen ? CLARITY_EVENTS.TIPS_CLOSE : CLARITY_EVENTS.TIPS_OPEN);
+                    setIsTipsOpen(!isTipsOpen);
+                  }}
+                >
+                  <h3>{tips.emoji} 모임 시간 조율을 위한 팁</h3>
+                  <motion.div animate={{ rotate: isTipsOpen ? 180 : 0 }}>
+                    <Arrow width={16} height={16} angle={90} />
+                  </motion.div>
+                </div>
+                <AnimatePresence>
+                  {isTipsOpen && (
+                    <motion.div
+                      key={selectedToggle}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <div className="accordion-content">
+                        <p>{tips.description}</p>
+                        <div className="tip-grid">
+                          {tips.tips.map((tip, i) => (
+                            <div key={i} className="tip-item">
+                              <h4>{tip.title}</h4>
+                              <p>{tip.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="last-p">{tips.lastP}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            );
+          })()}
+        </TableFooterSection>
+
+        {tableInfo && !isDesktop && (
+          <TimeGridModal
+            $isOpen={isGridModalOpen}
+            onClose={() => setIsGridModalOpen(false)}
+            banedCells={banedCells}
+            title={title}
+            dates={dates}
+            startHour={startHour}
+            endHour={endHour}
+            timeInfo={selectedName ? datesInfo() : timeInfo}
+            selectedName={selectedName}
+            setSelectedName={setSelectedName}
+            setTableInfo={setTableInfo}
+            tableId={tableId}
+            usersSchedule={usersScheduleList}
+            onRefresh={fetchAllData}
+          />
+        )}
+
+        <RankingModal
+          isOpen={isRankingOpen}
+          onClose={() => setIsRankingOpen(false)}
+          timeInfo={timeInfo}
+          selectedName={selectedName}
+          setSelectedName={(newName) => {
+            setIsRankingOpen(false);
+            handleUserClickWrapper(newName);
+          }}
+          usersCount={usersScheduleList.length}
+          onGoJoin={(screen) => {
+            setIsRankingOpen(false);
+            setRightScreen(screen);
+            setSelectedToggle(null);
+          }}
+        />
+      </PageWrapper>
+    </>
   ) : (
     <NotFoundTable />
   );

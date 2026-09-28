@@ -4,8 +4,10 @@
 export const ADMIN_KEY = "admin_token";
 export const VISITOR_KEY = "visitor_id";
 export const SOURCE_KEY = "visitor_source";
+// 테이블 A/B(2026-09-29): 사용자가 표마다 고른 화면(A/B). 다른 표에 다녀와도 그 표의 선택이 남아야 한다.
+export const TABLE_UI_KEY = "table_ui_choice";
 
-const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY];
+const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY];
 
 /**
  * 다른 테이블로 이동했을 때 테이블에 종속된 값만 비운다.

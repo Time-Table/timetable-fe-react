@@ -22,7 +22,27 @@ export const EVENTS = {
   JOIN_SUCCESS: "join_success",
   SCHEDULE_SAVE: "schedule_save",
   RANKING_OPEN: "ranking_open",
+
+  // 퍼널 단계가 아니라 테이블 A/B(2026-09-29)의 화면 전환 기록이다.
+  UI_SWITCH: "ui_switch",
 };
+
+/**
+ * 테이블 A/B(2026-09-29): 지금 열린 표와 그 표에서 보고 있는 화면(A/B).
+ * 표 화면이 실험이 켜져 있을 때 표 정보를 받은 뒤 정하고, 떠날 때 비운다(utils/tableExperiment.js).
+ * 그 표의 아래 이벤트에만 uiVersion으로 붙는다. table_view는 표 정보를 받기 전에 남기므로 넣지 않는다.
+ */
+let activeTableUi = null;
+const TABLE_UI_EVENTS = [EVENTS.INVITE_SHARE, EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS,
+  EVENTS.SCHEDULE_SAVE, EVENTS.RANKING_OPEN, EVENTS.UI_SWITCH];
+
+export const setActiveTableUi = (tableId, version) => {
+  activeTableUi = tableId && (version === "A" || version === "B") ? { tableId, version } : null;
+};
+
+const uiVersionFor = (name, tableId) =>
+  TABLE_UI_EVENTS.includes(name) && activeTableUi && activeTableUi.tableId === tableId
+    ? activeTableUi.version : undefined;
 
 const createId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -89,6 +109,7 @@ export const trackEvent = (name, tableId, creationPath) => {
   // 저장소 차단·수집 장애가 생성 요청이나 성공 화면을 막으면 안 된다.
   try {
     if (isAdmin()) return;
+    const uiVersion = uiVersionFor(name, tableId);
     pending = sendEvent({
       name,
       visitorId: getVisitorId(),
@@ -97,6 +118,8 @@ export const trackEvent = (name, tableId, creationPath) => {
       device: getDevice(),
       // 생성 경로. 서버가 랜딩 생성과 빠른 생성을 나눠 세도록 함께 보낸다(2026-09-29 랜딩 A/B).
       ...(creationPath === "landing" || creationPath === "quick_create" ? { creationPath } : {}),
+      // 테이블 A/B에서 이 이벤트 때 보고 있던 화면. 실험이 꺼져 있거나 다른 표면 붙지 않는다.
+      ...(uiVersion ? { uiVersion } : {}),
     });
   } catch (error) {
     return;
@@ -133,7 +156,7 @@ export const trackEvent = (name, tableId, creationPath) => {
 };
 
 /**
- * Clarity에만 남기는 보조 이벤트. 자체 API(서버 이벤트 11개)로는 보내지 않는다.
+ * Clarity에만 남기는 보조 이벤트. 자체 API(서버 이벤트 목록 EVENTS)로는 보내지 않는다.
  * 서버 퍼널은 합계만 보면 되고, 세부 구분(예: 휴대폰 공유 창 vs 링크 복사)은 Clarity에서 본다.
  * 이름은 `tt_`로 시작해야 한다. 관리자는 제외하고, Clarity 부재·차단·예외는 흐름을 막지 않는다.
  * 표 ID·방문자 ID·입력값은 보내지 않는다.
@@ -169,6 +192,10 @@ export const CLARITY_EVENTS = {
   LANDING_FORM_START: "tt_landing_form_start", // 모임 이름·후보 날짜·시간 범위 중 하나를 처음 바꿈
   LANDING_PRESET: "tt_landing_preset", // 추천 모임 이름 칩을 처음 누름
   LANDING_PREVIEW_OPEN: "tt_landing_preview_open", // 미리보기 칸을 직접 눌러 명단을 처음 엶(자동으로 열린 것은 빼고)
+
+  // 테이블 A/B(2026-09-29). 서버 ui_switch와 같은 순간에 방향을 나눠 남긴다(서버 이름은 Clarity로 넘기지 않는다).
+  UI_SWITCH_B: "tt_ui_switch_b", // 맨 위 띠로 새 화면(B)으로 바꿈
+  UI_SWITCH_A: "tt_ui_switch_a", // 맨 위 띠로 기존 화면(A)으로 바꿈
 };
 
 export const trackClarityEvent = (name) => {

@@ -1,4 +1,4 @@
-import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackClarityEvent, trackBlogView } from "./analytics";
+import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackClarityEvent, trackBlogView, setActiveTableUi } from "./analytics";
 import { grantAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
 import { sendEvent } from "../api/event";
@@ -151,7 +151,7 @@ describe("이벤트 이름", () => {
     expect(new Set(values).size).toBe(values.length);
   });
 
-  test("백엔드 정의와 같은 11개 단계를 갖는다", () => {
+  test("백엔드 정의와 같은 이벤트 이름 12개를 갖는다", () => {
     expect(Object.values(EVENTS).sort()).toEqual(
       [
         "create_cta_click",
@@ -165,8 +165,42 @@ describe("이벤트 이름", () => {
         "ranking_open",
         "schedule_save",
         "table_view",
+        "ui_switch",
       ].sort(),
     );
+  });
+});
+
+describe("테이블 A/B 화면(uiVersion)", () => {
+  afterEach(() => setActiveTableUi(null));
+
+  test("지금 열린 표의 표 이벤트에만 보고 있는 화면을 붙인다", () => {
+    setActiveTableUi("table-1", "B");
+    [EVENTS.INVITE_SHARE, EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE,
+      EVENTS.RANKING_OPEN, EVENTS.UI_SWITCH].forEach((name) => {
+      trackEvent(name, "table-1");
+      expect(sendEvent).toHaveBeenLastCalledWith(expect.objectContaining({ name, uiVersion: "B" }));
+    });
+  });
+
+  test("table_view·다른 표·꺼진 상태에는 붙이지 않는다", () => {
+    setActiveTableUi("table-1", "A");
+    trackEvent(EVENTS.TABLE_VIEW, "table-1");
+    trackEvent(EVENTS.INVITE_SHARE, "new-table");
+    trackEvent(EVENTS.CREATE_SUCCESS, "table-1", "landing");
+    setActiveTableUi(null);
+    trackEvent(EVENTS.SCHEDULE_SAVE, "table-1");
+    setActiveTableUi("table-1", "C");
+    trackEvent(EVENTS.SCHEDULE_SAVE, "table-1");
+    sendEvent.mock.calls.forEach(([payload]) => expect(payload).not.toHaveProperty("uiVersion"));
+    expect(sendEvent).toHaveBeenCalledTimes(5);
+  });
+
+  test("서버 ui_switch는 Clarity로 그대로 넘기지 않는다(방향별 보조 이벤트로 본다)", () => {
+    window.clarity = jest.fn();
+    setActiveTableUi("table-1", "B");
+    trackEvent(EVENTS.UI_SWITCH, "table-1");
+    expect(window.clarity).not.toHaveBeenCalled();
   });
 });
 

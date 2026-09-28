@@ -1,4 +1,4 @@
-import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY } from "./storage";
+import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY } from "./storage";
 
 /**
  * 2026-07-29 실제 발생한 버그의 회귀 테스트.
@@ -44,6 +44,16 @@ test("방문자 ID와 유입 경로도 살아남는다", () => {
   expect(localStorage.getItem(SOURCE_KEY)).toBe("google.com");
 });
 
+test("표마다 고른 화면(테이블 A/B)도 살아남는다", () => {
+  localStorage.setItem(TABLE_UI_KEY, JSON.stringify({ "old-table": "B" }));
+  localStorage.setItem("name", "홍길동");
+
+  clearTableScopedStorage();
+
+  expect(JSON.parse(localStorage.getItem(TABLE_UI_KEY))).toEqual({ "old-table": "B" });
+  expect(localStorage.getItem("name")).toBeNull();
+});
+
 test("보존 대상이 없어도 오류 없이 동작한다", () => {
   localStorage.setItem("name", "홍길동");
 
@@ -53,6 +63,6 @@ test("보존 대상이 없어도 오류 없이 동작한다", () => {
 
 test("보존 키들은 서로 다른 값을 쓴다", () => {
   // 키가 겹치면 한쪽을 덮어써서 조용히 데이터가 섞인다.
-  const keys = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY];
+  const keys = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY];
   expect(new Set(keys).size).toBe(keys.length);
 });
