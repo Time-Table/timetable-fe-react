@@ -91,6 +91,9 @@ const STACKED_QUERY = `(max-width: ${parseInt(theme.breakpoint.lg, 10) - 1}px)`;
 const COMPACT_ROWS = 5;
 /** 사이트 헤더(Header.jsx HeaderWrapper) 높이. 헤더가 위에 붙어 있어 넓은 화면의 제목을 그 아래에 둔다. */
 const HEADER_PX = 72;
+/** 스크롤 안내 첫 등장: 가운데에서의 배율과 전체 시간(초). 가운데에 잠깐 머문 뒤 내려간다(2026-09-29 사람 지시). */
+const HINT_INTRO_SCALE = 1.25;
+const HINT_INTRO_S = 1.5;
 const HEADER_HEIGHT = `${HEADER_PX}px`;
 /** 한 줄로 쌓이는 화면에서 스크롤해 단톡방이 사라지면 제목 자리에 보여 줄 입력 유도 문구(2026-09-27 사람 선택). */
 /**
@@ -447,6 +450,23 @@ export default function LandingV2Page({ preview = false }) {
     offset: ["start start", "end end"],
   });
   const hintOpacity = useTransform(storyProgress, [0, at(STORY.hintOut)], [1, 0]);
+
+  /**
+   * 스크롤 안내 첫 등장(2026-09-29 사람 지시): 화면이 열리면 헤더 아래 보이는 영역 가운데에 1.25배로 나타났다가
+   * 제자리로 내려가며 원래 크기로 돌아온다. 1.5초 안에 끝난다. 처음 그리기 전에 제자리에서 가운데까지 거리를 잰다.
+   * 움직임 줄이기 설정이면 처음부터 제자리에 보인다.
+   */
+  const hintRef = useRef(null);
+  const [hintIntroDy, setHintIntroDy] = useState(null);
+  useLayoutEffect(() => {
+    if (isStacked || reduceMotion) return;
+    const el = hintRef.current;
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    setHintIntroDy(Math.round((window.innerHeight + HEADER_PX) / 2 - (box.top + box.height / 2)));
+    // 처음 한 번만 잰다. 화면 폭이 바뀌어도 다시 하지 않는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const storyRoomOpacity = useTransform(storyProgress, STORY.roomOut.map(at), [1, 0]);
   const storyTitleOpacity = useTransform(
     storyProgress,
@@ -1220,9 +1240,25 @@ export default function LandingV2Page({ preview = false }) {
                   ))}
                 </StoryBody>
               </StoryRoom>
-              <ScrollHint aria-hidden="true" style={{ opacity: hintOpacity }}>
-                스크롤을 내려 대화를 이어 보세요
-                <FiChevronsDown size={22} />
+              <ScrollHint ref={hintRef} aria-hidden="true" style={{ opacity: hintOpacity }}>
+                <ScrollHintInner
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={
+                    reduceMotion
+                      ? { opacity: 1 }
+                      : hintIntroDy === null
+                        ? { opacity: 0 }
+                        : { opacity: 1, y: [hintIntroDy, hintIntroDy, 0], scale: [HINT_INTRO_SCALE, HINT_INTRO_SCALE, 1] }
+                  }
+                  transition={{
+                    opacity: { duration: 0.25, ease: "easeOut" },
+                    y: { duration: HINT_INTRO_S, times: [0, 0.35, 1], ease: "easeInOut" },
+                    scale: { duration: HINT_INTRO_S, times: [0, 0.35, 1], ease: "easeInOut" },
+                  }}
+                >
+                  스크롤을 내려 대화를 이어 보세요
+                  <FiChevronsDown size={22} />
+                </ScrollHintInner>
               </ScrollHint>
               <StoryTitle style={{ opacity: storyTitleOpacity, y: storyTitleY }}>
                 단체 약속 잡기,{" "}
@@ -2581,17 +2617,25 @@ const hintBob = keyframes`
   }
 `;
 
-/* 빈 방 바로 아래 스크롤 안내. 화살표만 천천히 오르내린다. */
+/* 빈 방 바로 아래 스크롤 안내. 스크롤하면 흐려진다(바깥). 첫 등장은 안쪽(ScrollHintInner)이 맡는다. */
 const ScrollHint = styled(motion.div)`
   grid-area: 2 / 1;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+/* 안내 글자와 화살표. 화살표만 천천히 오르내린다.
+   글자는 21px·SemiBold·검정(2026-09-29 사람 지시: 굵기 한 단계 위, 검정, 크기 21px — 크기 값 목록에 없는 사람 지정 값). */
+const ScrollHintInner = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${theme.space[1]};
-  font-family: ${theme.font.family.medium};
-  font-size: ${theme.font.size.body};
-  color: ${theme.text.gamma[400]};
-  pointer-events: none;
+  font-family: ${theme.font.family.semiBold};
+  font-size: 21px;
+  color: ${theme.text.gamma[100]};
+  transform-origin: 50% 50%;
 
   svg {
     color: ${theme.color.primary};
