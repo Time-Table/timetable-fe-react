@@ -124,6 +124,33 @@ afterEach(() => {
   document.body.style.overflow = "";
 });
 
+describe("미리보기 기본 주", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("일요일에 열면 오늘 하루뿐인 이번 주 대신 고른 날이 더 많은 다음 주를 먼저 보여준다", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-10-04T10:00:00"));
+    mount();
+    expect(screen.getByText("2 / 2주")).toBeInTheDocument();
+  });
+
+  test("목요일에 열면 나흘을 고른 이번 주를 보여준다", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-10-01T10:00:00"));
+    mount();
+    expect(screen.getByText("1 / 2주")).toBeInTheDocument();
+  });
+
+  test("금요일에 열면 사흘뿐인 이번 주 대신 나흘을 고른 다음 주를 보여준다", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-10-02T10:00:00"));
+    mount();
+    expect(screen.getByText("2 / 2주")).toBeInTheDocument();
+  });
+});
+
 describe("새로고침해도 맨 위에서 시작", () => {
   test("열면 브라우저 스크롤 되살리기를 끄고 맨 위로 가며, 떠나면 원래대로 돌린다", () => {
     window.history.scrollRestoration = "auto";

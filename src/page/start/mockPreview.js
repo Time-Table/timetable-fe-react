@@ -30,7 +30,7 @@ const pad = (n) => String(n).padStart(2, "0");
  * 2026-09-27 새 랜딩 채택과 함께 지웠다. 여기서는 두 가지 규칙만 쓴다.
  * - 하루 안: 사람마다 폭이 다른 가용 시간을 같은 중심에 겹친다. 가운데가 가장 진하고 위아래로 옅어진다.
  *   가장 좁은 두 사람은 폭이 같고(= 모두가 되는 핵심 구간), 그다음부터 한 사람마다 한 칸씩 넓힌다.
- * - 날짜 사이: 골든타임 날(후보 중 첫 금요일, 없으면 가운데 날)에서 하루 멀어질 때마다
+ * - 날짜 사이: 골든타임 날(고른 날이 가장 많은 주의 금요일, 없으면 그 주의 가운데 날)에서 하루 멀어질 때마다
  *   넓게 되는 사람부터 두 명씩 빠진다. 후보 기간 밖으로 밀려나는 부분은 그대로 잘린다.
  *   끝쪽 날은 아무도 없는 빈 열이 된다. 칸이 다 차 있으면 어디가 겹치는지 오히려 안 보인다.
  * 그래서 골든타임을 꼭짓점으로 한 언덕 하나와 빈칸이 남는다. 기본 시간 범위(10~20시)에서
@@ -56,8 +56,27 @@ export function buildTidyMockTimetable(days, startHour, endHour) {
     return [start, start + width];
   });
 
-  const friday = days.findIndex((d) => d.date.getDay() === 5);
-  const hero = friday >= 0 ? friday : Math.floor((days.length - 1) / 2);
+  // 골든타임 날은 고른 날이 가장 많은 달력 주(월~일)에 둔다(2026-10-02 사람 지시: 미리보기는 기본으로 그 주를 보여 준다).
+  // 그 주에 고른 금요일이 있으면 금요일, 없으면 그 주에서 고른 날의 가운데 날이다. 고른 날 수가 같으면 앞 주다.
+  // 화면은 골든타임이 있는 주를 먼저 펼친다. 일요일에 열면 오늘 하루뿐인 이번 주 대신 엿새를 고른 다음 주가 보인다.
+  const weekOf = (date) => {
+    const monday = new Date(date);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return monday.getTime();
+  };
+  const perWeek = new Map();
+  days.forEach((day, i) => {
+    const week = weekOf(day.date);
+    if (!perWeek.has(week)) perWeek.set(week, []);
+    perWeek.get(week).push(i);
+  });
+  let focus = [];
+  perWeek.forEach((indexes) => {
+    if (indexes.length > focus.length) focus = indexes;
+  });
+  const friday = focus.find((i) => days[i].date.getDay() === 5);
+  const hero = friday !== undefined ? friday : focus[Math.floor((focus.length - 1) / 2)];
   const cells = {};
   // 거리는 선택된 날짜의 순서가 아니라 실제 달력 날짜 차이로 센다.
   // 후보에서 뺀 날이 있어도 모양이 달력 위에서 그대로 유지된다.

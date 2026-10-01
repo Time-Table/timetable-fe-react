@@ -85,6 +85,28 @@ afterEach(() => {
 });
 
 describe("랜딩 실험 v2", () => {
+  test("미리보기는 고른 날이 더 많은 주를 먼저 보여준다(일·금요일이면 다음 주, 목요일이면 이번 주)", () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date("2026-10-04T10:00:00"));
+      let view = mount();
+      expect(screen.getByText("2 / 2주")).toBeInTheDocument();
+      view.unmount();
+
+      jest.setSystemTime(new Date("2026-10-01T10:00:00"));
+      view = mount();
+      expect(screen.getByText("1 / 2주")).toBeInTheDocument();
+      view.unmount();
+
+      // 금요일: 이번 주는 금·토·일 사흘, 다음 주는 월~목 나흘이다.
+      jest.setSystemTime(new Date("2026-10-02T10:00:00"));
+      mount();
+      expect(screen.getByText("2 / 2주")).toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test("새로고침해도 맨 위에서 시작하게 브라우저 스크롤 되살리기를 끄고, 떠나면 원래대로 돌린다", () => {
     window.history.scrollRestoration = "auto";
     const { unmount } = mount();
