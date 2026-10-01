@@ -304,7 +304,8 @@ export const BPage = styled.div`
   .tb-field .tb-input:focus-visible { outline: 0; }
   .tb-err { margin: 0 0 10px; font-size: 13px; ${w6} color: var(--primary-text); }
   .tb-err:empty { margin: 0; }
-  .tb-terms { display: flex; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 12px; color: var(--g500); }
+  /* 링크에만 위아래 여백이 있어 "|"가 위로 붙었다(2026-10-02 사람 지적). 가운데로 맞춘다. */
+  .tb-terms { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 14px 0 0; font-size: 12px; color: var(--g500); }
   .tb-terms a { color: var(--g400); text-decoration: none; padding: 6px 2px; }
   .tb-pfield { margin-bottom: 18px; }
   .tb-label { display: flex; align-items: center; margin: 0 0 10px; font-size: 15px; ${w7} color: var(--g100); }
