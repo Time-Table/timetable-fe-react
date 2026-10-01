@@ -9,6 +9,7 @@ import {
   useReducedMotion,
   useScroll,
   useTransform,
+  useMotionValue,
   useMotionValueEvent,
 } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
@@ -106,6 +107,11 @@ const NO_TRACKING = { event: () => {}, clarity: () => {} };
 
 const TITLE_PROMPT = "모임 이름부터 바꿔 보세요";
 /**
+ * 휴대폰 입력 유도 문구가 나타나는 스크롤 구간(px). 첫 화면에서 폼이 덮고 있던 문구 줄 자리는 스크롤 56px 안에
+ * 다 열리므로(formLift) 그 안에서 다 보이게 한다(2026-10-01 사람 지시: 벌어지며 바로 나타나게. 전에는 40→140px).
+ */
+const PROMPT_IN = [12, 44];
+/**
  * 넓은 화면 스크롤 이야기의 대화(2026-09-28 사람이 준 단톡방 캡처를 참고, 한 명을 뺀 분량).
  * 내가 묻고 셋이 서로 다른 조건으로 답한 뒤 내가 링크를 보낸다. 이름은 오픈채팅 기본 별명 느낌으로 둔다.
  */
@@ -146,13 +152,29 @@ const NUDGE_MS = 5000;
  * 첫 화면 등장 순서(2026-09-28 사람 지시): 제목 → 카톡방(말풍선 차례로) → 나머지.
  * 제목은 처음부터 보인다(가장 큰 글자라 LCP 후보). 값은 초 단위, [휴대폰, 넓은 화면].
  * 넓은 화면은 말풍선을 약 1초·2초에 띄우고 3초에 입력칸 유도가 이어진다.
+ * 휴대폰은 제목·카톡방이 화면 가운데에서 이 순서를 마친 뒤 제자리로 올라가고(INTRO_LIFT),
+ * 나머지는 거의 다 올라갔을 때 나타난다(2026-10-01 사람 지시로 1.5초에서 늦춤).
  */
 const INTRO = {
   room: [0.3, 0.3],
   ask: [0.7, 1.0],
   link: [1.1, 2.0],
-  rest: [1.5, 2.4],
+  rest: [2.3, 2.4],
 };
+/** 등장 애니메이션(appearIn) 한 번의 길이(초). */
+const APPEAR_S = 0.45;
+/**
+ * 휴대폰 첫 화면 소개(2026-10-01 사람 지시: 첫 진입 때 제목·단톡방이 가운데에서 애니메이션을 마친 뒤
+ * 위로 올라가 제자리에 앉게). 링크 말풍선(1.1초부터 0.45초)이 다 나오고 잠깐 머문 뒤
+ * start초부터 duration초 동안 올라간다. 값은 초.
+ */
+const INTRO_LIFT = { start: 1.9, duration: 0.6 };
+/**
+ * 휴대폰 첫 화면 소개 전체 길이(ms). 나머지(INTRO.rest)가 다 나타날 때까지다.
+ * 이 동안 스크롤을 막고, 끝나면 휴대폰 등장 애니메이션을 뗀다(intro 참고).
+ */
+const INTRO_MS = (INTRO.rest[0] + APPEAR_S) * 1000;
+const introPct = (seconds) => `${(((seconds * 1000) / INTRO_MS) * 100).toFixed(2)}%`;
 
 const matchesQuery = (query) =>
   typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -338,6 +360,8 @@ const FAQ_ITEMS = [
  *   방이 흐려지며 "단체 약속 잡기, 이 링크 하나면 끝" → 제목이 사라지고 폼·미리보기가 나타남.
  *   입력칸 유도(3초 뒤 강조색·두 번 깜빡임)와 명단 자동 열기(유도가 끝난 뒤)는 폼이 나타난 때부터 센다.
  * - 휴대폰: 스크롤을 내리기 시작하면 제목과 카톡방이 함께 흐려지고, 입력 유도 문구는 미리보기 아래 자리에서 나온다.
+ *   첫 화면에서는 폼이 미리보기 바로 아래에 붙어 있다가 내리는 만큼 그 사이가 벌어지며 문구가 나온다(2026-10-01).
+ *   첫 진입 때는 제목·카톡방이 화면 가운데에서 말풍선 등장을 마친 뒤 제자리로 올라가 앉고 나머지가 나타난다(2026-10-01).
  * `/`에서는 A/B 배정(utils/landingExperiment.js)으로 절반에게 보이고 v1과 같은 계측을 남긴다.
  * 미리보기 주소(`/landing-v2`, preview)는 검색에서 빼고(noindex) 지표도 남기지 않는다.
  */
@@ -412,14 +436,23 @@ export default function LandingV2Page({ preview = false }) {
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   /**
+   * 휴대폰 첫 화면 소개(INTRO_LIFT). 시간으로만 진행하고 그동안 스크롤을 막는다(v1 랜딩 소개와 같은 방식).
+   * 제목·단톡방은 제자리에 그려 둔 채 가운데로 옮겨 보여 주므로, 처음 그리기 전에 가운데까지의 거리를 잰다.
+   * 넓은 화면은 스크롤 이야기가 첫 화면을 맡아 하지 않는다. 움직임 줄이기 설정이면 하지 않는다.
+   */
+  const [isIntroPlaying, setIntroPlaying] = useState(() => isStacked && !reduceMotion);
+
+  /**
    * 한 줄로 쌓이는 화면(휴대폰) 스크롤 연출(v2).
    * - 스크롤을 내리기 시작하면 제목과 카톡방이 함께 흐려진다(0→120px). 제목은 헤더를 데리고 올라간다.
-   * - 입력 유도 문구는 미리보기 아래 자리에서 나타난다(40→140px). 자리는 처음부터 잡아 두어 아래가 밀리지 않는다.
+   * - 입력 유도 문구는 미리보기 아래 자리에서 나타난다(PROMPT_IN). 자리는 처음부터 잡아 두어 아래가 밀리지 않는다.
+   *   첫 화면에서는 폼이 그 자리를 덮고 있다가 스크롤만큼 내려가며 비켜 준다(아래 formLift).
    * 시간이 아니라 스크롤 위치에 묶어 있어 되돌리면 그대로 되돌아온다. 원래 제목(h1)은 문서에 그대로 남는다.
    */
   const roomRef = useRef(null);
   const titleWrapRef = useRef(null);
   const builderRef = useRef(null);
+  const promptRowRef = useRef(null);
   const storyRef = useRef(null);
   const restRef = useRef(null);
   const faqRef = useRef(null);
@@ -428,8 +461,8 @@ export default function LandingV2Page({ preview = false }) {
   const [isTitleVisited, setTitleVisited] = useState(false);
   const { scrollY: pageScrollY } = useScroll();
   const heroOpacity = useTransform(pageScrollY, [0, 120], [1, 0]);
-  const promptOpacity = useTransform(pageScrollY, [40, 140], [0, 1]);
-  const promptY = useTransform(pageScrollY, [40, 140], [8, 0]);
+  const promptOpacity = useTransform(pageScrollY, PROMPT_IN, [0, 1]);
+  const promptY = useTransform(pageScrollY, PROMPT_IN, [8, 0]);
   const [isPromptShown, setPromptShown] = useState(false);
   // 휴대폰에서 제목을 입력하는 동안에는 하단 고정 막대를 내린다. 키보드 바로 위에 붙어 입력칸 주변을 가렸다.
   const [isTitleFocused, setTitleFocused] = useState(false);
@@ -437,9 +470,98 @@ export default function LandingV2Page({ preview = false }) {
   const [timeSheet, setTimeSheet] = useState(null);
   const closeTimeSheet = useCallback(() => setTimeSheet(null), []);
   useMotionValueEvent(pageScrollY, "change", (v) => {
-    const shown = v > 100;
+    const shown = v >= PROMPT_IN[1];
     setPromptShown((prev) => (prev === shown ? prev : shown));
   });
+
+  /**
+   * 첫 화면 폼 끌어올리기(2026-10-01 사람 지시: 첫 화면에서는 미리보기와 입력 박스 사이를 줄이고,
+   * 내리기 시작하면 그 사이가 빠르게 벌어지며 입력 유도 문구가 나타나게). 빈 문구 줄 탓에 폼이 하단 막대에 가려
+   * 아래에 입력 박스가 있는지 안 보였다.
+   * 문구 줄 자리는 그대로 두고 폼만 [문구 줄 높이 + 격자 간격]만큼 올려 미리보기 바로 아래(간격 한 칸)에 붙인다.
+   * 스크롤 1px에 1px씩 제자리로 돌아오므로 그동안 폼은 화면에서 멈춰 있고 미리보기만 올라가며 틈이 벌어진다.
+   * 자리를 줄이지 않고 translate로 옮기므로 문서 배치는 바뀌지 않는다. transform은 폼 등장 애니메이션(appearIn)이
+   * 쓰고 있어 따로 적용되는 translate 속성을 쓴다(모르는 브라우저는 예전처럼 틈이 열린 채로 보인다).
+   */
+  const [formLift, setFormLift] = useState(0);
+  useLayoutEffect(() => {
+    const row = promptRowRef.current;
+    if (!isStacked || !row) {
+      setFormLift(0);
+      return undefined;
+    }
+    const measure = () => {
+      const gap = parseFloat(window.getComputedStyle(row.parentElement).rowGap) || 0;
+      setFormLift(Math.round(row.offsetHeight + gap));
+    };
+    measure();
+    // 화면 폭이 바뀌면 격자 간격(12px·24px)과 문구 줄 줄바꿈이 달라진다.
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(row);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [isStacked]);
+  const placeForm = useCallback(
+    (y) => {
+      const form = builderRef.current;
+      if (!form) return;
+      // iOS가 맨 위에서 더 당겨 음수가 되어도 첫 화면 모습을 유지한다.
+      const lift = Math.max(0, formLift - Math.max(0, y));
+      form.style.translate = lift > 0 ? `0 ${-lift}px` : "";
+    },
+    [formLift]
+  );
+  useMotionValueEvent(pageScrollY, "change", placeForm);
+  useLayoutEffect(() => {
+    placeForm(pageScrollY.get());
+  }, [placeForm, pageScrollY]);
+  // 틈이 다 열리기 전에 폼 안을 누르면 틈이 다 열린 스크롤 위치로 먼저 옮긴다. 폼은 화면에서 그대로다.
+  // 휴대폰이 입력칸을 키보드 위로 올릴 자리를 계산한 뒤에 틈이 열리면 입력칸이 그만큼 내려가 키보드에 가린다.
+  const settleFormLift = () => {
+    if (formLift <= 0 || window.scrollY >= formLift) return;
+    window.scrollTo(0, formLift);
+    placeForm(formLift);
+  };
+
+  // 휴대폰 첫 화면 소개(위 isIntroPlaying). 헤더 아래 보이는 영역의 가운데에 [제목 + 간격 + 단톡방] 묶음을 놓았다가
+  // introLift가 제자리로 올린다. 둘은 같은 거리만큼 내려가 사이 간격이 그대로다.
+  useLayoutEffect(() => {
+    if (!isIntroPlaying) return undefined;
+    window.scrollTo(0, 0);
+    const targets = [titleWrapRef.current, roomRef.current].filter(Boolean);
+    if (targets.length === 2) {
+      const top = targets[0].getBoundingClientRect().top;
+      const bottom = targets[1].getBoundingClientRect().bottom;
+      const dy = Math.max(0, Math.round((window.innerHeight + HEADER_PX) / 2 - (top + bottom) / 2));
+      targets.forEach((el) => el.style.setProperty("--intro-dy", `${dy}px`));
+    }
+
+    // 소개 동안 스크롤 막기(휠·터치·키보드). 입력칸 안의 키 입력은 막지 않는다.
+    const html = document.documentElement;
+    const prevOverflow = [html.style.overflow, document.body.style.overflow];
+    html.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const block = (e) => e.preventDefault();
+    const SCROLL_KEYS = [" ", "PageDown", "PageUp", "ArrowDown", "ArrowUp", "Home", "End"];
+    const blockKeys = (e) => {
+      if (SCROLL_KEYS.includes(e.key) && !e.target.closest?.("input, textarea, select")) e.preventDefault();
+    };
+    window.addEventListener("wheel", block, { passive: false });
+    window.addEventListener("touchmove", block, { passive: false });
+    window.addEventListener("keydown", blockKeys);
+    const timer = setTimeout(() => setIntroPlaying(false), INTRO_MS + 50);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("wheel", block);
+      window.removeEventListener("touchmove", block);
+      window.removeEventListener("keydown", blockKeys);
+      [html.style.overflow, document.body.style.overflow] = prevOverflow;
+      targets.forEach((el) => el.style.removeProperty("--intro-dy"));
+    };
+  }, [isIntroPlaying]);
 
   /**
    * 넓은 화면 스크롤 이야기. 이야기 구간(Story) 안에서 무대(StoryStage)가 헤더 아래에 붙어 있는 동안
@@ -487,6 +609,17 @@ export default function LandingV2Page({ preview = false }) {
     target: isStacked ? undefined : faqRef,
     offset: ["start 95%", "start 65%"],
   });
+  /**
+   * 휴대폰 폭에서는 늘 1이다. style에 모션 값과 고정값(1)을 번갈아 넣었더니 넓은 화면에서 연 뒤 휴대폰 폭으로 좁히면
+   * 넓은 화면의 마지막 투명도(0)가 남아 휴대폰 내용 전체가 안 보였다(2026-10-01 재현). 폭도 모션 값으로 두고
+   * 늘 모션 값 하나를 넘긴다.
+   */
+  const stackedValue = useMotionValue(isStacked ? 1 : 0);
+  useLayoutEffect(() => {
+    stackedValue.set(isStacked ? 1 : 0);
+  }, [isStacked, stackedValue]);
+  const restOpacity = useTransform([restIn, stackedValue], ([v, stacked]) => (stacked ? 1 : v));
+  const faqOpacity = useTransform([faqIn, stackedValue], ([v, stacked]) => (stacked ? 1 : v));
   // 폼이 다 나타난 때부터 입력칸 유도·명단 자동 열기를 센다. 한 번 나타나면 다시 되돌리지 않는다.
   const [isRestShown, setRestShown] = useState(false);
   useMotionValueEvent(restIn, "change", (v) => {
@@ -1205,7 +1338,7 @@ export default function LandingV2Page({ preview = false }) {
         description="번거로운 시간 조율은 링크 하나로 끝내세요. 참여자가 가능한 시간만 표시하면 가장 많이 모일 수 있는 시간 약속을 추천해 드려요."
       />
 
-      <PageWrapper>
+      <PageWrapper data-intro={isIntroPlaying ? "on" : undefined}>
         {/* 넓은 화면 스크롤 이야기. 방·안내는 그림이라 스크린리더는 건너뛰고(aria-hidden) 뜻은 제목(h1)이 말한다. */}
         {!isStacked && (
           <Story ref={storyRef}>
@@ -1268,9 +1401,9 @@ export default function LandingV2Page({ preview = false }) {
             </StoryStage>
           </Story>
         )}
-        {/* 휴대폰 폭에서는 투명도·위치를 1·0으로 되돌려 둔다. 넓은 화면에서 연 뒤 창을 좁히면
-            움직임 값이 마지막 투명도 0을 남겨 휴대폰 화면 전체가 안 보였다(2026-09-28 사람 보고). */}
-        <RestReveal ref={restRef} style={{ opacity: isStacked ? 1 : restIn }}>
+        {/* 휴대폰 폭에서는 투명도를 1로 되돌려 둔다. 넓은 화면에서 연 뒤 창을 좁히면
+            움직임 값이 마지막 투명도 0을 남겨 휴대폰 화면 전체가 안 보였다(2026-09-28 사람 보고, restOpacity 참고). */}
+        <RestReveal ref={restRef} style={{ opacity: restOpacity }}>
         {/* 넓은 화면 양옆은 AdSense 자동 광고(사이드 레일) 자리다. 이 칸 위로는 광고가 겹치지 않게 한다. */}
         <StartShell google-side-rail-overlap="false">
           {isStacked && (
@@ -1636,10 +1769,12 @@ export default function LandingV2Page({ preview = false }) {
         </PreviewColumn>
 
         {/* 휴대폰: 입력 유도 문구. 미리보기 아래 자리에서 스크롤을 내리기 시작하면 나타나고, 누르면 입력칸으로 간다.
-            자리는 늘 잡아 두어(제목을 고친 뒤에도 감추기만) 아래 폼이 밀리지 않는다.
+            자리는 늘 잡아 두어(제목을 고친 뒤에도 감추기만) 아래 폼이 밀리지 않는다. 첫 화면에서는 폼이 이 자리를
+            덮고 있다가 스크롤만큼 내려가며 비켜 준다(formLift).
             키보드·스크린리더는 입력칸에 바로 갈 수 있어 이 문구는 건너뛴다(aria-hidden, 초점 없음). */}
         {isStacked && (
           <PromptRow
+            ref={promptRowRef}
             aria-hidden="true"
             data-nosnippet
             onClick={focusTitle}
@@ -1655,7 +1790,7 @@ export default function LandingV2Page({ preview = false }) {
           </PromptRow>
         )}
 
-        <Builder ref={builderRef} aria-busy={isLoading}>
+        <Builder ref={builderRef} aria-busy={isLoading} onFocus={settleFormLift}>
           <SrOnly role="status">{presetAnnounce}</SrOnly>
 
           <FieldBlock>
@@ -2273,7 +2408,7 @@ export default function LandingV2Page({ preview = false }) {
           ref={faqRef}
           aria-labelledby="start-faq-heading"
           google-side-rail-overlap="false"
-          style={{ opacity: isStacked ? 1 : faqIn }}
+          style={{ opacity: faqOpacity }}
         >
           <h2 id="start-faq-heading">약속 시간 정하기, 자주 묻는 질문</h2>
           {FAQ_ITEMS.map((item) => (
@@ -2354,15 +2489,34 @@ const appearIn = keyframes`
   }
 `;
 
+/* 휴대폰은 첫 진입 소개(PageWrapper의 data-intro="on") 동안에만 등장 애니메이션을 돈다.
+   소개가 끝난 뒤 새로 그려지는 요소(넓은 화면에서 좁혔을 때의 카톡방, 다시 나타나는 하단 만들기 막대)는
+   기다림 없이 바로 보인다. 기다리는 동안은 투명(backwards)이라, 스크롤로 흐려져 있어야 할 카톡방이
+   잠깐 떴다가 사라지고 하단 막대는 다시 그려질 때마다 1.5초 넘게 투명했다(2026-10-01). */
 const intro = ([mobile, wide]) => css`
-  animation: ${appearIn} 0.45s ${theme.easing.out} ${mobile}s backwards;
+  [data-intro="on"] & {
+    animation: ${appearIn} ${APPEAR_S}s ${theme.easing.out} ${mobile}s backwards;
+  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
-    animation-delay: ${wide}s;
+    animation: ${appearIn} ${APPEAR_S}s ${theme.easing.out} ${wide}s backwards;
   }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+  }
+`;
+
+/* 휴대폰 첫 화면 소개(INTRO_LIFT). PageWrapper에 data-intro="on"이 붙어 있는 동안만 돈다.
+   제목·단톡방을 가운데(--intro-dy만큼 아래, 스크립트가 잰다)에 두었다가 제자리로 올린다.
+   transform은 등장(appearIn)과 스크롤 연출이 쓰므로 따로 적용되는 translate 속성을 움직인다. */
+const introLift = keyframes`
+  0%, ${introPct(INTRO_LIFT.start)} {
+    translate: 0 var(--intro-dy, 0px);
+    animation-timing-function: ${theme.easing.standard};
+  }
+  ${introPct(INTRO_LIFT.start + INTRO_LIFT.duration)}, 100% {
+    translate: 0 0;
   }
 `;
 
@@ -2482,6 +2636,9 @@ const TitleWrap = styled.div`
     margin-bottom: 0;
   }
 
+  [data-intro="on"] & {
+    animation: ${introLift} ${INTRO_MS}ms linear both;
+  }
 `;
 
 /* 제목 두 줄 자리 한가운데에 한 줄로 뜬다. 화살표만 강조색으로 입력칸 쪽(아래)을 가리킨다. */
@@ -2715,6 +2872,12 @@ const ChatRoom = styled(motion.div)`
   margin: 0;
   ${intro(INTRO.room)}
 
+  /* 휴대폰 첫 화면 소개: 위 등장(appearIn)은 그대로 두고 가운데에서 올라오는 움직임을 더한다. */
+  [data-intro="on"] & {
+    animation:
+      ${appearIn} ${APPEAR_S}s ${theme.easing.out} ${INTRO.room[0]}s backwards,
+      ${introLift} ${INTRO_MS}ms linear both;
+  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: room;

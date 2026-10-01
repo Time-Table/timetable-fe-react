@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import LandingV2Page from "./LandingV2Page";
 import { sendEvent } from "../../api/event";
@@ -19,12 +19,14 @@ jest.mock("../../component/TimeGrid", () => () => null);
 jest.mock("framer-motion", () => {
   const React = require("react");
   const components = {};
-  // 스크롤 연출용 모션 값. jsdom에는 스크롤이 없으니 0에 머무는 값으로 둔다.
+  // 스크롤 연출용 모션 값. jsdom에는 스크롤이 없으니 0에 머무는 값으로 둔다. 스크롤 위치(scrollY)도 이 값을 쓴다.
   const still = { get: () => global.mockScrollProgress ?? 0, on: () => () => {} };
   return {
-    useReducedMotion: () => true,
-    useScroll: () => ({ scrollYProgress: still }),
+    // 기본은 움직임 줄이기(첫 화면 소개 없음). 소개를 보는 테스트만 global.mockReducedMotion = false로 바꾼다.
+    useReducedMotion: () => global.mockReducedMotion ?? true,
+    useScroll: () => ({ scrollY: still, scrollYProgress: still }),
     useTransform: () => still,
+    useMotionValue: () => ({ ...still, set: () => {} }),
     // 테스트가 global.mockScrollProgress를 정하면 첫 렌더 뒤 그 스크롤 진행도로 한 번 알린다.
     useMotionValueEvent: (value, event, callback) => {
       React.useEffect(() => {
@@ -110,6 +112,68 @@ describe("랜딩 실험 v2", () => {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
     expect(screen.queryByText("스크롤을 내려 대화를 이어 보세요")).not.toBeInTheDocument();
+  });
+
+  test("휴대폰 첫 화면은 폼을 문구 줄 자리만큼 올려 미리보기에 붙이고, 그만큼 내리면 제자리에 둔다", () => {
+    // jsdom은 배치를 하지 않아 문구 줄 높이(44px)만 정해 준다. 격자 간격은 jsdom이 계산하지 않아 0이다.
+    const height = jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(44);
+    mockMatchMedia(true, true);
+    // 폼 상자(section)에 직접 넣은 translate를 읽어야 해서 노드에 접근한다(TimeGrid.test.jsx와 같은 사정).
+    // eslint-disable-next-line testing-library/no-node-access
+    const form = () => screen.getByRole("textbox", { name: "모임 이름" }).closest("section");
+    const scrollTo = jest.spyOn(window, "scrollTo").mockImplementation(() => {});
+    try {
+      const { unmount } = mount();
+      expect(form().style.translate).toBe("0 -44px");
+      // 첫 화면에서 입력칸을 누르면 틈이 다 열린 자리(44px)로 먼저 옮겨, 키보드가 입력칸을 가리지 않게 한다.
+      act(() => screen.getByRole("textbox", { name: "모임 이름" }).focus());
+      expect(scrollTo).toHaveBeenCalledWith(0, 44);
+      expect(form().style.translate).toBe("");
+      unmount();
+
+      global.mockScrollProgress = 44;
+      mount();
+      expect(form().style.translate).toBe("");
+    } finally {
+      height.mockRestore();
+      scrollTo.mockRestore();
+      delete global.mockScrollProgress;
+    }
+  });
+
+  test("휴대폰 첫 진입은 제목·카톡방을 가운데에 두고 스크롤을 막았다가, 소개가 끝나면 제자리로 돌리고 스크롤을 연다", () => {
+    jest.useFakeTimers();
+    global.mockReducedMotion = false;
+    mockMatchMedia(true, true);
+    // 소개가 옮기는 두 요소. 제목은 h1을 감싼 칸, 카톡방은 방 이름이 든 창이다.
+    // eslint-disable-next-line testing-library/no-node-access
+    const lifted = () => [screen.getByRole("heading", { level: 1 }).parentElement, screen.getByText("팀플 단체 톡방").closest("[aria-hidden]")];
+    try {
+      mount();
+      expect(screen.getByRole("main")).toHaveAttribute("data-intro", "on");
+      expect(document.body.style.overflow).toBe("hidden");
+      lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toMatch(/^\d+px$/));
+
+      // 소개는 나머지(미리보기·폼)가 다 나타나는 2.75초에 끝난다.
+      act(() => jest.advanceTimersByTime(3000));
+      expect(screen.getByRole("main")).not.toHaveAttribute("data-intro");
+      expect(document.body.style.overflow).toBe("");
+      lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toBe(""));
+    } finally {
+      jest.useRealTimers();
+      delete global.mockReducedMotion;
+    }
+  });
+
+  test("넓은 화면은 첫 화면 소개를 하지 않는다(스크롤 이야기가 맡는다)", () => {
+    global.mockReducedMotion = false;
+    try {
+      mount();
+      expect(screen.getByRole("main")).not.toHaveAttribute("data-intro");
+      expect(document.body.style.overflow).toBe("");
+    } finally {
+      delete global.mockReducedMotion;
+    }
   });
 
   test("랜딩과 같이 단계 번호가 붙고, 넓은 화면 추천 모임 이름은 숨겨 두었다가 입력칸을 누르면 보인다", () => {
