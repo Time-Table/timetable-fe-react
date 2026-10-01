@@ -17,7 +17,14 @@ import { trackVisit } from "../../api/visit";
 import {
   trackEvent, trackEventKeepalive, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi, getActiveTableUi,
 } from "../../utils/analytics";
-import { experimentVisitorId, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
+import {
+  experimentVisitorId,
+  readTableUiVote,
+  resolveTableUi,
+  switchTableUi,
+  tagTableUi,
+  voteTableUi,
+} from "../../utils/tableExperiment";
 import { getTableAbState } from "../../api/experiment";
 import useUiSegment from "./useUiSegment";
 import { clearTableScopedStorage, readStorage, writeStorage } from "../../utils/storage";
@@ -335,6 +342,8 @@ function TimetablePageView() {
   const [abState, setAbState] = useState(null);
   const [visitorId] = useState(experimentVisitorId);
   const [uiChoice, setUiChoice] = useState(null);
+  // 띠 하트 투표(2026-10-02): 이 브라우저가 투표한 화면. 사람당 한 표라 표를 옮겨도 남는다.
+  const [uiVote, setUiVote] = useState(readTableUiVote);
   const [bRendered, setBRendered] = useState(false);
   useEffect(() => {
     let alive = true;
@@ -378,6 +387,9 @@ function TimetablePageView() {
     uiVersion,
     active: abOn && (uiVersion === "A" ? scheduleStatus === "ready" : bRendered),
   });
+
+  // 기록·저장은 상태 갱신 함수 밖에서 한 번만 한다(갱신 함수는 개발 모드에서 두 번 돌 수 있다).
+  const handleVoteUi = () => setUiVote(voteTableUi(tableId, uiVersion, uiVote));
 
   const handleSwitchUi = (next) => {
     switchTableUi(tableId, next, { viewId: currentViewId() });
@@ -725,7 +737,7 @@ function TimetablePageView() {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
       <>
-        <TableUiBand version="B" onSwitch={handleSwitchUi} />
+        <TableUiBand version="B" onSwitch={handleSwitchUi} vote={uiVote} onVote={handleVoteUi} />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -762,7 +774,7 @@ function TimetablePageView() {
 
   return isValidTableId ? (
     <>
-      {abOn && <TableUiBand version="A" onSwitch={handleSwitchUi} />}
+      {abOn && <TableUiBand version="A" onSwitch={handleSwitchUi} vote={uiVote} onVote={handleVoteUi} />}
       <PageWrapper>
         <Seo
           title={`${title || "테이블"}`}

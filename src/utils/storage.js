@@ -7,10 +7,12 @@ export const SOURCE_KEY = "visitor_source";
 // 표 화면 A/B 2회차(2026-10-01): 이 브라우저가 띠로 고른 화면 { key, ui }. 모든 표에 쓰므로 표를 옮겨도 남아야 한다.
 // 1회차(표별 table_ui_choice)는 켠 적이 없어 읽지 않는다.
 export const TABLE_UI_KEY = "table_ui_choice_v2";
+// 띠 하트 투표(2026-10-02): 이 브라우저가 하트를 누른 화면 { key, ui }. 사람당 한 표라 표를 옮겨도 남아야 한다.
+export const TABLE_UI_VOTE_KEY = "table_ui_vote_v2";
 // 대화 읽음(2026-09-30): 표마다 이 기기에서 마지막으로 본 대화 시각. 다른 표에 다녀와도 남아야 안 읽은 수가 맞다.
 export const CHAT_SEEN_KEY = "tt_chat_seen";
 
-const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, CHAT_SEEN_KEY];
+const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY];
 
 /**
  * 저장소 읽기·쓰기·지우기. 브라우저가 사이트 저장소를 막으면(접근 자체가 예외) 값이 없는 것으로 보고 화면을 계속 그린다

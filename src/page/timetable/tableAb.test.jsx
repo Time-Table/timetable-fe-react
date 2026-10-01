@@ -245,12 +245,37 @@ test("다른 화면을 열어 봤다가 돌아오면 마지막 ui_view가 원래
   expect(sentEvents("ui_engaged")).toHaveLength(0);
 });
 
+test("띠 하트: 지금 화면에 ui_vote(vote), 다른 화면으로 옮기면 그 화면 vote, 다시 누르면 cancel. 다른 표에서도 표가 남는다", async () => {
+  getTableAbState.mockResolvedValue(RUNNING);
+  localStorage.setItem("visitor_id", V_A);
+  const { unmount } = await renderTable();
+  await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(1));
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면 쪽에 투표" }));
+  expect(screen.getByRole("status")).toHaveTextContent("기존 화면 쪽에 투표했어요!");
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
+  await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 쪽에 투표" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 투표 취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 쪽에 투표" }));
+  expect(sentEvents("ui_vote").map((e) => [e.uiVersion, e.reason])).toEqual([
+    ["A", "vote"], ["B", "vote"], ["B", "cancel"], ["B", "vote"],
+  ]);
+  expect(sentEvents("ui_vote")[0]).toEqual(expect.objectContaining({ tableId: TABLE_1, tabId: expect.any(String), seq: expect.any(Number) }));
+  unmount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  await renderTable({ tableId: TABLE_2, ui: "B" });
+  expect(screen.getByRole("button", { name: "새 화면 투표 취소" })).toHaveAttribute("aria-pressed", "true");
+});
+
 test("관리자 브라우저는 띠로 바꿀 수 있지만 실험 기록을 보내지 않는다", async () => {
   getTableAbState.mockResolvedValue(RUNNING);
   localStorage.setItem("visitor_id", V_A);
   grantAdmin("test-token");
   await renderTable();
   expect(band()).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면 쪽에 투표" }));
   fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
   expect(sendEvent).not.toHaveBeenCalled();

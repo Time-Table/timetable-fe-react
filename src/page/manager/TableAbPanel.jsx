@@ -182,7 +182,7 @@ export default function TableAbPanel() {
   );
   if (status === "off") return <Stack>{head}</Stack>;
 
-  const { assignment, tables, preference, failures, joins, verdict } = data;
+  const { assignment, tables, preference, failures, joins, votes, verdict } = data;
   const pref = preference.conditional;
   return (
     <Stack aria-busy={state.loading}>
@@ -311,6 +311,19 @@ export default function TableAbPanel() {
           </tbody>
         </DataTable>
       </Card>
+
+      {votes && (
+        <Card>
+          <CardTitle>하트 투표</CardTitle>
+          <CardSubtitle>띠의 하트로 고른 화면. 브라우저마다 마지막 표 하나(취소하면 빠짐). 판정에는 쓰지 않습니다.</CardSubtitle>
+          <Big>
+            기존 화면 {num(votes.A)}표 · 새 화면 {num(votes.B)}표
+          </Big>
+          <Note>
+            투표율 {pct(votes.rate)} (투표한 브라우저 {num(votes.voters)} / 화면을 본 브라우저 {num(votes.exposed)})
+          </Note>
+        </Card>
+      )}
 
       <Card>
         <CardTitle>참고</CardTitle>

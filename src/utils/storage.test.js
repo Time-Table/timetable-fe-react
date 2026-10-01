@@ -1,4 +1,4 @@
-import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, CHAT_SEEN_KEY } from "./storage";
+import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY } from "./storage";
 
 /**
  * 2026-07-29 실제 발생한 버그의 회귀 테스트.
@@ -105,4 +105,14 @@ test("저장소 접근이 전부 막혀도 오류 없이 넘어간다", () => {
     }));
   expect(() => clearTableScopedStorage()).not.toThrow();
   spies.forEach((spy) => spy.mockRestore());
+});
+
+test("띠 하트 투표도 표를 옮겨도 남는다(사람당 한 표)", () => {
+  localStorage.setItem(TABLE_UI_VOTE_KEY, JSON.stringify({ key: "table-ab-2", ui: "B" }));
+  localStorage.setItem("name", "홍길동");
+
+  clearTableScopedStorage();
+
+  expect(JSON.parse(localStorage.getItem(TABLE_UI_VOTE_KEY))).toEqual({ key: "table-ab-2", ui: "B" });
+  expect(localStorage.getItem("name")).toBeNull();
 });

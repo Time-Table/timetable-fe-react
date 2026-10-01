@@ -44,3 +44,36 @@ test("알림 영역은 처음부터 있어 화면 낭독기가 바뀐 글을 읽
   expect(notice).toHaveAttribute("aria-live", "polite");
   expect(notice).toBeEmptyDOMElement();
 });
+
+describe("띠 하트 투표(2026-10-02)", () => {
+  const heart = (name) => screen.getByRole("button", { name });
+
+  test("하트를 주지 않으면(onVote 없음) 하트도 없다", () => {
+    render(<TableUiBand version="A" onSwitch={jest.fn()} />);
+    expect(screen.queryByRole("button", { name: /투표/ })).not.toBeInTheDocument();
+  });
+
+  test("지금 화면에 투표하면 '그 화면 쪽에 투표했어요!', 다른 화면 표가 있어도 같은 문구", () => {
+    const onVote = jest.fn();
+    const { rerender } = render(<TableUiBand version="A" onSwitch={jest.fn()} vote={null} onVote={onVote} />);
+    fireEvent.click(heart("기존 화면 쪽에 투표"));
+    expect(onVote).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent("기존 화면 쪽에 투표했어요!");
+
+    // 기존 화면에 투표해 둔 채 새 화면으로 가면 새 화면 하트는 비어 있고, 누르면 새 화면 쪽 문구.
+    rerender(<TableUiBand version="B" onSwitch={jest.fn()} vote="A" onVote={onVote} />);
+    expect(heart("새 화면 쪽에 투표")).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(heart("새 화면 쪽에 투표"));
+    expect(screen.getByRole("status")).toHaveTextContent("새 화면 쪽에 투표했어요!");
+  });
+
+  test("이미 투표한 화면의 하트를 다시 누르면 취소 문구", () => {
+    const onVote = jest.fn();
+    render(<TableUiBand version="B" onSwitch={jest.fn()} vote="B" onVote={onVote} />);
+    const pressed = heart("새 화면 투표 취소");
+    expect(pressed).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(pressed);
+    expect(onVote).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent("투표를 취소했어요.");
+  });
+});

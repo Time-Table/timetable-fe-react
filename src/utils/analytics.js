@@ -32,6 +32,7 @@ export const EVENTS = {
   JOIN_FAIL: "join_fail",
   SAVE_FAIL: "save_fail",
   UI_LOAD_FAIL: "ui_load_fail", // 새 화면 조각을 못 받음
+  UI_VOTE: "ui_vote", // 띠 하트 투표(2026-10-02). reason: vote | cancel
 };
 
 /**
@@ -42,10 +43,10 @@ export const EVENTS = {
 let activeTableUi = null;
 const TABLE_UI_EVENTS = [EVENTS.INVITE_SHARE, EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS,
   EVENTS.SCHEDULE_SAVE, EVENTS.RANKING_OPEN, EVENTS.UI_SWITCH,
-  EVENTS.UI_VIEW, EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL];
+  EVENTS.UI_VIEW, EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL, EVENTS.UI_VOTE];
 // 2회차 기록: 정해진 필드만 보내고 자유 문자열(source)은 넣지 않는다. 탭 ID·순번으로 같은 탭 안 순서를 맞춘다.
 const AB_EVENTS = [EVENTS.UI_VIEW, EVENTS.UI_SWITCH, EVENTS.AB_STATE_FAIL,
-  EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL];
+  EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL, EVENTS.UI_VOTE];
 const AB_FIELDS = ["viewId", "reason", "joinType"];
 const TAB_KEY = "tt_tab_id";
 const SEQ_KEY = "tt_tab_seq";
