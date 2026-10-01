@@ -28,6 +28,7 @@ const running = {
   preference: { conditional: pref, allTables: pref, triedShare: { A: 25, B: 23.8 }, byHistory: { observed: pref, notObserved: pref } },
   failures: { A: failures("A"), B: failures("B") },
   joins: { A: { new: 3, returning: 1, unknown: 0 }, B: { new: 4, returning: 2, unknown: 0 } },
+  votes: { A: 3, B: 7, voters: 10, exposed: 40, rate: 25 },
   verdict: "rule_pending",
 };
 
@@ -56,6 +57,9 @@ test("진행 중이면 조건부 선호·배정 점검·실패를 보이고, 판
   expect(screen.getByText(/50:50 검사 p = 0.83/)).toBeInTheDocument();
   expect(screen.getAllByText("비밀번호 1 · 입력 형식 2")).toHaveLength(2);
   expect(screen.getByRole("button", { name: /중단/ })).toBeInTheDocument();
+  // 하트 투표: 수와 투표율만(2026-10-02 사람 지시 "단순 투표 수 양만").
+  expect(screen.getByText("기존 화면 3표 · 새 화면 7표")).toBeInTheDocument();
+  expect(screen.getByText(/투표율 25% \(투표한 브라우저 10 \/ 화면을 본 브라우저 40\)/)).toBeInTheDocument();
 });
 
 test("이미 시작한 실험이면 알리고, BE가 없으면 배포 안내를 보인다", async () => {
