@@ -42,9 +42,12 @@ export default function RankingList({
   setRightScreen,
   timeInfo = [],
   selectedName,
+  // 새 화면에서 여러 명을 골라 왔을 때의 이름들(표 화면 A/B 공유 상태). 없으면 selectedName 하나.
+  selectedNames,
   setSelectedName,
   usersCount = 0,
 }) {
+  const picks = Array.isArray(selectedNames) ? selectedNames : selectedName ? [selectedName] : [];
   const isValidArray = Array.isArray(timeInfo) && timeInfo.length > 0;
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
@@ -215,7 +218,8 @@ export default function RankingList({
                     <MemberChip
                       key={i}
                       type="button"
-                      $isSelected={selectedName === member}
+                      aria-pressed={picks.includes(member)}
+                      $isSelected={picks.includes(member)}
                       onClick={(e) => handleMemberClick(e, member)}
                     >
                       {member}

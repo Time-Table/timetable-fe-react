@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../theme";
 import Swal from "sweetalert2";
@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { trackEvent, EVENTS } from "../utils/analytics";
 import InquiryModal from "./InquiryModal";
 import { readFromPath } from "../page/contact/inquiry";
+import { getPageHelp, subscribePageHelp } from "../utils/pageHelp";
 
 export default function Header() {
      const email = "timetable2official@gmail.com";
@@ -19,6 +20,8 @@ export default function Header() {
      const [isScrolled, setIsScrolled] = useState(false);
      // 문의는 페이지로 넘어가지 않고 모달에서 바로 보낸다.
      const [inquiryOpen, setInquiryOpen] = useState(false);
+     // 새 표 화면(B)처럼 "?"를 자기 사용법으로 쓰는 화면이 있으면 그 창을 연다(utils/pageHelp.js).
+     const pageHelp = useSyncExternalStore(subscribePageHelp, getPageHelp, getPageHelp);
 
      useEffect(() => {
           const handleScroll = () => {
@@ -74,7 +77,10 @@ export default function Header() {
                          <span className="logo-table">Table</span>
                     </Logo>
                     <ActionContainer>
-                         <IconButton onClick={handleHelpClick} aria-label="사이트 정보">
+                         <IconButton
+                              onClick={pageHelp ? pageHelp.open : handleHelpClick}
+                              aria-label={pageHelp ? pageHelp.label : "사이트 정보"}
+                         >
                               <IoHelpCircleOutline />
                          </IconButton>
                          <ContactButton onClick={() => setInquiryOpen(true)} />

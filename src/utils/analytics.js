@@ -167,10 +167,7 @@ export const CLARITY_EVENTS = {
 
   // 표 화면(/table)에서 기록이 없던 곳(2026-09-29, 0회차 지표 조사 뒤). 동작 한 번에 1회씩이고 조건은 계약서 "표 화면 Clarity 보조 계측"에 있다.
   INVITE_SHARE_TABLE: "tt_invite_share_table", // 표 화면 초대 링크 "복사하기" 누름(클립보드 호출 전, 랜딩 완료 창 복사와 구분)
-  GUIDE_SHOW: "tt_guide_show", // 이용 가이드가 화면에 뜸
-  GUIDE_NEXT: "tt_guide_next", // 가이드 "다음"
-  GUIDE_DONE: "tt_guide_done", // 가이드 마지막 단계 "시작하기"
-  GUIDE_NEVER: "tt_guide_never", // 가이드 "다시 보지 않기"
+  // 이용 가이드(tt_guide_show·next·done·never)는 2026-09-30 사람 지시로 온보딩을 지우며 뺐다.
   TIMETABLE_OPEN: "tt_timetable_open", // 휴대폰 전체 시간표 모달이 닫힘에서 열림으로 바뀜(버튼·참여자 칩·순위 이름 모두)
   TIMETABLE_CELL: "tt_timetable_cell", // 전체 시간표 칸을 눌러 명단 팝업 열기
   TIMETABLE_CELL_EMPTY: "tt_timetable_cell_empty", // 가능한 사람이 없는 칸을 누름(팝업이 뜨지 않는다)
@@ -196,6 +193,27 @@ export const CLARITY_EVENTS = {
   // 테이블 A/B(2026-09-29). 서버 ui_switch와 같은 순간에 방향을 나눠 남긴다(서버 이름은 Clarity로 넘기지 않는다).
   UI_SWITCH_B: "tt_ui_switch_b", // 맨 위 띠로 새 화면(B)으로 바꿈
   UI_SWITCH_A: "tt_ui_switch_a", // 맨 위 띠로 기존 화면(A)으로 바꿈
+
+  // 새 화면(B)에만 있는 동작(2026-10-01, B를 실제 앱에 넣으며). A와 같은 동작은 위의 같은 이름을 쓴다
+  // (명단 창 tt_timetable_cell, 대화 보내기 tt_chat_send, 처음 더함 tt_schedule_select, 저장 누름 tt_schedule_save_click,
+  //  공유 tt_invite_share_table). 조건은 계약서 "새 화면(B) 계측".
+  B_EDIT_START: "tt_b_edit_start", // "내 시간 넣기/고치기"로 입력 모드를 엶(참여자, 직접 누른 것만)
+  B_EDIT_CANCEL: "tt_b_edit_cancel", // 저장하지 않고 입력 모드를 끝냄(취소·나가기)
+  B_SAVE_NOCHANGE: "tt_b_save_nochange", // 바뀐 시간 없이 저장을 누름(B 저장 단추는 늘 켜져 있다)
+  B_JOIN_OPEN: "tt_b_join_open", // 참여 창이 열림(참여 전 "내 시간 넣기"·대화 "참여하기"·로그아웃 뒤)
+  B_PICK: "tt_b_pick", // 참여자 칩으로 사람을 더함(빼기·"전체"는 남기지 않음)
+  B_COMMON_JUMP: "tt_b_common_jump", // 여러 명이 "모두 되는 시간"을 눌러 그 칸으로 감
+  B_WEEK_NAV: "tt_b_week_nav", // 주 넘기기(‹ ›)
+  B_RANK_JUMP: "tt_b_rank_jump", // 순위 창의 줄을 눌러 시간표 칸으로 감
+  B_RANK_MORE: "tt_b_rank_more", // 순위 창 "더 보기"
+  B_CHAT_OPEN: "tt_b_chat_open", // 아래 막대 "대화"로 대화 창을 엶
+  B_HELP_OPEN: "tt_b_help_open", // 헤더 "?"로 사용법 창을 엶
+  B_MORE_OPEN: "tt_b_more_open", // 입력 중 "더보기"(로그아웃·참여 취소)를 엶
+  B_LOGOUT: "tt_b_logout", // 더보기에서 로그아웃(이 기기의 이름만 지움)
+  B_DAY_TOGGLE: "tt_b_day_toggle", // 입력 중 요일 글자로 하루 전체 칠하기·지우기
+  B_HOUR_TOGGLE: "tt_b_hour_toggle", // 입력 중 시간 글자로 그 시간 줄 칠하기·지우기
+  B_SAVE_PROMPT: "tt_b_save_prompt", // 표에서 처음 시간을 넣은 사람에게 공유 권유 창이 뜸
+  B_PROMPT_SHARE: "tt_b_prompt_share", // 그 창에서 "공유하기"를 누름
 };
 
 export const trackClarityEvent = (name) => {

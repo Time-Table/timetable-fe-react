@@ -8,7 +8,7 @@ import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import { getTableInfo } from "../../api/table";
 import { getAllSchedule } from "../../api/user";
-import { addSchedule, getSchedule } from "../../api/schedule";
+import { addSchedule } from "../../api/schedule";
 import { getChating, postChat } from "../../api/chat";
 import { sendEvent } from "../../api/event";
 
@@ -26,8 +26,6 @@ jest.mock("../../api/visit", () => ({ trackVisit: jest.fn() }));
 jest.mock("../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
 jest.mock("../../Seo", () => () => null);
 jest.mock("../../component/AdSense", () => () => null);
-// 가이드는 1초 뒤에 떠서 테스트 길이에 따라 이벤트 순서가 흔들린다. 가이드 계측은 GuideOverlay.test.jsx가 본다.
-jest.mock("./components/GuideOverlay", () => () => null);
 // 칸 누르기와 시간 고르기만 흉내 낸다. 실제 격자 동작은 TimeGrid.test.jsx가 본다.
 // 시간 칸 버튼은 TimeGrid처럼 이미 고른 칸이면 해제, 아니면 추가하는 갱신 함수를 넘긴다.
 jest.mock("../../component/TimeGrid", () => ({ onCellClick, selectedCells = [], setSelectedCells }) => {
@@ -102,7 +100,6 @@ const renderTablePage = async () => {
     data: { tableId: TABLE_ID, title: "표", dates: ["2026-09-28"], startHour: "09:00", endHour: "12:00", banedCells: [] },
   });
   getAllSchedule.mockResolvedValue({ success: true, code: 200, data: users });
-  getSchedule.mockResolvedValue([{ time: "2026-09-28-10:00", count: 2, members: ["민준", "서연"], _id: "s1" }]);
   render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><TimetablePage /></MemoryRouter>);
   const openButton = await screen.findByRole("button", { name: /전체 시간표 보기/ });
   await waitFor(() => expect(openButton).toBeEnabled());
@@ -180,8 +177,11 @@ test("내 일정: 시간을 처음 더한 순간만 화면을 열 때마다 1회
   expect(clarityEvents()).toEqual(["tt_schedule_select"]);
   view.unmount();
 
+  // 다시 열면 저장하지 않은 선택이 이어진다(표 화면 A/B 공유 상태, 2026-09-30). 11:00은 이미 골라져 있다.
   renderPersonalSchedule();
-  fireEvent.click(screen.getByRole("button", { name: "11:00 칸" }));
+  expect(screen.getByRole("button", { name: "11:00 칸" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "11:00 칸" })); // 해제
+  fireEvent.click(screen.getByRole("button", { name: "11:00 칸" })); // 이번 화면에서 처음 더하기
   expect(clarityEvents()).toEqual(["tt_schedule_select", "tt_schedule_select"]);
 });
 

@@ -1,4 +1,4 @@
-import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY } from "./storage";
+import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, CHAT_SEEN_KEY } from "./storage";
 
 /**
  * 2026-07-29 실제 발생한 버그의 회귀 테스트.
@@ -65,4 +65,14 @@ test("보존 키들은 서로 다른 값을 쓴다", () => {
   // 키가 겹치면 한쪽을 덮어써서 조용히 데이터가 섞인다.
   const keys = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY];
   expect(new Set(keys).size).toBe(keys.length);
+});
+
+test("대화 읽음 기록도 다른 표에 다녀와도 살아남는다(안 읽은 수가 다시 늘지 않게)", () => {
+  localStorage.setItem(CHAT_SEEN_KEY, JSON.stringify({ "table-a": "2026-09-30T11:00:00.000Z" }));
+  localStorage.setItem("name", "홍길동");
+
+  clearTableScopedStorage();
+
+  expect(JSON.parse(localStorage.getItem(CHAT_SEEN_KEY))).toEqual({ "table-a": "2026-09-30T11:00:00.000Z" });
+  expect(localStorage.getItem("name")).toBeNull();
 });

@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
+import { pickLabel } from "../../../utils/tableSession";
 
 const parseTimeKey = (timeKey) => {
   const idx = timeKey.lastIndexOf("-");
@@ -35,12 +36,17 @@ export default function GroupTimeGrid({
   endHour,
   timeInfo,
   selectedName,
+  // 새 화면에서 여러 명을 골라 왔을 때의 이름들(표 화면 A/B 공유 상태). 없으면 selectedName 하나.
+  selectedNames,
   setSelectedName,
   setTableInfo,
   tableId,
   usersSchedule,
   onRefresh,
   stickyHeaderTop,
+  // 표 화면 A/B 공유 상태: 보고 있는 주(TimetablePage가 한 곳에서 들고 있다)
+  weekKey,
+  onWeekChange,
 }) {
   const Toast = Swal.mixin({
     toast: true,
@@ -54,9 +60,20 @@ export default function GroupTimeGrid({
     },
   });
 
+  const picks = Array.isArray(selectedNames) ? selectedNames : selectedName ? [selectedName] : [];
+  const pickText = picks.length ? pickLabel(picks) : null;
+
   const [isRotating, setIsRotating] = useState(false);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [selectedCell, setSelectedCell] = useState(null);
+  // 명단 창은 칸 키만 기억하고 명단은 매번 지금 자료에서 찾는다. 전에는 누른 순간의 칸을 그대로 들고 있어
+  // 창을 연 채 자료가 바뀌면 옛 인원·명단이 남았다(Codex 계획 검토 2026-09-30). 칸이 비면 창을 닫는다.
+  const [selectedKey, setSelectedKey] = useState(null);
+  const selectedCell = selectedKey && Array.isArray(timeInfo)
+    ? timeInfo.find((item) => item?.time === selectedKey) || null
+    : null;
+  useEffect(() => {
+    if (selectedKey && !selectedCell) setSelectedKey(null);
+  }, [selectedKey, selectedCell]);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const popupRef = useRef(null);
   const POPUP_WIDTH = 260;
@@ -66,10 +83,10 @@ export default function GroupTimeGrid({
     if (!viewInfo) {
       // 가능한 사람이 없는 칸. 팝업이 뜨지 않아 무반응 탭으로 잡히던 곳이다.
       trackClarityEvent(CLARITY_EVENTS.TIMETABLE_CELL_EMPTY);
-      setSelectedCell(null);
+      setSelectedKey(null);
       return;
     }
-    if (selectedCell?._id === viewInfo._id) { setSelectedCell(null); return; }
+    if (selectedKey === viewInfo.time) { setSelectedKey(null); return; }
     trackClarityEvent(CLARITY_EVENTS.TIMETABLE_CELL);
 
     if (event?.currentTarget) {
@@ -88,7 +105,7 @@ export default function GroupTimeGrid({
 
       setPopupPos({ top, left });
     }
-    setSelectedCell(viewInfo);
+    setSelectedKey(viewInfo.time);
   };
 
   useEffect(() => {
@@ -122,7 +139,7 @@ export default function GroupTimeGrid({
       </TitleFrame>
 
       <NoteHeader>
-        <NoteText>{selectedName ? `${selectedName} 님의` : "전체"} 시간표</NoteText>
+        <NoteText>{pickText ? `${pickText} 님의` : "전체"} 시간표</NoteText>
         <ButtonBox
           className={isRotating ? "rotating" : ""}
           aria-label="시간표 새로고침"
@@ -152,13 +169,13 @@ export default function GroupTimeGrid({
 
       <DropdownContainer>
         <DropdownButton onClick={() => setDropdownOpen(!isDropdownOpen)}>
-          <span>{selectedName || "전체 참여자"}</span>
+          <span>{pickText || "전체 참여자"}</span>
           <IoPeople size={16} />
         </DropdownButton>
         {isDropdownOpen && (
           <DropdownContent>
             <DropdownItem
-              $isSelected={selectedName === null}
+              $isSelected={picks.length === 0}
               onClick={() => {
                 setSelectedName(null);
                 setDropdownOpen(false);
@@ -169,7 +186,7 @@ export default function GroupTimeGrid({
             {usersSchedule.map((user, index) => (
               <DropdownItem
                 key={index}
-                $isSelected={selectedName === user.name}
+                $isSelected={picks.includes(user.name)}
                 onClick={() => {
                   if (selectedName !== user.name) trackClarityEvent(CLARITY_EVENTS.TIMETABLE_MEMBER_FILTER);
                   setSelectedName(user.name);
@@ -189,10 +206,15 @@ export default function GroupTimeGrid({
         endHour={endHour}
         readOnly={true}
         timeInfo={timeInfo}
+        viewMaxCount={picks.length > 0 ? picks.length : undefined}
+        // 사람을 골라 볼 때는 반짝임을 끈다(새 화면과 같다, Codex 재검증 2026-09-30).
+        showGolden={picks.length === 0}
         banedCells={banedCells}
         onCellClick={handleCellClick}
         selectedCellKey={selectedCell?.time}
         stickyHeaderTop={stickyHeaderTop}
+        weekKey={weekKey}
+        onWeekChange={onWeekChange}
       />
 
       {selectedCell && createPortal(
@@ -206,10 +228,11 @@ export default function GroupTimeGrid({
             const maxCount = Array.isArray(timeInfo)
               ? Math.max(...timeInfo.map((t) => t.count || 0), 0)
               : 0;
-            const isGolden = selectedCell.count === maxCount && maxCount > 0;
+            // 사람을 골라 볼 때 count는 고른 사람 중 되는 수라 "최다 인원"이 아니다.
+            const isGolden = picks.length === 0 && selectedCell.count === maxCount && maxCount > 0;
             return (
               <CellInfoPopup
-                key={selectedCell._id}
+                key={selectedCell.time}
                 ref={popupRef}
                 style={{ top: popupPos.top, left: popupPos.left }}
                 initial={{ opacity: 0 }}
@@ -220,7 +243,7 @@ export default function GroupTimeGrid({
                 {isGolden && <GoldenBadge>최다 인원</GoldenBadge>}
                 <CellInfoHeader>
                   <CellTime>{dateFormatted} · {timeStart} ~ {timeEnd}</CellTime>
-                  <CloseBtn onClick={() => setSelectedCell(null)}><FiX size={15} /></CloseBtn>
+                  <CloseBtn onClick={() => setSelectedKey(null)}><FiX size={15} /></CloseBtn>
                 </CellInfoHeader>
                 <CellInfoSection>
                   <CellInfoLabel $type="can">참여 가능 {canAttend.length}명</CellInfoLabel>
@@ -245,7 +268,7 @@ export default function GroupTimeGrid({
         document.body
       )}
 
-      {selectedName && (
+      {picks.length > 0 && (
         <BackButton onClick={() => setSelectedName(null)}>
           <IoArrowBackCircle size={44} />
         </BackButton>

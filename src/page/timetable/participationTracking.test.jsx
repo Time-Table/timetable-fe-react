@@ -81,8 +81,24 @@ test.each([200, 201, 401])("참여 API code %s: 성공 응답에서만 참여 �
   const expectedTags = code === 401 ? [] : [["set", "tt_join_success_role", "participant"]];
   expect(window.clarity.mock.calls.filter(([method]) => method === "set")).toEqual(expectedTags);
   expect(sendEvent.mock.calls.filter(([e]) => e.name === "join_success")).toHaveLength(code === 401 ? 0 : 1);
-  expect(sessionStorage.getItem(`hasCompletedTimetableGuide:${mockTableId}`))
-    .toBe(code === 401 ? null : "true");
+});
+
+test("참여 요청 중에는 다시 보내지 않아 참여 시도·성공이 한 번만 남는다(새 화면과 같은 조건)", async () => {
+  let finish;
+  joinUser.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+  render(wrap(<JoinForm tableId={mockTableId} setName={jest.fn()} setRightScreen={jest.fn()} setSelectedToggle={jest.fn()} />));
+  fireEvent.change(screen.getByPlaceholderText("이름을 입력해주세요."), { target: { value: "테스트" } });
+  fireEvent.change(screen.getByPlaceholderText("비밀번호를 입력해주세요(1자리 이상)"), { target: { value: "1" } });
+  const join = screen.getByRole("button", { name: "참여 / 수정" });
+  fireEvent.click(join);
+  fireEvent.click(join);
+  fireEvent.keyDown(screen.getByPlaceholderText("비밀번호를 입력해주세요(1자리 이상)"), { key: "Enter" });
+  expect(joinUser).toHaveBeenCalledTimes(1);
+  expect(join).toBeDisabled();
+  await act(async () => { finish({ code: 200, data: { name: "테스트" } }); });
+  expect(sendEvent.mock.calls.filter(([e]) => e.name === "join_submit")).toHaveLength(1);
+  expect(sendEvent.mock.calls.filter(([e]) => e.name === "join_success")).toHaveLength(1);
+  expect(join).toBeEnabled();
 });
 
 test.each(["success", "failed-response", "rejected"])("일정 저장 %s: 실제 성공에서만 저장 역할을 기록한다", async (result) => {

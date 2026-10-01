@@ -9,6 +9,7 @@ export default function RankingModal({
   onClose,
   timeInfo,
   selectedName,
+  selectedNames,
   setSelectedName,
   usersCount,
   onGoJoin,
@@ -42,6 +43,7 @@ export default function RankingModal({
               <RankingList
                 timeInfo={timeInfo}
                 selectedName={selectedName}
+                selectedNames={selectedNames}
                 setSelectedName={setSelectedName}
                 usersCount={usersCount}
                 setRightScreen={onGoJoin}

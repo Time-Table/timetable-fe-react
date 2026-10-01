@@ -2,6 +2,7 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { postChat, getChating } from "../../../api/chat";
+import { markChatsSeen } from "../../../utils/tableSession";
 import { trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
 import Swal from "sweetalert2";
 import { LuRefreshCw } from "react-icons/lu";
@@ -12,7 +13,9 @@ import Input from "../../../component/Input";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiGrid } from "react-icons/fi";
 
-export default function DashboardPanel({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName, onViewTimetable }) {
+export default function DashboardPanel({ tableId, name, setRightScreen, setSelectedName, usersSchedule, selectedName, selectedNames, onViewTimetable }) {
+     // 새 화면에서 여러 명을 골라 왔으면 그 사람들을 모두 표시한다(표 화면 A/B 공유 상태).
+     const picks = Array.isArray(selectedNames) ? selectedNames : selectedName ? [selectedName] : [];
      const [message, setMessage] = useState("");
      const [chatLog, setChatLog] = useState([]);
      const chatEndRef = useRef(null);
@@ -35,6 +38,8 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
           const res = await getChating(tableId);
           if (res.status === 200) {
                setChatLog(res.data);
+               // 여기서 본 대화는 새 화면에서도 읽은 것으로 센다(표 화면 A/B, 2026-09-30).
+               markChatsSeen(tableId, res.data);
           } else if (res.status === 201) {
                setChatLog([{ name: "안내", message: "공지사항이나 의견을 자유롭게 공유해 보세요." }]);
           } else {
@@ -105,7 +110,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                               {usersSchedule.length > 0 && (
                                    <MemberChip
                                         onClick={() => setSelectedName(null, true)}
-                                        $isSelected={selectedName === null}
+                                        $isSelected={picks.length === 0}
                                    >
                                         전체
                                    </MemberChip>
@@ -123,7 +128,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                                         <MemberChip
                                              key={index}
                                              onClick={() => handleUserClick(user.name)}
-                                             $isSelected={selectedName === user.name}
+                                             $isSelected={picks.includes(user.name)}
                                         >
                                              {user.name}
                                         </MemberChip>

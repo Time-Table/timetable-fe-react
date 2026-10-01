@@ -27,11 +27,14 @@ const TimeGridModal = ({
   endHour,
   timeInfo,
   selectedName,
+  selectedNames,
   setSelectedName,
   setTableInfo,
   tableId,
   usersSchedule,
   onRefresh,
+  weekKey,
+  onWeekChange,
 }) => {
   return (
     <AnimatePresence>
@@ -65,11 +68,14 @@ const TimeGridModal = ({
               endHour={endHour}
               timeInfo={timeInfo}
               selectedName={selectedName}
+              selectedNames={selectedNames}
               setSelectedName={setSelectedName}
               setTableInfo={setTableInfo}
               tableId={tableId}
               usersSchedule={usersSchedule}
               onRefresh={onRefresh}
+              weekKey={weekKey}
+              onWeekChange={onWeekChange}
               // 모달 안에서 스크롤된다. sticky는 스크롤 상자의 안쪽 여백에서 멈추므로
               // 여백만큼 위로 올려야 모달 맨 위에 붙는다(0이면 그 틈으로 지나가는 칸이 비친다).
               stickyHeaderTop="calc(-1 * var(--modal-padding))"

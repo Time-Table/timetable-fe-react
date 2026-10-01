@@ -2,9 +2,10 @@ import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
 import Button from "../../../component/Button";
 import Input from "../../../component/Input";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { joinUser, getUserInfo, deleteUser } from "../../../api/user";
 import { trackEvent, EVENTS } from "../../../utils/analytics";
+import { readTableState, writeTableState, clearTableState } from "../../../utils/tableSession";
 import Swal from "sweetalert2";
 import { FiLogIn } from "react-icons/fi";
 import { AnimatePresence, motion } from "framer-motion";
@@ -20,6 +21,10 @@ export default function JoinForm({
   const inputCondition = /^[A-Za-z0-9\uAC00-\uD7A3\u3131-\u318E\s]+$/;
   const [name, setName] = useState(beforeName ? beforeName : "");
   const [password, setPassword] = useState("");
+  // 요청 중에는 다시 보내지 않는다(연타·Enter 반복으로 join_submit·join_success가 두 번 남지 않게, 새 화면과 같은 조건).
+  // 상태는 다음 그리기에서야 바뀌므로 같은 순간의 두 번째 요청은 ref로 막는다(Codex 교차 검증 2026-10-01).
+  const [joining, setJoining] = useState(false);
+  const joiningRef = useRef(false);
 
   const Toast = Swal.mixin({
     toast: true,
@@ -73,6 +78,8 @@ export default function JoinForm({
         title: "참여 정보가 삭제되었습니다.",
       });
       localStorage.removeItem("name");
+      // 표 화면 A/B 공유 상태도 지운다(저장 안 한 선택이 다음 사람에게 이어지지 않게).
+      clearTableState(tableId);
       setTimeout(() => window.location.reload(), 1000);
     } else {
       Toast.fire({
@@ -85,7 +92,8 @@ export default function JoinForm({
 
   const handleSuccess = async (userName) => {
     trackEvent(EVENTS.JOIN_SUCCESS, tableId);
-    sessionStorage.setItem(`hasCompletedTimetableGuide:${tableId}`, "true");
+    // 다른 이름으로 들어오면 앞사람의 저장 안 한 선택은 쓰지 않는다(표 화면 A/B 공유 상태).
+    if (readTableState(tableId).name !== userName) writeTableState(tableId, { name: userName, draft: null, editing: true });
     if (refreshData) {
       await refreshData();
     }
@@ -113,8 +121,17 @@ export default function JoinForm({
       return;
     }
 
-    trackEvent(EVENTS.JOIN_SUBMIT, tableId);
-    const user = await joinUser(tableId, name, password);
+    if (joiningRef.current) return;
+    joiningRef.current = true;
+    setJoining(true);
+    let user;
+    try {
+      trackEvent(EVENTS.JOIN_SUBMIT, tableId);
+      user = await joinUser(tableId, name, password);
+    } finally {
+      joiningRef.current = false;
+      setJoining(false);
+    }
     if (user) {
       switch (user.code) {
         case 200:
@@ -198,7 +215,7 @@ export default function JoinForm({
             title="참여 / 수정"
             variant="primary"
             onClick={() => updateMember(name, password)}
-            disabled={!name || !password}
+            disabled={!name || !password || joining}
             width="65%"
           />
           <Button

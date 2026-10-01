@@ -27,12 +27,12 @@ jest.mock("../../component/AdSense", () => ({ isReady }) => (
 ));
 jest.mock("../NotFoundTable", () => () => <div>표를 불러올 수 없습니다</div>);
 jest.mock("./components/InviteSection", () => () => null);
-jest.mock("./components/GuideOverlay", () => () => null);
 jest.mock("./components/DashboardPanel", () => () => null);
-jest.mock("./components/GroupTimeGrid", () => ({ usersSchedule, startHour, endHour, onRefresh }) => (
+jest.mock("./components/GroupTimeGrid", () => ({ usersSchedule, startHour, endHour, onRefresh, timeInfo }) => (
   <>
     <div data-testid="member-count">{usersSchedule.length}</div>
     <div data-testid="table-hours">{startHour}-{endHour}</div>
+    <div data-testid="cells">{(timeInfo || []).map((item) => `${item.time}:${item.count}`).join(",")}</div>
     <button onClick={onRefresh}>전체 시간표 새로고침</button>
   </>
 ));
@@ -42,7 +42,9 @@ jest.mock("./components/JoinForm", () => ({ refreshData }) => (
   <button onClick={refreshData}>참여자 변경 후 갱신</button>
 ));
 jest.mock("./components/PersonalSchedule", () => ({ onSaveSuccess }) => (
-  <button onClick={onSaveSuccess}>일정 저장 후 갱신</button>
+  <button onClick={() => onSaveSuccess({ name: "검증1", availableTimes: ["2026-09-22-10:00", "2026-09-22-10:30"] })}>
+    일정 저장 후 갱신
+  </button>
 ));
 jest.mock("react-dom/test-utils", () => ({
   ...jest.requireActual("react-dom/test-utils"), act: require("react").act,
@@ -69,11 +71,15 @@ const table = {
   endHour: "12:00",
   banedCells: [],
 };
+// 칸 형식은 실제와 같은 YYYY-MM-DD-HH:MM이다(전에는 "2026-09-22T10:00"을 썼다).
 const members = [
-  { name: "검증1", availableTimes: ["2026-09-22T10:00"] },
-  { name: "검증2", availableTimes: ["2026-09-22T10:00"] },
+  { name: "검증1", availableTimes: ["2026-09-22-10:00"] },
+  { name: "검증2", availableTimes: ["2026-09-22-10:00"] },
 ];
-const aggregate = [{ time: "2026-09-22T10:00", count: 2, colorNumber: 10, members: ["검증1", "검증2"] }];
+const saved = [
+  { name: "검증1", availableTimes: ["2026-09-22-10:00", "2026-09-22-10:30"] },
+  members[1],
+];
 const usersResponse = (data) => ({ success: true, code: 200, data });
 const renderPage = () => render(
   <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -93,7 +99,6 @@ beforeEach(() => {
   mockIsDesktop = true;
   getTableInfo.mockResolvedValue({ success: true, data: table });
   getAllSchedule.mockResolvedValue(usersResponse(members));
-  getSchedule.mockResolvedValue(aggregate);
 });
 
 test.each([true, false])("정상 일정표는 광고를 유지한다 (데스크탑: %s)", async (isDesktop) => {
@@ -102,16 +107,17 @@ test.each([true, false])("정상 일정표는 광고를 유지한다 (데스크�
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 });
 
-test("참여자 2명 중 1명만 시간을 저장해도 유효한 집계가 있으면 광고를 유지한다", async () => {
+test("참여자 2명 중 1명만 시간을 저장해도 칠할 칸이 있으면 광고를 유지한다", async () => {
   getAllSchedule.mockResolvedValue(usersResponse([members[0], { ...members[1], availableTimes: [] }]));
-  getSchedule.mockResolvedValue([{ ...aggregate[0], count: 1, members: ["검증1"] }]);
   await renderSettledPage();
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 });
 
-test("count와 members가 없는 기존 집계 형식도 광고를 유지한다", async () => {
-  getSchedule.mockResolvedValue([{ time: "2026-09-22T10:00", colorNumber: 100 }]);
+test("서버 집계(GET /api/schedules)는 부르지 않고 참여자 목록으로 칸과 광고 조건을 본다", async () => {
+  // 새 화면과 같은 자료를 쓴다. 집계는 명단 없이 저장될 수 있어 두 화면이 달라졌다(Codex 재검증 2026-09-30).
   await renderSettledPage();
+  expect(getSchedule).not.toHaveBeenCalled();
+  expect(screen.getByTestId("cells")).toHaveTextContent("2026-09-22-10:00:2");
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 });
 
@@ -121,7 +127,7 @@ test.each([
   ["2명 모두 입력 전", usersResponse(members.map((member) => ({ ...member, availableTimes: [] })))],
   ["참여자 조회 500", { success: false, message: "서버 오류" }],
   ["참여자 응답 없음", undefined],
-])("%s이면 이전 집계 데이터가 있어도 광고를 표시하지 않는다", async (_, response) => {
+])("%s이면 광고를 표시하지 않는다", async (_, response) => {
   getAllSchedule.mockResolvedValue(response);
   await renderSettledPage();
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
@@ -137,12 +143,14 @@ test.each([
 });
 
 test.each([
-  ["빈 집계", []],
-  ["집계 조회 500", { success: false, message: "서버 오류" }],
-  ["집계 응답 없음", undefined],
-])("%s이면 참여자가 2명이어도 광고를 표시하지 않는다", async (_, response) => {
-  getSchedule.mockResolvedValue(response);
+  ["참여자 시간이 모두 표 날짜 밖", ["2026-12-31-10:00"], []],
+  ["참여자 시간이 모두 표 시간 밖", ["2026-09-22-15:00"], []],
+  ["참여자 시간이 모두 막은 칸", ["2026-09-22-10:00"], ["2026-09-22-10:00"]],
+])("%s이면 참여자가 2명이어도 칠할 칸이 없어 광고를 표시하지 않는다", async (_, times, banedCells) => {
+  getTableInfo.mockResolvedValue({ success: true, data: { ...table, banedCells } });
+  getAllSchedule.mockResolvedValue(usersResponse(members.map((member) => ({ ...member, availableTimes: times }))));
   await renderSettledPage();
+  expect(screen.getByTestId("cells")).toHaveTextContent(/^$/);
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
 });
 
@@ -175,7 +183,6 @@ test("참여 후에는 관리자가 수정했을 수 있는 표 시간도 다시
   await renderSettledPage();
   const tableReads = getTableInfo.mock.calls.length;
   const memberReads = getAllSchedule.mock.calls.length;
-  const scheduleReads = getSchedule.mock.calls.length;
   getTableInfo.mockResolvedValue({ success: true, data: { ...table, startHour: "10:00", endHour: "13:00" } });
 
   fireEvent.click(screen.getByRole("button", { name: "참여자 변경 후 갱신" }));
@@ -183,37 +190,46 @@ test("참여 후에는 관리자가 수정했을 수 있는 표 시간도 다시
 
   expect(getTableInfo).toHaveBeenCalledTimes(tableReads + 1);
   expect(getAllSchedule).toHaveBeenCalledTimes(memberReads + 1);
-  expect(getSchedule).toHaveBeenCalledTimes(scheduleReads + 1);
+  expect(getSchedule).not.toHaveBeenCalled();
   expect(screen.getByTestId("table-hours")).toHaveTextContent("10:00-13:00");
   expect(screen.getByTestId("member-count")).toHaveTextContent("2");
 });
 
-test("일정 저장 후 집계 조회 실패 시 이전 광고를 숨기고, 정상 재조회 후 복구한다", async () => {
+test("일정 저장 후 참여자 재조회가 실패하면 광고는 숨기되 확인된 저장 시간과 인원은 남기고, 다시 불러오면 복구한다", async () => {
+  // Codex 계획 검토(2026-09-30): 전에는 재조회가 실패하면 목록을 비워 방금 저장한 시간이 사라졌다(새 화면은 남긴다).
   localStorage.setItem("tableId", TABLE_ID);
   localStorage.setItem("name", members[0].name);
   await renderSettledPage();
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
-  getSchedule.mockResolvedValue(undefined);
+  getAllSchedule.mockResolvedValue(undefined);
   fireEvent.click(screen.getByRole("button", { name: "일정 저장 후 갱신" }));
   await settleRequests();
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
-  getSchedule.mockResolvedValue(aggregate);
+  expect(screen.getByTestId("member-count")).toHaveTextContent("2");
+  expect(screen.getByTestId("cells")).toHaveTextContent("2026-09-22-10:00:2,2026-09-22-10:30:1");
+  // 다시 불러오기가 또 실패해도 확인된 값은 남는다.
+  fireEvent.click(screen.getByRole("button", { name: "다시 불러오기" }));
+  await settleRequests();
+  expect(screen.getByTestId("cells")).toHaveTextContent("2026-09-22-10:30:1");
+  getAllSchedule.mockResolvedValue(usersResponse(saved));
   fireEvent.click(screen.getByRole("button", { name: "다시 불러오기" }));
   await settleRequests();
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
+  expect(screen.getByTestId("cells")).toHaveTextContent("2026-09-22-10:00:2,2026-09-22-10:30:1");
 });
 
-test("일정 저장 후 재조회가 진행 중이면 이전 광고를 숨긴다", async () => {
+test("일정 저장 후 재조회가 진행 중이면 광고를 숨기고, 그동안에도 확인된 저장 시간을 보인다", async () => {
   localStorage.setItem("tableId", TABLE_ID);
   localStorage.setItem("name", members[0].name);
   await renderSettledPage();
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
-  let resolveAggregate;
-  getSchedule.mockImplementation(() => new Promise((resolve) => { resolveAggregate = resolve; }));
+  let resolveMembers;
+  getAllSchedule.mockImplementation(() => new Promise((resolve) => { resolveMembers = resolve; }));
   fireEvent.click(screen.getByRole("button", { name: "일정 저장 후 갱신" }));
   await settleRequests();
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
-  await act(async () => { resolveAggregate(aggregate); });
+  expect(screen.getByTestId("cells")).toHaveTextContent("2026-09-22-10:30:1");
+  await act(async () => { resolveMembers(usersResponse(saved)); });
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 });
 
@@ -231,26 +247,26 @@ test("전체 시간표 새로고침에서 표 조회가 실패하면 광고를 �
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 });
 
-test("늦게 도착한 이전 집계 응답이 최신 빈 목록과 광고 차단을 되돌리지 않는다", async () => {
+test("늦게 도착한 이전 참여자 응답이 최신 빈 목록과 광고 차단을 되돌리지 않는다", async () => {
   localStorage.setItem("tableId", TABLE_ID);
   localStorage.setItem("name", members[0].name);
   await renderSettledPage();
   expect(screen.getByTestId("eligible-ad")).toBeInTheDocument();
 
-  let resolvePreviousAggregate;
-  getSchedule.mockImplementationOnce(() => new Promise((resolve) => { resolvePreviousAggregate = resolve; }));
+  let resolvePreviousMembers;
+  getAllSchedule.mockImplementationOnce(() => new Promise((resolve) => { resolvePreviousMembers = resolve; }));
   fireEvent.click(screen.getByRole("button", { name: "일정 저장 후 갱신" }));
   await settleRequests();
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
 
   getAllSchedule.mockResolvedValue({ success: true, code: 201 });
-  getSchedule.mockResolvedValue([]);
   fireEvent.click(screen.getByRole("button", { name: "전체 시간표 새로고침" }));
   await settleRequests();
   expect(screen.getByTestId("member-count")).toHaveTextContent("0");
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
 
-  await act(async () => { resolvePreviousAggregate(aggregate); });
+  await act(async () => { resolvePreviousMembers(usersResponse(saved)); });
   expect(screen.getByTestId("member-count")).toHaveTextContent("0");
+  expect(screen.getByTestId("cells")).toHaveTextContent(/^$/);
   expect(screen.queryByTestId("eligible-ad")).not.toBeInTheDocument();
 });

@@ -6,11 +6,10 @@ import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import JoinForm from "./components/JoinForm";
 import RankingModal from "./components/RankingModal";
-import { useEffect, useState, useCallback, useRef, Fragment } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, Fragment, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/table";
 import { getAllSchedule } from "../../api/user";
-import { getSchedule } from "../../api/schedule";
 import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
@@ -18,6 +17,7 @@ import { trackVisit } from "../../api/visit";
 import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi } from "../../utils/analytics";
 import { isTableAbOn, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
 import { clearTableScopedStorage } from "../../utils/storage";
+import { readTableState, writeTableState, timeInfoOf, validCellsOf } from "../../utils/tableSession";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers, FiAward, FiChevronRight } from "react-icons/fi";
@@ -25,8 +25,12 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import GroupTimeGrid from "./components/GroupTimeGrid";
 import AdSense from "../../component/AdSense";
 import Arrow from "../../assets/svg/Arrow";
-import GuideOverlay from "./components/GuideOverlay";
 import TableUiBand from "./components/TableUiBand";
+import { lazyPage } from "../../utils/lazyPage";
+
+// 새 화면(B)은 B를 볼 때만 받는다(기존 화면만 보는 사람의 첫 로딩에 넣지 않는다). 조각을 못 받으면 한 번 새로고침하고,
+// 그래도 안 되면 앱의 불러오기 실패 안내가 뜬다(utils/lazyPage.js). 기존 화면으로 대신 그리면 B 배정 기록과 어긋난다.
+const TableB = lazyPage(() => import("./b/TableB"));
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -64,7 +68,7 @@ const TOGGLE_TIPS = {
       },
       {
         title: "저장 버튼을 꼭 눌러주세요",
-        desc: "시간을 선택한 뒤 반드시 저장 버튼을 눌러야 그룹 시간표에 반영됩니다. 저장 전에 페이지를 떠나면 입력이 사라져요.",
+        desc: "시간을 선택한 뒤 반드시 저장 버튼을 눌러야 그룹 시간표에 반영됩니다. 저장하지 않은 시간은 새로고침해도 남지만, 창을 닫으면 사라져요.",
       },
       {
         title: "언제든 수정할 수 있어요",
@@ -118,26 +122,60 @@ const TOGGLE_TIPS = {
   },
 };
 
+/**
+ * 처음 보일 오른쪽 화면. 이 표에 참여한 이름이 없으면 참여 화면, 새 화면에서 보기 모드였으면 인원,
+ * 그 밖에는 내 일정(표 화면 A/B 공유 상태 editing).
+ */
+const screenFor = (tableId) => {
+  const storedName =
+    localStorage.getItem("tableId") === tableId ? localStorage.getItem("name") : null;
+  if (!storedName) return { screen: "JoinForm", toggle: null };
+  const shared = readTableState(tableId);
+  if (shared.name === storedName && !shared.editing) return { screen: "DashboardPanel", toggle: "인원" };
+  return { screen: "PersonalSchedule", toggle: "내 일정" };
+};
+
+// 표가 바뀌면 화면을 새로 만든다. 같은 화면을 이어 쓰면 앞 표의 고른 사람·오른쪽 화면·저장 안 한 칸이
+// 새 표의 공유 상태에 섞여 들어갔다(Codex 최종 검증, 2026-09-30).
 export default function TimetablePage() {
+  const { tableId } = useParams();
+  return <TimetablePageView key={tableId} />;
+}
+
+function TimetablePageView() {
   const { tableId } = useParams();
   const [tableInfo, setTableInfo] = useState(null);
   const [usersScheduleList, setUsersScheduleList] = useState([]);
   const { startHour, endHour, dates, title, banedCells } = tableInfo || {};
   const [saveButtonState, setSaveButtonState] = useState(true);
-  const [timeInfo, setTimeInfo] = useState([]);
   const [scheduleStatus, setScheduleStatus] = useState("loading");
+  // 칸마다 되는 사람: 참여자 목록으로 세고 표 칸(범위 안, 막은 칸 밖)만 둔다. 격자·명단 창·순위·최대 인원·
+  // 입력 배경·광고 조건이 모두 이 값을 쓴다. 새 화면과 같은 규칙이라 두 화면이 같은 칸·명단·순위를 보인다.
+  // 전에는 서버 집계를 그대로 써서 집계가 명단 없이 저장되거나(POST /api/schedules/generation) 목록과 어긋나면
+  // 두 화면이 달랐고, 막은 칸·표 밖 칸도 순위에 들어갈 수 있었다(Codex 재검증 2026-09-30).
+  const validCells = useMemo(
+    () => validCellsOf({ dates, startHour, endHour, banedCells }),
+    [dates, startHour, endHour, banedCells],
+  );
+  const timeInfo = useMemo(() => timeInfoOf(usersScheduleList, validCells), [usersScheduleList, validCells]);
   const [tableLoadError, setTableLoadError] = useState(false);
-  const [rightScreen, setRightScreen] = useState(() => {
-    const storedName =
-      localStorage.getItem("tableId") === tableId ? localStorage.getItem("name") : null;
-    return storedName ? "PersonalSchedule" : "JoinForm";
-  });
-  const [selectedToggle, setSelectedToggle] = useState(() => {
-    const storedName =
-      localStorage.getItem("tableId") === tableId ? localStorage.getItem("name") : null;
-    return storedName ? "내 일정" : null;
-  });
-  const [selectedName, setSelectedName] = useState(null);
+  // 표 화면 A/B 공유 상태(utils/tableSession.js). 같은 탭에서 새 화면을 쓰다 왔으면 그 상태로 연다.
+  const [initialScreen] = useState(() => screenFor(tableId));
+  const [rightScreen, setRightScreen] = useState(initialScreen.screen);
+  const [selectedToggle, setSelectedToggle] = useState(initialScreen.toggle);
+  // 골라 보는 사람들. 여기서는 한 명씩 고르지만 새 화면에서 여러 명을 골라 왔으면 그대로 보여 준다(공유 상태 picks).
+  const [picks, setPicks] = useState([]);
+  const selectedName = picks.length === 1 ? picks[0] : null;
+  const setSelectedName = useCallback((next) => setPicks(next ? [next] : []), []);
+  // 보고 있는 주는 여기 한 곳에서 들고 모든 격자에 준다(데스크톱 두 격자·휴대폰 전체 시간표·내 일정이 같은 주).
+  const [weekKey, setWeekKey] = useState(() => readTableState(tableId).weekKey);
+  const handleWeekChange = useCallback(
+    (key) => {
+      setWeekKey(key);
+      writeTableState(tableId, { weekKey: key });
+    },
+    [tableId],
+  );
   const [name, setName] = useState("");
   const [isValidTableId, setIsValidTableId] = useState(null);
   const [isGridModalOpen, setIsGridModalOpen] = useState(false);
@@ -161,36 +199,81 @@ export default function TimetablePage() {
     localStorage.setItem("isTipsOpen", JSON.stringify(isTipsOpen));
   }, [isTipsOpen]);
 
-  // 저장 후 테이블 구조 제외, 일정 데이터만 갱신
-  const refreshScheduleData = useCallback(async () => {
+  // 저장 후 테이블 구조 제외, 일정 데이터만 갱신.
+  // 칸별 인원은 참여자 목록으로 센다(아래 timeInfo). 서버 집계(GET /api/schedules)는 더 부르지 않는다
+  // (새 화면과 같은 자료, Codex 재검증·계획 검토 2026-09-30).
+  // keepOnError: 실패해도 목록을 비우지 않는다(저장 직후·다시 불러오기). 참여자가 바뀐 뒤의 갱신은 비워
+  // 지워진 사람이 남지 않게 한다.
+  const refreshScheduleData = useCallback(async ({ keepOnError = false } = {}) => {
     const requestId = ++scheduleRequestId.current;
     setScheduleStatus("loading");
     try {
-      const [membersSchedule, timeData] = await Promise.all([
-        getAllSchedule(tableId),
-        getSchedule(tableId),
-      ]);
-      if (requestId !== scheduleRequestId.current) return;
+      const membersSchedule = await getAllSchedule(tableId);
+      if (requestId !== scheduleRequestId.current) return false;
 
       const members = membersSchedule?.code === 201 ? [] : membersSchedule?.data;
       if (
         membersSchedule?.success === false ||
         ![200, 201].includes(membersSchedule?.code) ||
-        !Array.isArray(members) ||
-        !Array.isArray(timeData)
+        !Array.isArray(members)
       ) {
         throw new Error("Schedule data unavailable");
       }
       setUsersScheduleList(members);
-      setTimeInfo(members.length > 0 ? timeData : []);
       setScheduleStatus("ready");
+      return true;
     } catch {
-      if (requestId !== scheduleRequestId.current) return;
-      setUsersScheduleList([]);
-      setTimeInfo([]);
+      if (requestId !== scheduleRequestId.current) return false;
+      if (!keepOnError) setUsersScheduleList([]);
       setScheduleStatus("error");
+      return false;
     }
   }, [tableId]);
+
+  // 새 화면(B)의 1분 새로고침·참여·참여 취소 뒤: 표와 참여자를 조용히 다시 불러온다. 불러오는 동안 화면을 바꾸지 않고,
+  // 실패하면 이전 자료를 그대로 둔다(확정 시안과 같다). 참여자 목록은 늦게 온 옛 응답을 버린다(같은 순번을 쓴다).
+  // 결과 { ok, users }: 새 화면이 막 참여한 이름이 목록에 들었는지 본다.
+  const reloadQuietly = useCallback(async () => {
+    const requestId = ++scheduleRequestId.current;
+    const [tableRes, membersSchedule] = await Promise.all([getTableInfo(tableId), getAllSchedule(tableId)]);
+    if (requestId !== scheduleRequestId.current) return { ok: false, users: [] };
+    const tableData = tableRes?.data;
+    const members = membersSchedule?.code === 201 ? [] : membersSchedule?.data;
+    const tableOk =
+      tableRes?.success === true &&
+      tableData?.tableId === tableId &&
+      Array.isArray(tableData?.dates) &&
+      tableData.dates.length > 0;
+    const usersOk =
+      membersSchedule?.success !== false && [200, 201].includes(membersSchedule?.code) && Array.isArray(members);
+    if (!tableOk || !usersOk) {
+      // 이 불러오기에 밀려난 다른 새로고침이 "불러오는 중"으로 남지 않게 한다.
+      setScheduleStatus((status) => (status === "loading" ? "error" : status));
+      return { ok: false, users: [] };
+    }
+    setTableInfo(tableData);
+    setUsersScheduleList(members);
+    setScheduleStatus("ready");
+    return { ok: true, users: members };
+  }, [tableId]);
+
+  // 저장이 확인되면 내 시간을 먼저 목록에 넣고 다시 불러온다. 다시 불러오기가 늦거나 실패해도
+  // 서버가 확인한 저장 시간이 남는다(새 화면과 같다, Codex 계획 검토 2026-09-30).
+  // 막 참여해 목록에 아직 없으면 더한다(새 화면도 참여 직후 목록에 먼저 넣는다, Codex 최종 검증 2026-09-30).
+  const handleSaveSuccess = useCallback(
+    (saved) => {
+      if (saved?.name && Array.isArray(saved.availableTimes)) {
+        const times = [...saved.availableTimes];
+        setUsersScheduleList((list) =>
+          list.some((user) => user.name === saved.name)
+            ? list.map((user) => (user.name === saved.name ? { ...user, availableTimes: times } : user))
+            : [...list, { name: saved.name, availableTimes: times }],
+        );
+      }
+      return refreshScheduleData({ keepOnError: true });
+    },
+    [refreshScheduleData],
+  );
 
   const fetchAllData = useCallback(async () => {
     const requestId = ++tableRequestId.current;
@@ -198,7 +281,6 @@ export default function TimetablePage() {
     setIsValidTableId(null);
     setTableLoadError(false);
     setScheduleStatus("loading");
-    setSelectedName(null);
     try {
       const res = await getTableInfo(tableId);
       if (requestId !== tableRequestId.current) return;
@@ -223,7 +305,6 @@ export default function TimetablePage() {
       if (requestId !== tableRequestId.current) return;
       setTableInfo(null);
       setUsersScheduleList([]);
-      setTimeInfo([]);
       setTableLoadError(true);
       setIsValidTableId(false);
     }
@@ -253,6 +334,13 @@ export default function TimetablePage() {
   const handleSwitchUi = (next) => {
     switchTableUi(abTableId, next);
     setUiChoice({ tableId: abTableId, version: next });
+    if (next === "A") {
+      // 새 화면에서 참여·로그아웃했거나 입력 중이었으면 그대로 이어서 보인다(표 화면 A/B 공유 상태).
+      const screen = screenFor(tableId);
+      setName(localStorage.getItem("name") || "");
+      setRightScreen(screen.screen);
+      setSelectedToggle(screen.toggle);
+    }
   };
 
   const isAdReady =
@@ -271,25 +359,53 @@ export default function TimetablePage() {
   }, [tableId]);
 
   useEffect(() => {
-    const storedName = localStorage.getItem("name");
     if (tableId !== localStorage.getItem("tableId")) {
       // 관리자 인증과 방문자 ID는 테이블과 무관하므로 유지한다.
       clearTableScopedStorage();
       localStorage.setItem("tableId", tableId);
     }
-    if (storedName) {
-      setName(storedName);
-    }
+    // 정리한 뒤에 읽는다. 전에는 정리 전에 읽어 다른 표에서 쓰던 이름이 이 표의 이름으로 남았다(2026-09-30).
+    setName(localStorage.getItem("name") || "");
     fetchAllData();
   }, [tableId, saveButtonState, fetchAllData]);
 
-  const datesInfo = useCallback(() => {
-    if (selectedName) {
-      const scheduleOfSelectedName = usersScheduleList.find((user) => user.name === selectedName);
-      return scheduleOfSelectedName ? scheduleOfSelectedName.availableTimes : [];
+  // 목록을 불러온 뒤: 새 화면에서 골라 보던 사람들을 그대로 보이고, 목록에 없는 사람은 뺀다(새 화면과 같다).
+  const pickRestoredRef = useRef(false);
+  useEffect(() => {
+    if (scheduleStatus !== "ready") return;
+    const names = usersScheduleList.map((user) => user.name);
+    if (!pickRestoredRef.current) {
+      pickRestoredRef.current = true;
+      setPicks(readTableState(tableId).picks.filter((pick) => names.includes(pick)));
+      return;
     }
-    return [];
-  }, [selectedName, usersScheduleList]);
+    setPicks((current) =>
+      current.every((pick) => names.includes(pick)) ? current : current.filter((pick) => names.includes(pick)),
+    );
+  }, [scheduleStatus, usersScheduleList, tableId]);
+
+  // 복원한 뒤부터 고른 사람들을 공유 상태에 남긴다(여러 명이어도 그대로 남아 새 화면으로 돌아가도 같다).
+  useEffect(() => {
+    if (!pickRestoredRef.current) return;
+    writeTableState(tableId, { picks });
+  }, [picks, tableId]);
+
+  // 내 시간을 고치는 화면인지 남긴다(새 화면은 이 값으로 입력 모드를 연다). 새 화면을 쓰는 동안은 새 화면이 남긴다.
+  // 표 정보를 받기 전에는 어느 화면인지 모르므로 쓰지 않는다. 전에는 B로 배정된 표도 받기 전 잠깐의 A 값으로
+  // "입력 중"을 남겨, 이름이 있는 사람이 새 화면을 열면 입력 모드로 열렸다(2026-10-01 B 구현 중 발견).
+  useEffect(() => {
+    if (!name || isValidTableId !== true || uiVersion !== "A") return;
+    writeTableState(tableId, { name, editing: rightScreen === "PersonalSchedule" });
+  }, [name, rightScreen, tableId, uiVersion, isValidTableId]);
+
+  // 격자에 줄 시간: 전체면 모두의 시간, 사람을 골랐으면 칸마다 고른 사람 중 되는 수(0인 칸은 뺀다).
+  // 격자는 고른 인원을 가장 진한 값으로 칠해 모두 되는 칸이 가장 진하다. 명단 창은 그 칸의 전체 명단을 보인다.
+  const gridTimeInfo = useMemo(() => {
+    if (picks.length === 0) return timeInfo;
+    return timeInfo
+      .map((item) => ({ ...item, count: picks.filter((pick) => item.members.includes(pick)).length }))
+      .filter((item) => item.count > 0);
+  }, [picks, timeInfo]);
 
   const handleToggleClick = (screen, toggle) => {
     const storedName = localStorage.getItem("name");
@@ -302,7 +418,8 @@ export default function TimetablePage() {
 
     setRightScreen(screen);
     setSelectedToggle(toggle);
-    setSelectedName(null);
+    // 탭을 바꿔도 고른 사람은 그대로 둔다. 새 화면도 입력 모드로 들어갈 때 고른 사람을 지키고
+    // "전체"를 눌러야 비운다(Codex 재검증, 2026-09-30). 전에는 탭을 누를 때마다 비웠다.
   };
 
   // 휴대폰 전체 시간표 모달은 버튼·참여자 칩·순위 이름 세 곳에서 열린다. 여는 곳을 하나로 모으고,
@@ -336,7 +453,7 @@ export default function TimetablePage() {
         <DataNotice role="alert">
           <p>참여자와 일정을 불러오지 못했습니다.</p>
           <p>연결 상태를 확인하고 다시 시도해 주세요.</p>
-          <RetryButton type="button" onClick={refreshScheduleData}>다시 불러오기</RetryButton>
+          <RetryButton type="button" onClick={() => refreshScheduleData({ keepOnError: true })}>다시 불러오기</RetryButton>
         </DataNotice>
       );
     }
@@ -360,6 +477,7 @@ export default function TimetablePage() {
           <DashboardPanel
             setRightScreen={setRightScreen}
             selectedName={selectedName}
+            selectedNames={picks}
             setSelectedName={handleUserClickWrapper}
             usersSchedule={usersScheduleList}
             name={name}
@@ -379,7 +497,9 @@ export default function TimetablePage() {
             usersScheduleList={usersScheduleList}
             banedCells={banedCells}
             bgTimeInfo={timeInfo}
-            onSaveSuccess={refreshScheduleData}
+            onSaveSuccess={handleSaveSuccess}
+            weekKey={weekKey}
+            onWeekChange={handleWeekChange}
             // 휴대폰에서는 페이지째 스크롤되므로 사이트 헤더 바로 밑에 요일·날짜 줄을 붙인다.
             stickyHeaderTop={isDesktop ? undefined : SITE_HEADER_HEIGHT}
           />
@@ -412,7 +532,7 @@ export default function TimetablePage() {
           </DateBadge>
         )}
         <Title>{title}</Title>
-        <InviteCard id="guide-invite">
+        <InviteCard>
           <InviteCardLabel>
             <FiShare2 size={12} />
             초대 링크
@@ -552,11 +672,48 @@ export default function TimetablePage() {
     );
   }
 
+  if (isValidTableId && uiVersion === "B") {
+    // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
+    return (
+      <>
+        <TableUiBand version={uiVersion} onSwitch={handleSwitchUi} />
+        <Seo
+          title={`${title || "테이블"}`}
+          description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
+        />
+        <Suspense
+          fallback={
+            <LoaderLayout>
+              <Loader />
+            </LoaderLayout>
+          }
+        >
+          <TableB
+            tableId={tableId}
+            table={tableInfo}
+            users={usersScheduleList}
+            scheduleStatus={scheduleStatus}
+            me={name}
+            onMeChange={setName}
+            picks={picks}
+            onPicksChange={setPicks}
+            weekKey={weekKey}
+            onWeekKeyChange={handleWeekChange}
+            setUsers={setUsersScheduleList}
+            onSaved={handleSaveSuccess}
+            onReload={reloadQuietly}
+            onRetry={() => refreshScheduleData({ keepOnError: true })}
+            isAdReady={isAdReady}
+          />
+        </Suspense>
+      </>
+    );
+  }
+
   return isValidTableId ? (
     <>
       {abTableId && <TableUiBand version={uiVersion} onSwitch={handleSwitchUi} />}
       <PageWrapper>
-        <GuideOverlay isDesktop={isDesktop} tableId={tableId} />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -564,7 +721,7 @@ export default function TimetablePage() {
 
         {isDesktop ? (
           <DesktopContainer>
-            <LeftPanel id="guide-all-timetable">
+            <LeftPanel>
               {tableInfo && (
                 <GroupTimeGrid
                   banedCells={banedCells}
@@ -572,13 +729,16 @@ export default function TimetablePage() {
                   dates={dates}
                   startHour={startHour}
                   endHour={endHour}
-                  timeInfo={selectedName ? datesInfo() : timeInfo}
+                  timeInfo={gridTimeInfo}
                   selectedName={selectedName}
+                  selectedNames={picks}
                   setSelectedName={setSelectedName}
                   setTableInfo={setTableInfo}
                   tableId={tableId}
                   usersSchedule={usersScheduleList}
                   onRefresh={fetchAllData}
+                  weekKey={weekKey}
+                  onWeekChange={handleWeekChange}
                 />
               )}
             </LeftPanel>
@@ -603,7 +763,6 @@ export default function TimetablePage() {
               <HeaderContent />
               <ResultCard />
               <ViewTimetableButton
-                id="guide-view-timetable"
                 type="button"
                 disabled={scheduleStatus !== "ready" || usersScheduleList.length === 0}
                 onClick={openGridModal}
@@ -681,13 +840,16 @@ export default function TimetablePage() {
             dates={dates}
             startHour={startHour}
             endHour={endHour}
-            timeInfo={selectedName ? datesInfo() : timeInfo}
+            timeInfo={gridTimeInfo}
             selectedName={selectedName}
+            selectedNames={picks}
             setSelectedName={setSelectedName}
             setTableInfo={setTableInfo}
             tableId={tableId}
             usersSchedule={usersScheduleList}
             onRefresh={fetchAllData}
+            weekKey={weekKey}
+            onWeekChange={handleWeekChange}
           />
         )}
 
@@ -696,6 +858,7 @@ export default function TimetablePage() {
           onClose={() => setIsRankingOpen(false)}
           timeInfo={timeInfo}
           selectedName={selectedName}
+          selectedNames={picks}
           setSelectedName={(newName) => {
             setIsRankingOpen(false);
             handleUserClickWrapper(newName);

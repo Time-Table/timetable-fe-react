@@ -1,9 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import TimetablePage from "./TimetablePage";
 import { getTableInfo } from "../../api/table";
 import { getAllSchedule } from "../../api/user";
-import { getSchedule } from "../../api/schedule";
 import { getChating } from "../../api/chat";
 import { sendEvent } from "../../api/event";
 import { TABLE_AB } from "../../utils/tableExperiment";
@@ -32,7 +31,6 @@ jest.mock("../../api/visit", () => ({ trackVisit: jest.fn() }));
 jest.mock("../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
 jest.mock("../../Seo", () => () => null);
 jest.mock("../../component/AdSense", () => () => null);
-jest.mock("./components/GuideOverlay", () => () => null);
 jest.mock("../../component/TimeGrid", () => () => null);
 jest.mock("sweetalert2", () => ({ fire: jest.fn(), mixin: () => ({ fire: jest.fn() }) }));
 jest.mock("react-dom/test-utils", () => ({ ...jest.requireActual("react-dom/test-utils"), act: require("react").act }));
@@ -58,15 +56,23 @@ const originalStart = TABLE_AB.startAt;
 const sentEvents = (name) => sendEvent.mock.calls.map(([payload]) => payload).filter((payload) => payload.name === name);
 const band = () => screen.queryByRole("region", { name: "화면 바꾸기" });
 
-const renderTable = async ({ tableId = TABLE_A, createdAt = AFTER } = {}) => {
+// 새 화면(B)은 2026-10-01부터 확정 시안을 옮긴 화면이다(골든은 제목 옆 버튼). ui는 처음 보일 화면이다.
+const renderTable = async ({ tableId = TABLE_A, createdAt = AFTER, ui = "A" } = {}) => {
   mockTableId = tableId;
   getTableInfo.mockResolvedValue({
     success: true,
     data: { tableId, title: "표", dates: ["2026-09-28"], startHour: "09:00", endHour: "12:00", banedCells: [], createdAt },
   });
   getAllSchedule.mockResolvedValue({ success: true, code: 200, data: users });
-  getSchedule.mockResolvedValue([{ time: "2026-09-28-10:00", count: 2, members: ["민준", "서연"], _id: "s1" }]);
   const view = render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><TimetablePage /></MemoryRouter>);
+  if (ui === "B") {
+    const ranking = await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
+    await waitFor(() => expect(getChating).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    return { ...view, ranking };
+  }
   const ranking = await screen.findByRole("button", { name: /골든타임 순위/ });
   await waitFor(() => expect(screen.getByRole("button", { name: /전체 시간표 보기/ })).toBeEnabled());
   return { ...view, ranking };
@@ -105,23 +111,31 @@ test("켜져 있으면 배정대로 띠를 보이고, 누르면 바꾼 화면을
 
   fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   expect(band()).toHaveTextContent("새 화면을 쓰는 중이에요");
-  expect(screen.getByRole("status")).toHaveTextContent("새 화면으로 바꿨어요.");
+  expect(screen.getByText("새 화면으로 바꿨어요. 언제든 기존 화면으로 돌아갈 수 있어요.")).toBeInTheDocument();
   expect(sentEvents("ui_switch")).toEqual([expect.objectContaining({ tableId: TABLE_A, uiVersion: "B" })]);
   expect(JSON.parse(localStorage.getItem(TABLE_UI_KEY))).toEqual({ [TABLE_A]: "B" });
   expect(window.clarity).toHaveBeenCalledWith("event", "tt_ui_switch_b");
-  expect(window.clarity).toHaveBeenLastCalledWith("set", "tt_table_ui", "B");
+  await waitFor(() => expect(window.clarity).toHaveBeenCalledWith("set", "tt_table_ui", "B"));
 
-  fireEvent.click(screen.getByRole("button", { name: /골든타임 순위/ }));
+  // 새 화면의 골든 버튼(제목 옆)으로 연 순위에도 B가 붙는다.
+  fireEvent.click(await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ }));
   expect(sentEvents("ranking_open")[0]).toEqual(expect.objectContaining({ uiVersion: "B" }));
+  await waitFor(() => expect(getChating).toHaveBeenCalled());
+  await act(async () => {
+    await Promise.resolve();
+  });
+  fireEvent.click(screen.getByRole("button", { name: "닫기" }));
 
   fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
   expect(band()).toHaveTextContent("새 화면을 먼저 써 볼 수 있어요");
   expect(sentEvents("ui_switch")[1]).toEqual(expect.objectContaining({ uiVersion: "A" }));
+  expect(await screen.findByRole("button", { name: /골든타임 순위/ })).toBeInTheDocument();
 });
 
 test("B로 배정된 표는 처음부터 새 화면이고, 고른 적이 있으면 그 선택을 쓴다", async () => {
-  const view = await renderTable({ tableId: TABLE_B });
+  const view = await renderTable({ tableId: TABLE_B, ui: "B" });
   expect(band()).toHaveTextContent("새 화면을 쓰는 중이에요");
+  expect(screen.queryByRole("button", { name: /골든타임 순위/ })).not.toBeInTheDocument();
   view.unmount();
 
   localStorage.setItem(TABLE_UI_KEY, JSON.stringify({ [TABLE_B]: "A" }));
@@ -135,7 +149,7 @@ test("실험 시작 전에 만든 표는 B 칸이어도 기존 화면으로 시�
 });
 
 test("표 화면을 떠나면 그 표의 화면 값을 비운다", async () => {
-  const view = await renderTable({ tableId: TABLE_B });
+  const view = await renderTable({ tableId: TABLE_B, ui: "B" });
   // 열려 있는 동안에는 그 표의 이벤트에 화면이 붙는다.
   await waitFor(() => {
     trackEvent(EVENTS.RANKING_OPEN, TABLE_B);
@@ -161,6 +175,11 @@ test("관리자는 띠가 보이고 바꿀 수 있지만 서버·Clarity 기록�
   await renderTable({ tableId: TABLE_A });
   fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   expect(band()).toHaveTextContent("새 화면을 쓰는 중이에요");
+  fireEvent.click(await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ }));
+  await waitFor(() => expect(getChating).toHaveBeenCalled());
+  await act(async () => {
+    await Promise.resolve();
+  });
   expect(sendEvent).not.toHaveBeenCalled();
   expect(window.clarity).not.toHaveBeenCalled();
 });

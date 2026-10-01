@@ -6,6 +6,7 @@ import TimeGrid from "../../../component/TimeGrid";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../api/schedule";
 import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
+import { readTableState, writeTableState, clearTableDraft, validCellsOf, draftFor } from "../../../utils/tableSession";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiArrowDown, FiGrid } from "react-icons/fi";
@@ -24,6 +25,8 @@ export default function PersonalSchedule({
      onSaveSuccess,
      onViewTimetable,
      stickyHeaderTop,
+     weekKey,
+     onWeekChange,
 }) {
      const [isLoading, setIsLoading] = useState(true);
      const [isSaving, setIsSaving] = useState(false);
@@ -61,17 +64,44 @@ export default function PersonalSchedule({
           arr1.every((value) => arr2.includes(value)) &&
           arr2.every((value) => arr1.includes(value));
 
+     // 표 화면 A/B 공유 상태(utils/tableSession.js). baseRef는 마지막으로 맞춘 저장 시간이다.
+     // 처음 한 번은 같은 이름의 저장 안 한 선택(draft)으로 시작하고, 이후 목록을 다시 불러와도
+     // 저장 안 한 선택이 있으면 덮지 않는다(바뀐 것이 없을 때만 서버 값을 따라간다).
+     const baseRef = useRef(null);
+     // 이 이름으로 처음 맞췄는가, 저장 안 한 선택이 있는가. 개발 모드 StrictMode는 효과를 두 번 돌리며 그때
+     // 선택을 비추는 ref가 첫 렌더 값([])으로 돌아간다. 전에는 그 ref로 판단해 저장 시간이 없는 사람의
+     // 되살린 칸을 지웠다(2026-09-30 새 표 시험에서 발견). 바뀜 여부는 dirtyRef로 따로 기억한다.
+     const initNameRef = useRef(null);
+     const dirtyRef = useRef(false);
      useEffect(() => {
           if (!name) {
                setIsLoading(false);
                return;
           }
-
-          if (userScheduleInfo?.availableTimes) {
-               setSelectedCells([...userScheduleInfo.availableTimes]);
+          const saved = [...(userScheduleInfo?.availableTimes || [])];
+          if (initNameRef.current !== name) {
+               initNameRef.current = name;
+               const valid = validCellsOf({ dates, startHour, endHour, banedCells });
+               const draft = draftFor(readTableState(tableId), name, valid, saved);
+               dirtyRef.current = !!draft;
+               setSelectedCells(draft || saved);
+          } else if (!dirtyRef.current) {
+               setSelectedCells(saved);
           }
+          baseRef.current = saved;
           setIsLoading(false);
+          // dates 등은 표가 바뀌면 이 화면이 새로 그려지므로 이름·저장 시간이 바뀔 때만 맞춘다.
+          // eslint-disable-next-line react-hooks/exhaustive-deps
      }, [name, userScheduleInfo]);
+
+     // 칸이 바뀔 때마다 바로 남긴다(화면을 바꾸기 직전 칸까지 이어지게). 저장한 시간과 같으면 null.
+     useLayoutEffect(() => {
+          if (isLoading || !name || baseRef.current === null) return;
+          const dirty = !areArraysEqual(selectedCells, baseRef.current);
+          dirtyRef.current = dirty;
+          writeTableState(tableId, { name, draft: dirty ? [...selectedCells].sort() : null });
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+     }, [selectedCells, isLoading, name, tableId]);
 
      const handleSave = async () => {
           if (isSaving) return;
@@ -90,6 +120,10 @@ export default function PersonalSchedule({
           try {
                const result = await addSchedule(tableId, name, selectedCells);
                if (!result?.success) throw new Error("일정 저장이 확인되지 않았습니다.");
+               // 서버가 저장을 확인한 뒤에만 저장 안 한 선택을 비운다(실패하면 그대로 남아 이어서 고칠 수 있다).
+               baseRef.current = [...selectedCells];
+               dirtyRef.current = false;
+               clearTableDraft(tableId);
                trackEvent(EVENTS.SCHEDULE_SAVE, tableId);
                Swal.fire({
                     icon: "success",
@@ -99,7 +133,9 @@ export default function PersonalSchedule({
                     timer: 900,
                });
                if (onSaveSuccess) {
-                    onSaveSuccess();
+                    // 서버가 확인한 내 시간(없으면 보낸 시간)을 넘겨 표 화면이 다시 불러오기 전에 먼저 반영하게 한다.
+                    const confirmed = result.data?.userAvailableTimes;
+                    onSaveSuccess({ name, availableTimes: Array.isArray(confirmed) ? confirmed : [...selectedCells] });
                } else {
                     setSaveButtonState(!saveButtonState);
                }
@@ -170,6 +206,8 @@ export default function PersonalSchedule({
                          banedCells={banedCells}
                          bgTimeInfo={bgTimeInfo}
                          stickyHeaderTop={stickyHeaderTop}
+                         weekKey={weekKey}
+                         onWeekChange={onWeekChange}
                     />
                     <SaveButton
                          onClick={handleSave}

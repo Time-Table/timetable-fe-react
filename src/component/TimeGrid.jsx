@@ -18,6 +18,10 @@ export default function TimeGrid({
   // View Mode Props
   timeInfo,
   readOnly = false,
+  // 가장 진하게 칠할 인원(여러 명을 골라 볼 때 그 인원 수). 없으면 자료에서 가장 큰 값.
+  viewMaxCount,
+  // 가장 많은 인원 칸의 반짝임. 사람을 골라 볼 때는 "최다 인원"이 아니므로 끈다.
+  showGolden = true,
   // Common Props
   banedCells = [],
   onCellClick,
@@ -25,10 +29,26 @@ export default function TimeGrid({
   // 요일·날짜 줄을 붙여 둘 위치(CSS 길이). 넘기면 시간을 아래로 내려도 그 줄이 화면 위에 남는다.
   // 넘기지 않으면 예전처럼 같이 스크롤된다(랜딩·빠른 생성 화면).
   stickyHeaderTop,
+  // 보고 있는 주를 밖에서 정할 때(표 화면 A/B 공유 상태, 2026-09-30). weekKey는 그 주 월요일(YYYY-MM-DD).
+  // onWeekChange를 넘기지 않으면 예전처럼 안에서 정하고 날짜가 바뀌면 첫 주로 돌아간다.
+  weekKey,
+  onWeekChange,
 }) {
   const gridRef = useRef(null);
-  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [innerWeekIndex, setInnerWeekIndex] = useState(0);
   const [weeks, setWeeks] = useState([]);
+  const isWeekControlled = typeof onWeekChange === "function";
+  const currentWeekIndex = isWeekControlled
+    ? Math.max(0, weeks.findIndex((week) => week[0] === weekKey))
+    : innerWeekIndex;
+  const setCurrentWeekIndex = (index) => {
+    if (!isWeekControlled) {
+      setInnerWeekIndex(index);
+      return;
+    }
+    const key = weeks[index]?.[0];
+    if (key && key !== weekKey) onWeekChange(key);
+  };
 
   // Input Mode State
   const [isDragging, setIsDragging] = useState(false);
@@ -83,7 +103,7 @@ export default function TimeGrid({
           }
         }
         setResolvedTimeInfo(validData);
-        const max = validData.reduce((acc, cur) => Math.max(acc, cur.count), 1);
+        const max = validData.reduce((acc, cur) => Math.max(acc, cur.count), viewMaxCount > 0 ? viewMaxCount : 1);
         setMaxCount(max);
       } catch (error) {
         console.error("Error resolving timeInfo:", error);
@@ -93,7 +113,7 @@ export default function TimeGrid({
       }
     };
     resolveTimeInfo();
-  }, [timeInfo, readOnly]);
+  }, [timeInfo, readOnly, viewMaxCount]);
 
   // Background timeInfo resolution (input mode)
   useEffect(() => {
@@ -265,8 +285,14 @@ export default function TimeGrid({
   useEffect(() => {
     const groupedWeeks = groupDatesByWeek(dates);
     setWeeks(groupedWeeks);
-    setCurrentWeekIndex(0);
+    setInnerWeekIndex(0);
   }, [dates]);
+
+  // 밖에서 정한 주가 없거나 이 표에 없는 주면 첫 주로 맞추고 알린다(두 화면이 같은 주를 보게).
+  useEffect(() => {
+    if (!isWeekControlled || weeks.length === 0) return;
+    if (!weeks.some((week) => week[0] === weekKey)) onWeekChange(weeks[0][0]);
+  }, [isWeekControlled, weeks, weekKey, onWeekChange]);
 
   const currentWeek = weeks[currentWeekIndex] || [];
   const generateTimeRange = (start, end) => {
@@ -315,9 +341,11 @@ export default function TimeGrid({
 
   const handleSelectRow = (time) => {
     if (readOnly) return;
+    // 막힌 칸은 고르지 않는다(끌어 칠하기는 원래 막힌 칸을 못 누른다. 줄·열 한꺼번에 고르기만 섞여 들어갔다, 2026-09-30).
     const cellsInRow = currentWeek
       .filter((date) => dates.includes(date))
-      .map((date) => `${date}-${time}`);
+      .map((date) => `${date}-${time}`)
+      .filter((cell) => !banedCells.includes(cell));
     const areAllSelected = cellsInRow.every((cell) => selectedCells.includes(cell));
     setSelectedCells((prev) => {
       const otherCells = prev.filter((cell) => !cellsInRow.includes(cell));
@@ -327,7 +355,7 @@ export default function TimeGrid({
   const handleSelectColumn = (date) => {
     if (readOnly) return;
     if (!dates.includes(date)) return;
-    const cellsInColumn = timeRange.map((time) => `${date}-${time}`);
+    const cellsInColumn = timeRange.map((time) => `${date}-${time}`).filter((cell) => !banedCells.includes(cell));
     const areAllSelected = cellsInColumn.every((cell) => selectedCells.includes(cell));
     setSelectedCells((prev) => {
       const otherCells = prev.filter((cell) => !cellsInColumn.includes(cell));
@@ -439,7 +467,7 @@ export default function TimeGrid({
 
                 const isSelected = !readOnly && selectedCells.includes(cellKey);
 
-                const isGolden = !!(readOnly && viewInfo && viewInfo.count === maxCount && maxCount > 0);
+                const isGolden = !!(showGolden && readOnly && viewInfo && viewInfo.count === maxCount && maxCount > 0);
 
                 const isInRow = !!(readOnly && selectedTime && time === selectedTime &&
                   currentWeek.indexOf(date) <= currentWeek.indexOf(selectedDate));
