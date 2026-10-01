@@ -215,6 +215,7 @@ export default function GroupTimeGrid({
         stickyHeaderTop={stickyHeaderTop}
         weekKey={weekKey}
         onWeekChange={onWeekChange}
+        weekendColors
       />
 
       {selectedCell && createPortal(

@@ -208,6 +208,7 @@ export default function PersonalSchedule({
                          stickyHeaderTop={stickyHeaderTop}
                          weekKey={weekKey}
                          onWeekChange={onWeekChange}
+                         weekendColors
                     />
                     <SaveButton
                          onClick={handleSave}

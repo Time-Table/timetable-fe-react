@@ -2,6 +2,7 @@
 /* eslint-disable testing-library/no-node-access */
 import { fireEvent, render, screen } from "@testing-library/react";
 import TimeGrid from "./TimeGrid";
+import theme from "../theme";
 
 jest.mock("react-dom/test-utils", () => ({
   ...jest.requireActual("react-dom/test-utils"), act: require("react").act,
@@ -125,4 +126,25 @@ test("showGolden이 거짓이면 가장 많은 인원 칸에도 반짝임을 그
   render(<TimeGrid dates={["2026-09-28"]} startHour="09:00" endHour="10:00" readOnly timeInfo={info} showGolden={false} />);
   await screen.findByText("09:00");
   expect(layersOf()).toBe(1);
+});
+
+// 2026-10-03은 토요일, 10-04는 일요일이다.
+test("weekendColors를 주면 후보 날의 요일 글자가 토요일 파랑, 일요일 빨강이다(랜딩 후보 날짜와 같은 색)", () => {
+  renderGrid({ dates: ["2026-10-02", "2026-10-03", "2026-10-04"], weekendColors: true });
+
+  expect(screen.getByText("토")).toHaveStyle({ color: theme.color.weekdaySat });
+  expect(screen.getByText("일")).toHaveStyle({ color: theme.color.primaryText });
+  expect(screen.getByText("금")).toHaveStyle({ color: theme.text.gamma[500] });
+});
+
+test("후보가 아닌 날이나 weekendColors가 없는 시간표는 요일 글자를 칠하지 않는다", () => {
+  // 후보는 9월 28·29일뿐이라 같은 주의 토·일은 막힌 날이다.
+  const { unmount } = renderGrid({ weekendColors: true });
+  expect(screen.getByText("토")).toHaveStyle({ color: theme.text.gamma[500] });
+  expect(screen.getByText("일")).toHaveStyle({ color: theme.text.gamma[500] });
+  unmount();
+
+  renderGrid({ dates: ["2026-10-03", "2026-10-04"] });
+  expect(screen.getByText("토")).toHaveStyle({ color: theme.text.gamma[500] });
+  expect(screen.getByText("일")).toHaveStyle({ color: theme.text.gamma[500] });
 });

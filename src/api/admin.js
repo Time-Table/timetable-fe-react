@@ -85,3 +85,32 @@ export const updateInquiryStatus = (id, status) =>
 
 export const deleteInquiry = (id) =>
   writeInquiry(() => axios.delete(`/api/admin/inquiries/${encodeURIComponent(id)}`));
+
+/**
+ * 랜딩 A/B 1회차 결과(2026-09-29, 하네스 specs/landing-ab-manager.md). device: all|desktop|mobile.
+ * 실패와 BE 미배포(404)를 구분한다.
+ */
+export const getLandingAb = async (device = "all") => {
+  try {
+    const res = await axios.get("/api/admin/experiments/landing-ab", { params: { device } });
+    return res?.data || { error: "failed" };
+  } catch (error) {
+    if (error.response?.status === 404) return { error: "notDeployed" };
+    console.error("/api/admin/experiments/landing-ab error: ", error.response);
+    return { error: "failed" };
+  }
+};
+
+/** 랜딩 A/B 중단. 한 번만 된다. 이미 중단했으면 { error: "conflict", stoppedAt }. */
+export const stopLandingAb = async () => {
+  try {
+    const res = await axios.post("/api/admin/experiments/landing-ab/stop");
+    return res?.success ? { data: res.data } : { error: "failed" };
+  } catch (error) {
+    const { status, data } = error.response || {};
+    if (status === 409) return { error: "conflict", stoppedAt: data?.stoppedAt };
+    if (status === 404) return { error: "notDeployed" };
+    console.error("/api/admin/experiments/landing-ab/stop error: ", error.response);
+    return { error: "failed" };
+  }
+};
