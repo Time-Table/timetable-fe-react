@@ -14,6 +14,7 @@ import {
   pickLabel,
 } from "../../../utils/tableSession";
 import { setPageHelp } from "../../../utils/pageHelp";
+import { joinFailReason, joinTypeOf, saveFailReason } from "../../../utils/failReason";
 import AdSense from "../../../component/AdSense";
 import Loader from "../components/Loading";
 import BIcon from "./BIcon";
@@ -23,6 +24,7 @@ import { JoinBody, LeaveBody, MoreBody, GoldBody, HelpBody, ChatBody, ConfirmBod
 import { BPage } from "./TableB.styles";
 import { fireConfetti } from "./confetti";
 import * as M from "./bModel";
+import { removeStorage, writeStorage } from "../../../utils/storage";
 
 /**
  * 새 화면(표 화면 B). 확정 시안(하네스 output/table-ab-sian/full, 2026-10-01 사람 확정)을 옮겼다.
@@ -69,7 +71,11 @@ export default function TableB({
   onReload,
   onRetry,
   isAdReady,
+  onRendered,
 }) {
+  // 표 화면 A/B 2회차: 새 화면 내용이 처음 그려졌음을 알린다(TimetablePage가 이때 ui_view를 남긴다).
+  // 자료를 받기 전 로딩·오류 화면은 알리지 않는다. booted는 한 번 켜지면 꺼지지 않으므로 한 번만 알린다.
+  const renderedRef = useRef(onRendered);
   const [mode, setMode] = useState("view");
   const savedRef = useRef(new Set());
   const selectedRef = useRef(new Set());
@@ -124,6 +130,9 @@ export default function TableB({
   useEffect(() => {
     if (scheduleStatus === "ready") setBooted(true);
   }, [scheduleStatus]);
+  useEffect(() => {
+    if (booted) renderedRef.current?.();
+  }, [booted]);
 
   // 보던 주가 공유 상태에 없으면(처음 여는 표) 1위가 있는 주로 정하고 남긴다. 기존 화면으로 바꿔도 같은 주다.
   useEffect(() => {
@@ -236,7 +245,7 @@ export default function TableB({
       if (!name || !list.some((u) => u.name === name)) {
         // 서버에서 지워진 이름이면 로그아웃하고 그 이름의 공유 상태도 지운다(같은 이름으로 새로 들어온 사람에게 이어지지 않게).
         if (name) {
-          localStorage.removeItem("name");
+          removeStorage("name");
           onMeChange("");
           clearTableState(tableId);
         }
@@ -347,6 +356,7 @@ export default function TableB({
     setSaving(false);
     // 서버가 success: true를 줄 때만 저장된 것으로 본다. 아니면 칸과 입력 모드(공유 상태의 저장 안 한 칸)를 남긴다.
     if (error || result?.success !== true) {
+      trackEvent(EVENTS.SAVE_FAIL, tableId, undefined, { reason: saveFailReason(error, result) });
       showToast(failText(error, result, "저장하지 못했어요. 잠시 뒤 다시 해 주세요."), { pop: true });
       return;
     }
@@ -390,19 +400,24 @@ export default function TableB({
   const submitJoin = async (typed, password) => {
     const name = M.resolveName(typed, names);
     const invalid = M.validateJoin(name.trim() ? name : "", password);
-    if (invalid) return invalid;
+    if (invalid) {
+      trackEvent(EVENTS.JOIN_FAIL, tableId, undefined, { reason: "invalid_input" });
+      return invalid;
+    }
     trackEvent(EVENTS.JOIN_SUBMIT, tableId);
     const res = await joinUser(tableId, name, password);
     if (!res || res.success === false || ![200, 201].includes(res.code)) {
+      trackEvent(EVENTS.JOIN_FAIL, tableId, undefined, { reason: joinFailReason(res) });
       if (res?.code === 401) return "비밀번호가 달라요. 처음 정한 비밀번호를 넣어 주세요.";
+      if (res?.status === 429) return res.message || "요청이 많아요. 잠시 뒤 다시 해 주세요.";
       return res ? res.message || "참여하지 못했어요. 잠시 뒤 다시 해 주세요." : "인터넷 연결을 확인하고 다시 해 주세요.";
     }
-    trackEvent(EVENTS.JOIN_SUCCESS, tableId);
+    trackEvent(EVENTS.JOIN_SUCCESS, tableId, undefined, { joinType: joinTypeOf(res) });
     // 서버가 돌려준 이름을 쓴다(기존 화면 JoinForm과 같다).
     const saved = typeof res.data?.name === "string" ? res.data.name : name;
     const times = Array.isArray(res.data?.availableTimes) ? res.data.availableTimes : [];
-    localStorage.setItem("tableId", tableId);
-    localStorage.setItem("name", saved);
+    writeStorage("tableId", tableId);
+    writeStorage("name", saved);
     onMeChange(saved);
     // 다시 불러오기가 실패해도 참여는 된 것이다. 목록에 먼저 넣어 두어 입력 화면이 로그아웃으로 바뀌지 않게 한다.
     const add = (list) => (list.some((u) => u.name === saved) ? list : [...list, { name: saved, availableTimes: times }]);
@@ -421,7 +436,7 @@ export default function TableB({
 
   const logout = () => {
     trackClarityEvent(CLARITY_EVENTS.B_LOGOUT);
-    localStorage.removeItem("name");
+    removeStorage("name");
     onMeChange("");
     // 앞사람의 저장 안 한 선택이 다음 사람에게 이어지지 않게 공유 상태를 지운다.
     clearTableState(tableId);
@@ -438,7 +453,7 @@ export default function TableB({
       return res ? res.message || "지우지 못했어요. 잠시 뒤 다시 해 주세요." : "인터넷 연결을 확인하고 다시 해 주세요.";
     }
     const gone = me;
-    localStorage.removeItem("name");
+    removeStorage("name");
     onMeChange("");
     clearTableState(tableId);
     setUsers((list) => list.filter((u) => u.name !== gone));

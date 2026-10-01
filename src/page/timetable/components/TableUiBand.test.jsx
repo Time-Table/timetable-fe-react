@@ -1,46 +1,27 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import TableUiBand from "./TableUiBand";
 
-jest.mock("react-dom/test-utils", () => ({
-  ...jest.requireActual("react-dom/test-utils"), act: require("react").act,
-}));
-
+// 표 화면 A/B 2회차(2026-10-01, 하네스 specs/table-ab-2.md): 두 화면 같은 글·같은 모양. "새"·"기존"이라는 말은 쓰지 않는다.
+beforeEach(() => {
+  jest.useFakeTimers();
+});
 afterEach(() => {
   jest.useRealTimers();
 });
 
-test("기존 화면(A)에서는 새 화면 써 보기를 권하고, 누르면 B로 바꾸라고 알린다", () => {
-  jest.useFakeTimers();
+test("띠는 어느 화면에서나 같은 글과 단추를 보이고, 누르면 바꾸라고 알린 뒤 2.5초 알림을 띄운다", () => {
   const onSwitch = jest.fn();
-  render(<TableUiBand version="A" onSwitch={onSwitch} />);
-
-  expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("새 화면을 먼저 써 볼 수 있어요");
-  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
-
-  expect(onSwitch).toHaveBeenCalledWith("B");
+  render(<TableUiBand onSwitch={onSwitch} />);
+  const band = screen.getByRole("region", { name: "화면 바꾸기" });
+  expect(band).toHaveTextContent("다른 화면으로 볼 수 있어요");
+  expect(band).not.toHaveTextContent(/새 화면|기존 화면/);
+  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  expect(onSwitch).toHaveBeenCalledTimes(1);
   const notice = screen.getByRole("status");
-  expect(notice).toHaveTextContent("새 화면으로 바꿨어요. 언제든 기존 화면으로 돌아갈 수 있어요.");
-  expect(notice).toHaveStyle({ opacity: "1" });
-
-  // 2.5초 뒤 흐려진다. 글은 남아 흐려지는 동안 상자가 줄지 않는다.
-  act(() => jest.advanceTimersByTime(2500));
-  expect(notice).toHaveStyle({ opacity: "0" });
-  expect(notice).toHaveTextContent("새 화면으로 바꿨어요.");
-});
-
-test("새 화면(B)에서는 기존 화면으로 돌아가는 버튼을 준다", () => {
-  const onSwitch = jest.fn();
-  render(<TableUiBand version="B" onSwitch={onSwitch} />);
-
-  expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("새 화면을 쓰는 중이에요");
-  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
-  expect(onSwitch).toHaveBeenCalledWith("A");
-  expect(screen.getByRole("status")).toHaveTextContent("기존 화면으로 바꿨어요.");
-});
-
-test("알림 영역은 처음부터 있어 화면 낭독기가 바뀐 글을 읽는다", () => {
-  render(<TableUiBand version="A" onSwitch={jest.fn()} />);
-  const notice = screen.getByRole("status", { hidden: true });
-  expect(notice).toHaveAttribute("aria-live", "polite");
-  expect(notice).toBeEmptyDOMElement();
+  expect(notice).toHaveTextContent("화면을 바꿨어요. 언제든 다시 바꿀 수 있어요.");
+  act(() => {
+    jest.advanceTimersByTime(2500);
+  });
+  // 글은 남겨 두고 흐리게만 한다(상자가 줄지 않게).
+  expect(notice).toHaveTextContent("화면을 바꿨어요.");
 });

@@ -139,7 +139,7 @@ export default function GroupTimeGrid({
       </TitleFrame>
 
       <NoteHeader>
-        <NoteText>{pickText ? `${pickText} 님의` : "전체"} 시간표</NoteText>
+        <NoteText data-clarity-mask={pickText ? "true" : undefined}>{pickText ? `${pickText} 님의` : "전체"} 시간표</NoteText>
         <ButtonBox
           className={isRotating ? "rotating" : ""}
           aria-label="시간표 새로고침"
@@ -169,7 +169,7 @@ export default function GroupTimeGrid({
 
       <DropdownContainer>
         <DropdownButton onClick={() => setDropdownOpen(!isDropdownOpen)}>
-          <span>{pickText || "전체 참여자"}</span>
+          <span data-clarity-mask={pickText ? "true" : undefined}>{pickText || "전체 참여자"}</span>
           <IoPeople size={16} />
         </DropdownButton>
         {isDropdownOpen && (
@@ -186,6 +186,7 @@ export default function GroupTimeGrid({
             {usersSchedule.map((user, index) => (
               <DropdownItem
                 key={index}
+                data-clarity-mask="true"
                 $isSelected={picks.includes(user.name)}
                 onClick={() => {
                   if (selectedName !== user.name) trackClarityEvent(CLARITY_EVENTS.TIMETABLE_MEMBER_FILTER);
@@ -248,7 +249,7 @@ export default function GroupTimeGrid({
                 </CellInfoHeader>
                 <CellInfoSection>
                   <CellInfoLabel $type="can">참여 가능 {canAttend.length}명</CellInfoLabel>
-                  <NameChips>
+                  <NameChips data-clarity-mask="true">
                     {canAttend.length > 0
                       ? canAttend.map((name) => <NameChip key={name} $type="can">{name}</NameChip>)
                       : <NoName>없음</NoName>}
@@ -256,7 +257,7 @@ export default function GroupTimeGrid({
                 </CellInfoSection>
                 <CellInfoSection>
                   <CellInfoLabel $type="cannot">참여 불가 {cannotAttend.length}명</CellInfoLabel>
-                  <NameChips>
+                  <NameChips data-clarity-mask="true">
                     {cannotAttend.length > 0
                       ? cannotAttend.map((name) => <NameChip key={name} $type="cannot">{name}</NameChip>)
                       : <NoName>없음</NoName>}

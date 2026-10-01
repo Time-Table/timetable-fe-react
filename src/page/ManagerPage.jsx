@@ -64,7 +64,7 @@ import StatTile, { formatStat } from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import InquiryFeed from "./manager/InquiryFeed";
-import ExperimentPanel from "./manager/ExperimentPanel";
+import ExperimentsTab from "./manager/ExperimentsTab";
 import Explain from "./manager/Explain";
 import Pagination, { usePaged, Anchor } from "./manager/Pagination";
 import { joinBlogStats, sortBlogRows } from "./manager/blogStats";
@@ -216,7 +216,12 @@ const ManagerPage = () => {
 
     const res = await adminLogin(password);
     if (res?.success) {
-      grantAdmin(res.data.token);
+      // 토큰을 저장하지 못하면(사이트 저장소 차단) 이후 요청에 인증이 실리지 않으므로 인증 완료로 넘어가지 않는다.
+      if (!grantAdmin(res.data.token)) {
+        await Swal.fire("인증 정보를 저장하지 못했습니다", "이 브라우저의 사이트 저장소(쿠키·사이트 데이터)를 허용한 뒤 다시 시도해 주세요.", "error");
+        navigate("/");
+        return;
+      }
       setAuthed(true);
       Toast.fire({
         icon: "success",
@@ -539,7 +544,7 @@ const ManagerPage = () => {
               {activeTab === "tables" && `전체 ${tables.length.toLocaleString()}개`}
               {activeTab === "chats" && `전체 메시지 ${chatFeed?.total?.toLocaleString() || 0}건`}
               {activeTab === "inquiries" && "문의하기 양식으로 들어온 문의 · 10년 보관"}
-              {activeTab === "experiments" && "랜딩 v1·v2 비교 · 브라우저 수 · 관리자 제외"}
+              {activeTab === "experiments" && "랜딩·표 화면 비교 · 브라우저 수 · 관리자 제외"}
             </SectionCaption>
           </div>
 
@@ -1273,7 +1278,7 @@ const ManagerPage = () => {
               {activeTab === "inquiries" && <InquiryFeed onOpenTable={openDetail} />}
 
               {/* ------------------------------------------------ A/B 테스트 */}
-              {activeTab === "experiments" && <ExperimentPanel />}
+              {activeTab === "experiments" && <ExperimentsTab />}
             </>
           )}
         </Content>

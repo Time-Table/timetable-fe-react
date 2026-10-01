@@ -1,10 +1,10 @@
-import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackClarityEvent, trackBlogView, setActiveTableUi } from "./analytics";
+import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackEventKeepalive, trackClarityEvent, trackBlogView, setActiveTableUi } from "./analytics";
 import { grantAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
-import { sendEvent } from "../api/event";
+import { sendEvent, sendEventKeepalive } from "../api/event";
 import { sendBlogView } from "../api/blogView";
 
-jest.mock("../api/event", () => ({ sendEvent: jest.fn() }));
+jest.mock("../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
 jest.mock("../api/blogView", () => ({ sendBlogView: jest.fn() }));
 
 const setReferrer = (value) =>
@@ -151,7 +151,7 @@ describe("이벤트 이름", () => {
     expect(new Set(values).size).toBe(values.length);
   });
 
-  test("백엔드 정의와 같은 이벤트 이름 12개를 갖는다", () => {
+  test("백엔드 정의와 같은 이벤트 이름 19개를 갖는다", () => {
     expect(Object.values(EVENTS).sort()).toEqual(
       [
         "create_cta_click",
@@ -166,6 +166,11 @@ describe("이벤트 이름", () => {
         "schedule_save",
         "table_view",
         "ui_switch",
+        "ui_view",
+        "ab_state_fail",
+        "join_fail",
+        "save_fail",
+        "ui_load_fail",
       ].sort(),
     );
   });
@@ -357,5 +362,61 @@ describe("Clarity 전용 보조 이벤트", () => {
     expect(() => trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_COPY)).not.toThrow();
     delete window.clarity;
     expect(() => trackClarityEvent(CLARITY_EVENTS.INVITE_SHARE_COPY)).not.toThrow();
+  });
+});
+
+describe("표 화면 A/B 2회차 기록", () => {
+  beforeEach(() => sessionStorage.clear());
+  afterEach(() => setActiveTableUi(null));
+
+  test("정해진 필드와 탭 ID·순번만 보내고 자유 문자열(source)은 넣지 않는다", () => {
+    window.history.replaceState({}, "", "/?utm_source=개인정보가-들어갈-수-있는-값");
+    setActiveTableUi("table-1", "B");
+    trackEvent(EVENTS.UI_VIEW, "table-1", undefined, { viewId: "view-1", name: "이름은 안 보냄" });
+    trackEvent(EVENTS.UI_SWITCH, "table-1", undefined, { viewId: "view-1", dwellMs: 1234 });
+    const [view, switched] = sendEvent.mock.calls.map(([payload]) => payload);
+    expect(view).toEqual({
+      name: "ui_view", visitorId: getVisitorId(), tableId: "table-1", device: expect.any(String),
+      uiVersion: "B", viewId: "view-1", tabId: expect.any(String), seq: 1,
+    });
+    expect(switched.tabId).toBe(view.tabId);
+    expect(switched.seq).toBe(2);
+    expect(switched).not.toHaveProperty("dwellMs");
+  });
+
+  test("실험이 꺼져 화면이 없으면 2회차 기록을 보내지 않는다(상태를 못 받은 기록만 예외)", () => {
+    trackEvent(EVENTS.UI_VIEW, "table-1", undefined, { viewId: "v" });
+    trackEvent(EVENTS.JOIN_FAIL, "table-1", undefined, { reason: "network" });
+    trackEventKeepalive(EVENTS.UI_LOAD_FAIL, "table-1", { reason: "chunk_retry" });
+    expect(sendEvent).not.toHaveBeenCalled();
+    expect(sendEventKeepalive).not.toHaveBeenCalled();
+    trackEvent(EVENTS.AB_STATE_FAIL, "table-1", undefined, { reason: "timeout" });
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ name: "ab_state_fail", reason: "timeout" }));
+    expect(sendEvent.mock.calls[0][0]).not.toHaveProperty("uiVersion");
+  });
+
+  test("참여 성공에는 새 참여/다시 들어옴만 붙이고 원래 필드는 그대로다", () => {
+    setActiveTableUi("table-1", "A");
+    trackEvent(EVENTS.JOIN_SUCCESS, "table-1", undefined, { joinType: "new" });
+    trackEvent(EVENTS.JOIN_SUCCESS, "table-1", undefined, { joinType: "다른 값" });
+    const [first, second] = sendEvent.mock.calls.map(([payload]) => payload);
+    expect(first).toEqual(expect.objectContaining({ joinType: "new", uiVersion: "A", source: expect.any(String) }));
+    expect(second).not.toHaveProperty("joinType");
+    expect(first).not.toHaveProperty("tabId");
+  });
+
+  test("페이지가 사라지는 중의 기록은 keepalive로 보내고 관리자는 보내지 않는다", () => {
+    setActiveTableUi("table-1", "B");
+    trackEventKeepalive(EVENTS.UI_LOAD_FAIL, "table-1", { reason: "chunk_retry", uiVersion: "B" });
+    expect(sendEventKeepalive).toHaveBeenCalledWith(expect.objectContaining({ name: "ui_load_fail", uiVersion: "B", reason: "chunk_retry" }));
+    grantAdmin("test-token");
+    trackEventKeepalive(EVENTS.UI_LOAD_FAIL, "table-1", { reason: "chunk_retry", uiVersion: "B" });
+    expect(sendEventKeepalive).toHaveBeenCalledTimes(1);
+  });
+
+  test("새 화면 불러오기 실패는 그때 화면 값을 직접 받는다", () => {
+    setActiveTableUi("table-1", "A");
+    trackEvent(EVENTS.UI_LOAD_FAIL, "table-1", undefined, { reason: "chunk_failed", uiVersion: "B" });
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ name: "ui_load_fail", uiVersion: "B", reason: "chunk_failed" }));
   });
 });

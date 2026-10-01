@@ -6,14 +6,13 @@ import { getAllSchedule, joinUser } from "../../../api/user";
 import { addSchedule } from "../../../api/schedule";
 import { getChating } from "../../../api/chat";
 import { sendEvent } from "../../../api/event";
-import { TABLE_AB } from "../../../utils/tableExperiment";
+import { getTableAbState } from "../../../api/experiment";
 import { TABLE_STATE_PREFIX, readTableState } from "../../../utils/tableSession";
 import { fireConfetti } from "./confetti";
 
 // 표 화면 엣지 케이스(2026-10-01, B를 실제 앱에 넣은 뒤 점검). 합성 자료와 가짜 API만 쓴다. 네트워크·DB 접근 없음.
 const TABLE_B = "00000000-0000-4000-8000-000000000000"; // 명세 확인값: 칸 19 → B
 const KEY = TABLE_STATE_PREFIX + TABLE_B;
-const START = "2026-09-01T00:00:00+09:00";
 const AFTER = "2026-09-10T00:00:00.000Z";
 
 let mockTableId = TABLE_B;
@@ -22,7 +21,7 @@ jest.mock("../../../api/table", () => ({ getTableInfo: jest.fn() }));
 jest.mock("../../../api/user", () => ({ joinUser: jest.fn(), getAllSchedule: jest.fn(), getUserInfo: jest.fn(), deleteUser: jest.fn() }));
 jest.mock("../../../api/schedule", () => ({ addSchedule: jest.fn(), getSchedule: jest.fn() }));
 jest.mock("../../../api/chat", () => ({ getChating: jest.fn(), postChat: jest.fn() }));
-jest.mock("../../../api/event", () => ({ sendEvent: jest.fn() }));
+jest.mock("../../../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
 jest.mock("../../../api/blogView", () => ({ sendBlogView: jest.fn() }));
 jest.mock("../../../api/visit", () => ({ trackVisit: jest.fn() }));
 jest.mock("../../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
@@ -47,7 +46,6 @@ jest.mock("framer-motion", () => {
 });
 
 const baseTable = { tableId: TABLE_B, title: "모임", dates: ["2026-09-28"], startHour: "10:00", endHour: "12:00", banedCells: [], createdAt: AFTER };
-const originalStart = TABLE_AB.startAt;
 const clarityEvents = () => window.clarity.mock.calls.filter(([kind]) => kind === "event").map(([, name]) => name);
 
 const renderB = async ({ table = baseTable, users = [], me = null, usersResponse } = {}) => {
@@ -74,6 +72,8 @@ const ready = async (title = "모임") => {
   });
 };
 
+// 표 화면 A/B 2회차 확인값: table-ab-2 해시 칸 14 → B.
+const B_VISITOR = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => {
   jest.resetAllMocks();
   localStorage.clear();
@@ -83,11 +83,12 @@ beforeEach(() => {
   sendEvent.mockResolvedValue({ success: true });
   getChating.mockResolvedValue({ status: 201 });
   fireConfetti.mockReturnValue(false);
-  TABLE_AB.startAt = START;
+  // 표 화면 A/B 2회차: 실험 진행 중, 이 브라우저는 B 배정(visitorId 해시 칸 14).
+  getTableAbState.mockResolvedValue({ ok: true, running: true, state: "running" });
+  localStorage.setItem("visitor_id", B_VISITOR);
 });
 
 afterEach(() => {
-  TABLE_AB.startAt = originalStart;
   delete window.clarity;
   jest.useRealTimers();
 });
@@ -210,6 +211,28 @@ test("참여 요청이 막히면(429·연결 끊김) 창에 알리고 참여 성
   const sent = sendEvent.mock.calls.map(([p]) => p.name);
   expect(sent.filter((n) => n === "join_submit")).toHaveLength(2);
   expect(sent).not.toContain("join_success");
+  // 표 화면 A/B 2회차: 실패 이유를 화면(B)과 함께 남긴다.
+  const fails = sendEvent.mock.calls.map(([p]) => p).filter((p) => p.name === "join_fail");
+  expect(fails.map((p) => [p.reason, p.uiVersion])).toEqual([["network", "B"], ["rate_limited", "B"]]);
+});
+
+test("참여 입력 형식 오류·비밀번호 실패도 이유를 남기고, 성공은 새 참여/다시 들어옴을 붙인다", async () => {
+  await renderB({ users: [{ name: "민준", availableTimes: [] }] });
+  await ready();
+  fireEvent.click(screen.getByRole("button", { name: "내 시간 넣기" }));
+  fireEvent.click(screen.getByRole("button", { name: "시간 고르기" }));
+  expect(await screen.findByText("이름과 비밀번호를 모두 넣어 주세요.")).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox", { name: "이름" }), { target: { value: "민준" } });
+  fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "1" } });
+  joinUser.mockResolvedValue({ success: false, code: 401 });
+  fireEvent.click(screen.getByRole("button", { name: "시간 고르기" }));
+  expect(await screen.findByText("비밀번호가 달라요. 처음 정한 비밀번호를 넣어 주세요.")).toBeInTheDocument();
+  joinUser.mockResolvedValue({ success: true, code: 200, data: { name: "민준", availableTimes: [] } });
+  fireEvent.click(screen.getByRole("button", { name: "시간 고르기" }));
+  await waitFor(() => expect(sendEvent.mock.calls.some(([p]) => p.name === "join_success")).toBe(true));
+  const events = sendEvent.mock.calls.map(([p]) => p);
+  expect(events.filter((p) => p.name === "join_fail").map((p) => p.reason)).toEqual(["invalid_input", "wrong_password"]);
+  expect(events.find((p) => p.name === "join_success")).toEqual(expect.objectContaining({ joinType: "returning", uiVersion: "B" }));
 });
 
 test("대화: 빈 글·공백은 못 보내고, 400자부터 남은 양, 500자에서 알린다", async () => {
@@ -286,9 +309,9 @@ test("B에서 고른 사람·보던 주는 기존 화면으로 갔다 와도 그
   await ready();
   fireEvent.click(screen.getByRole("button", { name: "서연. 고르기" }));
   fireEvent.click(screen.getByRole("button", { name: "다음 주" }));
-  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
+  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
   expect(await screen.findByRole("button", { name: /골든타임 순위/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
   expect(await screen.findByRole("button", { name: "서연. 빼기" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByText(/^2 \/ 2주/)).toBeInTheDocument();
 });

@@ -127,6 +127,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                                    usersSchedule.map((user, index) => (
                                         <MemberChip
                                              key={index}
+                                             data-clarity-mask="true"
                                              onClick={() => handleUserClick(user.name)}
                                              $isSelected={picks.includes(user.name)}
                                         >
@@ -149,7 +150,7 @@ export default function DashboardPanel({ tableId, name, setRightScreen, setSelec
                          </SectionHeader>
                          <ChatLog ref={chatEndRef}>
                               {chatLog.map((chat, idx) => (
-                                   <ChatBubble key={idx} $isMine={chat.name === name}>
+                                   <ChatBubble key={idx} $isMine={chat.name === name} data-clarity-mask="true">
                                         <ChatName>{chat.name}</ChatName>
                                         <ChatMessage>{chat.message}</ChatMessage>
                                    </ChatBubble>

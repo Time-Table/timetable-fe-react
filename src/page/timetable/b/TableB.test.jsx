@@ -6,7 +6,7 @@ import { getAllSchedule, joinUser, deleteUser } from "../../../api/user";
 import { addSchedule } from "../../../api/schedule";
 import { getChating, postChat } from "../../../api/chat";
 import { sendEvent } from "../../../api/event";
-import { TABLE_AB } from "../../../utils/tableExperiment";
+import { getTableAbState } from "../../../api/experiment";
 import { TABLE_STATE_PREFIX, readTableState } from "../../../utils/tableSession";
 import { CHAT_SEEN_KEY } from "../../../utils/storage";
 import { getPageHelp } from "../../../utils/pageHelp";
@@ -17,7 +17,6 @@ import { fireConfetti } from "./confetti";
 // 표 ID는 명세 확인값: 칸 19 → B.
 const TABLE_B = "00000000-0000-4000-8000-000000000000";
 const KEY = TABLE_STATE_PREFIX + TABLE_B;
-const START = "2026-09-01T00:00:00+09:00";
 const AFTER = "2026-09-10T00:00:00.000Z";
 
 let mockTableId = TABLE_B;
@@ -26,7 +25,7 @@ jest.mock("../../../api/table", () => ({ getTableInfo: jest.fn() }));
 jest.mock("../../../api/user", () => ({ joinUser: jest.fn(), getAllSchedule: jest.fn(), getUserInfo: jest.fn(), deleteUser: jest.fn() }));
 jest.mock("../../../api/schedule", () => ({ addSchedule: jest.fn(), getSchedule: jest.fn() }));
 jest.mock("../../../api/chat", () => ({ getChating: jest.fn(), postChat: jest.fn() }));
-jest.mock("../../../api/event", () => ({ sendEvent: jest.fn() }));
+jest.mock("../../../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
 jest.mock("../../../api/blogView", () => ({ sendBlogView: jest.fn() }));
 jest.mock("../../../api/visit", () => ({ trackVisit: jest.fn() }));
 jest.mock("../../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
@@ -60,11 +59,12 @@ const TABLE = {
   banedCells: [],
   createdAt: AFTER,
 };
+// 표 화면 A/B 2회차 확인값: table-ab-2 해시 칸 14 → B.
+const B_VISITOR = "11111111-1111-4111-8111-111111111111";
 const USERS = [
   { name: "민준", availableTimes: ["2026-09-28-10:00", "2026-09-28-10:30"] },
   { name: "서연", availableTimes: ["2026-09-28-10:00", "2026-10-05-11:00"] },
 ];
-const originalStart = TABLE_AB.startAt;
 const sent = (name) => sendEvent.mock.calls.map(([payload]) => payload).filter((payload) => payload.name === name);
 const clarityEvents = () => window.clarity.mock.calls.filter(([kind]) => kind === "event").map(([, name]) => name);
 // 입력 격자 칸은 이름 없는 칠하기 면이라(요일·시간 글자가 단추) 칸 키로 찾는다.
@@ -106,11 +106,12 @@ beforeEach(() => {
   sendEvent.mockResolvedValue({ success: true });
   getChating.mockResolvedValue({ status: 201 });
   fireConfetti.mockReturnValue(false);
-  TABLE_AB.startAt = START;
+  // 표 화면 A/B 2회차: 실험 진행 중, 이 브라우저는 B 배정(visitorId 해시 칸 14).
+  getTableAbState.mockResolvedValue({ ok: true, running: true, state: "running" });
+  localStorage.setItem("visitor_id", B_VISITOR);
 });
 
 afterEach(() => {
-  TABLE_AB.startAt = originalStart;
   delete window.clarity;
   jest.restoreAllMocks();
 });
@@ -118,7 +119,7 @@ afterEach(() => {
 describe("보기", () => {
   test("B로 배정된 표는 새 화면을 그린다(기존 화면 부품은 없다)", async () => {
     await renderB();
-    expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("새 화면을 쓰는 중이에요");
+    expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("다른 화면으로 볼 수 있어요");
     expect(screen.getByRole("button", { name: /가장 많이 모이는 시간 9월 28일 \(월\) 10:00 ~ 10:30, 2명 중 2명/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "전체 2명 보기" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "내 시간 넣기" })).toBeInTheDocument();
@@ -362,7 +363,7 @@ describe("전환·더보기·대화", () => {
   test("입력 중 띠로 기존 화면으로 가면 기존 화면이 같은 이름으로 내 일정을 연다", async () => {
     await renderB({ me: "민준" });
     fireEvent.click(screen.getByRole("button", { name: /^내 시간 고치기/ }));
-    fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
+    fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
     expect(await screen.findByText(/님의 가능한 시간을 선택해주세요/)).toBeInTheDocument();
     expect(sent("ui_switch")).toEqual([expect.objectContaining({ uiVersion: "A" })]);
   });

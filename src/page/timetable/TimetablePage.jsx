@@ -14,9 +14,13 @@ import Loader from "./components/Loading";
 import NotFoundTable from "../NotFoundTable";
 import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
-import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi } from "../../utils/analytics";
-import { isTableAbOn, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
-import { clearTableScopedStorage } from "../../utils/storage";
+import {
+  trackEvent, trackEventKeepalive, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi, getActiveTableUi,
+} from "../../utils/analytics";
+import { experimentVisitorId, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
+import { getTableAbState } from "../../api/experiment";
+import useUiSegment from "./useUiSegment";
+import { clearTableScopedStorage, readStorage, writeStorage } from "../../utils/storage";
 import { readTableState, writeTableState, timeInfoOf, validCellsOf } from "../../utils/tableSession";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -30,7 +34,17 @@ import { lazyPage } from "../../utils/lazyPage";
 
 // 새 화면(B)은 B를 볼 때만 받는다(기존 화면만 보는 사람의 첫 로딩에 넣지 않는다). 조각을 못 받으면 한 번 새로고침하고,
 // 그래도 안 되면 앱의 불러오기 실패 안내가 뜬다(utils/lazyPage.js). 기존 화면으로 대신 그리면 B 배정 기록과 어긋난다.
-const TableB = lazyPage(() => import("./b/TableB"));
+// 표 화면 A/B 2회차: 조각을 못 받아 새로고침하기 직전(chunk_retry)과 끝내 못 받았을 때(chunk_failed)를 남긴다(실험 중일 때만).
+const reportBLoadFail = (reason) => {
+  const active = getActiveTableUi();
+  if (!active) return;
+  if (reason === "chunk_retry") trackEventKeepalive(EVENTS.UI_LOAD_FAIL, active.tableId, { reason, uiVersion: "B" });
+  else trackEvent(EVENTS.UI_LOAD_FAIL, active.tableId, undefined, { reason, uiVersion: "B" });
+};
+const TableB = lazyPage(() => import("./b/TableB"), {
+  onRetry: () => reportBLoadFail("chunk_retry"),
+  onFail: () => reportBLoadFail("chunk_failed"),
+});
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -128,7 +142,7 @@ const TOGGLE_TIPS = {
  */
 const screenFor = (tableId) => {
   const storedName =
-    localStorage.getItem("tableId") === tableId ? localStorage.getItem("name") : null;
+    readStorage("tableId") === tableId ? readStorage("name") : null;
   if (!storedName) return { screen: "JoinForm", toggle: null };
   const shared = readTableState(tableId);
   if (shared.name === storedName && !shared.editing) return { screen: "DashboardPanel", toggle: "인원" };
@@ -182,7 +196,7 @@ function TimetablePageView() {
   const [isRankingOpen, setIsRankingOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [hasClickedMembers, setHasClickedMembers] = useState(() => {
-    return localStorage.getItem("hasClickedMembers") === "true";
+    return readStorage("hasClickedMembers") === "true";
   });
 
   const trackedTableId = useRef(null);
@@ -191,12 +205,12 @@ function TimetablePageView() {
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [isTipsOpen, setIsTipsOpen] = useState(() => {
-    const saved = localStorage.getItem("isTipsOpen");
+    const saved = readStorage("isTipsOpen");
     return saved !== null ? JSON.parse(saved) : true;
   });
 
   useEffect(() => {
-    localStorage.setItem("isTipsOpen", JSON.stringify(isTipsOpen));
+    writeStorage("isTipsOpen", JSON.stringify(isTipsOpen));
   }, [isTipsOpen]);
 
   // 저장 후 테이블 구조 제외, 일정 데이터만 갱신.
@@ -315,29 +329,63 @@ function TimetablePageView() {
     ++scheduleRequestId.current;
   }, [tableId]);
 
-  // 테이블 A/B(specs/api-contract.md "테이블 A/B 1회차"). 화면은 표 정보(만든 시각)를 받은 뒤에 정한다.
-  // 꺼져 있으면 모두 A이고 띠도 기록도 없다. uiChoice는 이 화면에서 띠로 바꾼 값이며 다른 표면 쓰지 않는다.
+  // 표 화면 A/B 2회차(하네스 specs/table-ab-2.md). 켜짐 여부는 서버 상태(매니저 [시작]·[중단])다.
+  // 1.5초 안에 못 받으면 이번 화면은 꺼짐(모두 A, 띠 없음)으로 그리고 ab_state_fail만 남긴다. 받은 값은 이 화면 동안 쓴다.
+  // 배정은 브라우저(visitorId) 단위, 띠로 바꾼 화면은 이 브라우저의 모든 표에 쓴다. 저장소를 못 쓰는 브라우저는 실험에서 뺀다.
+  const [abState, setAbState] = useState(null);
+  const [visitorId] = useState(experimentVisitorId);
   const [uiChoice, setUiChoice] = useState(null);
-  const abTableId = isTableAbOn() && tableInfo?.tableId === tableId ? tableId : null;
-  let uiVersion = "A";
-  if (abTableId) {
-    uiVersion = uiChoice?.tableId === abTableId ? uiChoice.version : resolveTableUi(abTableId, tableInfo.createdAt);
-  }
+  const [bRendered, setBRendered] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(getTableAbState())
+      .then((res) => {
+        // 값이 없으면(예상 밖 응답) 실패 기록 없이 꺼짐으로 본다.
+        if (alive) setAbState(res || { ok: true, running: false, state: "off" });
+      })
+      .catch(() => {
+        if (alive) setAbState({ ok: false, running: false, reason: "error" });
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const stateFailSent = useRef(false);
+  useEffect(() => {
+    if (!abState || abState.ok || !visitorId || stateFailSent.current) return;
+    stateFailSent.current = true;
+    trackEvent(EVENTS.AB_STATE_FAIL, tableId, undefined, { reason: abState.reason });
+  }, [abState, visitorId, tableId]);
+
+  const abOn = Boolean(abState?.running && visitorId && isValidTableId === true && tableInfo?.tableId === tableId);
+  const uiVersion = abOn ? uiChoice || resolveTableUi({ running: true, visitorId }) : "A";
 
   useEffect(() => {
-    if (!abTableId) return undefined;
-    setActiveTableUi(abTableId, uiVersion);
+    if (!abOn) return undefined;
+    setActiveTableUi(tableId, uiVersion);
     tagTableUi(uiVersion);
     return () => setActiveTableUi(null);
-  }, [abTableId, uiVersion]);
+  }, [abOn, tableId, uiVersion]);
+
+  // 화면 기록(ui_view)은 그 화면의 내용이 보이는 상태에서 남긴다. 로딩·오류 화면만 본 것은 세지 않는다(Codex 2026-10-02).
+  // A는 참여자 자료가 지금 준비돼 있을 때(B에서 재조회가 실패한 채 A로 바꾸면 A는 오류 안내뿐이라 세지 않는다),
+  // B는 TableB가 자료를 받아 그렸다고 알린 뒤. 다시 불러오는 동안 잠깐 꺼졌다 켜지는 것은 useUiSegment가 다시 보내지 않는다.
+  useEffect(() => {
+    if (uiVersion !== "B" && bRendered) setBRendered(false);
+  }, [uiVersion, bRendered]);
+  const currentViewId = useUiSegment({
+    tableId,
+    uiVersion,
+    active: abOn && (uiVersion === "A" ? scheduleStatus === "ready" : bRendered),
+  });
 
   const handleSwitchUi = (next) => {
-    switchTableUi(abTableId, next);
-    setUiChoice({ tableId: abTableId, version: next });
+    switchTableUi(tableId, next, { viewId: currentViewId() });
+    setUiChoice(next);
     if (next === "A") {
       // 새 화면에서 참여·로그아웃했거나 입력 중이었으면 그대로 이어서 보인다(표 화면 A/B 공유 상태).
       const screen = screenFor(tableId);
-      setName(localStorage.getItem("name") || "");
+      setName(readStorage("name") || "");
       setRightScreen(screen.screen);
       setSelectedToggle(screen.toggle);
     }
@@ -359,13 +407,13 @@ function TimetablePageView() {
   }, [tableId]);
 
   useEffect(() => {
-    if (tableId !== localStorage.getItem("tableId")) {
+    if (tableId !== readStorage("tableId")) {
       // 관리자 인증과 방문자 ID는 테이블과 무관하므로 유지한다.
       clearTableScopedStorage();
-      localStorage.setItem("tableId", tableId);
+      writeStorage("tableId", tableId);
     }
     // 정리한 뒤에 읽는다. 전에는 정리 전에 읽어 다른 표에서 쓰던 이름이 이 표의 이름으로 남았다(2026-09-30).
-    setName(localStorage.getItem("name") || "");
+    setName(readStorage("name") || "");
     fetchAllData();
   }, [tableId, saveButtonState, fetchAllData]);
 
@@ -408,7 +456,7 @@ function TimetablePageView() {
   }, [picks, timeInfo]);
 
   const handleToggleClick = (screen, toggle) => {
-    const storedName = localStorage.getItem("name");
+    const storedName = readStorage("name");
 
     if (screen === "PersonalSchedule" && !storedName) {
       setRightScreen("JoinForm");
@@ -585,7 +633,7 @@ function TimetablePageView() {
         pulse: !!name && !hasClickedMembers && selectedToggle !== "인원",
         onClick: () => {
           if (!hasClickedMembers) {
-            localStorage.setItem("hasClickedMembers", "true");
+            writeStorage("hasClickedMembers", "true");
             setHasClickedMembers(true);
           }
           trackClarityEvent(CLARITY_EVENTS.MEMBERS_OPEN);
@@ -662,7 +710,8 @@ function TimetablePageView() {
     );
   }
 
-  if (isValidTableId === null) {
+  // 실험 상태를 받기 전에는 화면을 정하지 않는다(A를 그렸다 B로 바꾸며 깜빡이지 않게, 최대 1.5초).
+  if (isValidTableId === null || abState === null) {
     return (
       <LoaderLayout>
         <Loader />
@@ -676,7 +725,7 @@ function TimetablePageView() {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
       <>
-        <TableUiBand version={uiVersion} onSwitch={handleSwitchUi} />
+        <TableUiBand onSwitch={() => handleSwitchUi("A")} />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -704,6 +753,7 @@ function TimetablePageView() {
             onReload={reloadQuietly}
             onRetry={() => refreshScheduleData({ keepOnError: true })}
             isAdReady={isAdReady}
+            onRendered={() => setBRendered(true)}
           />
         </Suspense>
       </>
@@ -712,7 +762,7 @@ function TimetablePageView() {
 
   return isValidTableId ? (
     <>
-      {abTableId && <TableUiBand version={uiVersion} onSwitch={handleSwitchUi} />}
+      {abOn && <TableUiBand onSwitch={() => handleSwitchUi("B")} />}
       <PageWrapper>
         <Seo
           title={`${title || "테이블"}`}

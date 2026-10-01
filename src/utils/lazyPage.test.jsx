@@ -60,3 +60,21 @@ test("방금 새로고침했는데도 못 받으면 새로고침을 반복하지
   expect(await screen.findByText("다른 페이지")).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
+
+test("계측 알림: 새로고침 직전 onRetry, 끝내 못 받으면 onFail(표 화면 A/B 2회차 ui_load_fail)", async () => {
+  const onRetry = jest.fn();
+  const onFail = jest.fn();
+  const First = lazyPage(() => Promise.reject(new Error("ChunkLoadError")), { onRetry, onFail });
+  const { unmount } = render(mount(First));
+  await Promise.resolve();
+  await new Promise((done) => setTimeout(done, 0));
+  expect(onRetry).toHaveBeenCalledTimes(1);
+  expect(onFail).not.toHaveBeenCalled();
+  unmount();
+
+  const Again = lazyPage(() => Promise.reject(new Error("ChunkLoadError")), { onRetry, onFail: () => { onFail(); throw new Error("알림 오류는 무시"); } });
+  render(mount(Again));
+  expect(await screen.findByRole("alert")).toHaveTextContent("페이지를 불러오지 못했습니다");
+  expect(onFail).toHaveBeenCalledTimes(1);
+  expect(onRetry).toHaveBeenCalledTimes(1);
+});

@@ -213,7 +213,7 @@ export default function RankingList({
               </GaugeCaption>
 
               {isExpanded && (
-                <Members>
+                <Members data-clarity-mask="true">
                   {b.members.map((member, i) => (
                     <MemberChip
                       key={i}

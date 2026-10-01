@@ -10,8 +10,16 @@ const RELOAD_GUARD_MS = 10000;
  *
  * 새로 배포하면 예전 조각 파일(chunk)이 사라진다. 배포 전에 열어 둔 탭에서 이 화면으로 가면
  * 파일을 못 받는다. 그때는 한 번만 새로고침해 새 index.html과 새 조각을 받는다.
+ * onRetry(새로고침 직전)·onFail(끝내 실패)은 계측용 알림이다(표 화면 A/B 2회차 ui_load_fail). 알림 오류는 무시한다.
  */
-export function lazyPage(load) {
+export function lazyPage(load, { onRetry, onFail } = {}) {
+  const notify = (fn) => {
+    try {
+      fn?.();
+    } catch {
+      // 계측 오류가 화면을 막지 않게 한다.
+    }
+  };
   return lazy(() =>
     load().catch((error) => {
       let last = 0;
@@ -19,14 +27,20 @@ export function lazyPage(load) {
         last = Number(sessionStorage.getItem(RELOAD_KEY)) || 0;
       } catch {
         // 저장소를 못 쓰면 새로고침 여부를 기억할 수 없다. 아래에서 오류로 넘긴다.
+        notify(onFail);
         throw error;
       }
-      if (Date.now() - last < RELOAD_GUARD_MS) throw error;
+      if (Date.now() - last < RELOAD_GUARD_MS) {
+        notify(onFail);
+        throw error;
+      }
       try {
         sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
       } catch {
+        notify(onFail);
         throw error;
       }
+      notify(onRetry);
       window.location.reload();
       // 새로고침이 끝날 때까지 기다린다.
       return new Promise(() => {});

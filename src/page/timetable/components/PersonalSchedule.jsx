@@ -6,10 +6,12 @@ import TimeGrid from "../../../component/TimeGrid";
 import Swal from "sweetalert2";
 import { addSchedule } from "../../../api/schedule";
 import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../../utils/analytics";
+import { saveFailReason } from "../../../utils/failReason";
 import { readTableState, writeTableState, clearTableDraft, validCellsOf, draftFor } from "../../../utils/tableSession";
 import Loader from "./Loading";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiArrowDown, FiGrid } from "react-icons/fi";
+import { readStorage } from "../../../utils/storage";
 
 export default function PersonalSchedule({
      setSaveButtonState,
@@ -30,7 +32,7 @@ export default function PersonalSchedule({
 }) {
      const [isLoading, setIsLoading] = useState(true);
      const [isSaving, setIsSaving] = useState(false);
-     const name = localStorage.getItem("name");
+     const name = readStorage("name");
      const userScheduleInfo = usersScheduleList.find((user) => user.name === name);
      const [selectedCells, setSelectedCells] = useState([]);
 
@@ -117,9 +119,18 @@ export default function PersonalSchedule({
                return;
           }
           setIsSaving(true);
+          let result = null;
           try {
-               const result = await addSchedule(tableId, name, selectedCells);
-               if (!result?.success) throw new Error("일정 저장이 확인되지 않았습니다.");
+               try {
+                    result = await addSchedule(tableId, name, selectedCells);
+               } catch (error) {
+                    trackEvent(EVENTS.SAVE_FAIL, tableId, undefined, { reason: saveFailReason(error) });
+                    throw error;
+               }
+               if (!result?.success) {
+                    trackEvent(EVENTS.SAVE_FAIL, tableId, undefined, { reason: saveFailReason(null, result) });
+                    throw new Error("일정 저장이 확인되지 않았습니다.");
+               }
                // 서버가 저장을 확인한 뒤에만 저장 안 한 선택을 비운다(실패하면 그대로 남아 이어서 고칠 수 있다).
                baseRef.current = [...selectedCells];
                dirtyRef.current = false;
@@ -170,7 +181,7 @@ export default function PersonalSchedule({
                <Frame initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <HeaderWrapper>
                          <NoteText>
-                              <span style={{ color: theme.color.primary, fontFamily: "Pretendard-Bold" }}>{name}</span>{" "}
+                              <span data-clarity-mask="true" style={{ color: theme.color.primary, fontFamily: "Pretendard-Bold" }}>{name}</span>{" "}
                               님의 가능한 시간을 선택해주세요.
                          </NoteText>
                     </HeaderWrapper>

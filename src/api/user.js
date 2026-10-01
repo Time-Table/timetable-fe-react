@@ -10,7 +10,10 @@ export const joinUser = async (tableId, name, password) => {
     return res;
   } catch (error) {
     console.error("joinUser error: ", error.response);
-    return error.response?.data;
+    // 상태 코드도 함께 돌려 요청 제한(429)·비밀번호(401)를 나눌 수 있게 한다(표 화면 A/B 2회차 실패 기록).
+    if (!error.response) return undefined;
+    const data = error.response.data;
+    return { ...(data && typeof data === "object" ? data : { message: data }), status: error.response.status };
   }
 };
 

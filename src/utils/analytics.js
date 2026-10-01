@@ -1,4 +1,4 @@
-import { sendEvent } from "../api/event";
+import { sendEvent, sendEventKeepalive } from "../api/event";
 import { sendBlogView } from "../api/blogView";
 import { isAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
@@ -25,6 +25,13 @@ export const EVENTS = {
 
   // 퍼널 단계가 아니라 테이블 A/B(2026-09-29)의 화면 전환 기록이다.
   UI_SWITCH: "ui_switch",
+
+  // 표 화면 A/B 2회차(2026-10-01, 하네스 specs/table-ab-2.md). 퍼널 단계가 아니다.
+  UI_VIEW: "ui_view", // 화면이 그려짐(마감 때 유지한 화면 = 마감 전 마지막 ui_view)
+  AB_STATE_FAIL: "ab_state_fail", // 실험 상태를 못 받아 꺼짐으로 그림
+  JOIN_FAIL: "join_fail",
+  SAVE_FAIL: "save_fail",
+  UI_LOAD_FAIL: "ui_load_fail", // 새 화면 조각을 못 받음
 };
 
 /**
@@ -34,20 +41,57 @@ export const EVENTS = {
  */
 let activeTableUi = null;
 const TABLE_UI_EVENTS = [EVENTS.INVITE_SHARE, EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS,
-  EVENTS.SCHEDULE_SAVE, EVENTS.RANKING_OPEN, EVENTS.UI_SWITCH];
+  EVENTS.SCHEDULE_SAVE, EVENTS.RANKING_OPEN, EVENTS.UI_SWITCH,
+  EVENTS.UI_VIEW, EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL];
+// 2회차 기록: 정해진 필드만 보내고 자유 문자열(source)은 넣지 않는다. 탭 ID·순번으로 같은 탭 안 순서를 맞춘다.
+const AB_EVENTS = [EVENTS.UI_VIEW, EVENTS.UI_SWITCH, EVENTS.AB_STATE_FAIL,
+  EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL];
+const AB_FIELDS = ["viewId", "reason", "joinType"];
+const TAB_KEY = "tt_tab_id";
+const SEQ_KEY = "tt_tab_seq";
 
 export const setActiveTableUi = (tableId, version) => {
   activeTableUi = tableId && (version === "A" || version === "B") ? { tableId, version } : null;
 };
 
+/** 지금 열린 표와 화면(실험 중일 때만). */
+export const getActiveTableUi = () => activeTableUi;
+
 const uiVersionFor = (name, tableId) =>
   TABLE_UI_EVENTS.includes(name) && activeTableUi && activeTableUi.tableId === tableId
     ? activeTableUi.version : undefined;
 
-const createId = () =>
+export const createId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+let memoryTab = null;
+let memorySeq = 0;
+/** 이 탭의 ID와 다음 순번. 새로고침해도 같은 탭이면 이어 센다(sessionStorage). 못 쓰면 메모리. */
+const nextTabSeq = () => {
+  try {
+    let tab = sessionStorage.getItem(TAB_KEY);
+    if (!tab) {
+      tab = createId();
+      sessionStorage.setItem(TAB_KEY, tab);
+    }
+    const seq = (Number(sessionStorage.getItem(SEQ_KEY)) || 0) + 1;
+    sessionStorage.setItem(SEQ_KEY, String(seq));
+    return { tabId: tab, seq };
+  } catch {
+    if (!memoryTab) memoryTab = createId();
+    memorySeq += 1;
+    return { tabId: memoryTab, seq: memorySeq };
+  }
+};
+
+/** 2회차 기록에 붙일 정해진 필드(값이 있는 것만) + 탭 ID·순번. */
+const abFieldsOf = (extra) => {
+  const fields = {};
+  for (const key of AB_FIELDS) if (extra?.[key] !== undefined && extra?.[key] !== null) fields[key] = extra[key];
+  return { ...fields, ...nextTabSeq() };
+};
 
 /**
  * 브라우저 단위 익명 식별자. 개인정보는 담지 않으며,
@@ -104,23 +148,51 @@ const getDevice = () => {
  * 퍼널 이벤트를 기록한다. 관리자 브라우저는 집계에서 제외된다.
  * 응답을 기다리지 않는 fire-and-forget 방식이라 호출부에서 await할 필요가 없다.
  */
-export const trackEvent = (name, tableId, creationPath) => {
+/** 보낼 본문. 2회차 기록은 정해진 필드만, 그 밖의 이벤트는 원래대로(source 포함). */
+const payloadOf = (name, tableId, creationPath, extra) => {
+  const ab = AB_EVENTS.includes(name);
+  // 새 화면 불러오기 실패는 아직 그 화면이 안 그려졌을 수 있어 화면 값을 직접 받는다.
+  const uiVersion = ab && (extra?.uiVersion === "A" || extra?.uiVersion === "B") ? extra.uiVersion : uiVersionFor(name, tableId);
+  return {
+    name,
+    visitorId: getVisitorId(),
+    tableId,
+    ...(ab ? {} : { source: getSource() }),
+    device: getDevice(),
+    // 생성 경로. 서버가 랜딩 생성과 빠른 생성을 나눠 세도록 함께 보낸다(2026-09-29 랜딩 A/B).
+    ...(creationPath === "landing" || creationPath === "quick_create" ? { creationPath } : {}),
+    // 테이블 A/B에서 이 이벤트 때 보고 있던 화면. 실험이 꺼져 있거나 다른 표면 붙지 않는다.
+    ...(uiVersion ? { uiVersion } : {}),
+    ...(ab ? abFieldsOf(extra) : {}),
+    // 표 화면 A/B 2회차: 새 참여(201)와 다시 들어옴(200)을 나눈다.
+    ...(name === EVENTS.JOIN_SUCCESS && ["new", "returning"].includes(extra?.joinType) ? { joinType: extra.joinType } : {}),
+  };
+};
+
+/**
+ * 페이지가 사라지는 중(새로고침 직전)에 보내는 2회차 기록(ui_load_fail chunk_retry).
+ * 미리 묻기 없는 요청이라 관리자 헤더를 못 실으므로 관리자 판단은 여기서 한다.
+ */
+export const trackEventKeepalive = (name, tableId, extra) => {
+  try {
+    if (isAdmin()) return;
+    const payload = payloadOf(name, tableId, undefined, extra);
+    if (!payload.uiVersion) return;
+    sendEventKeepalive(payload);
+  } catch (error) {
+    // 넘어간다
+  }
+};
+
+export const trackEvent = (name, tableId, creationPath, extra) => {
   let pending;
   // 저장소 차단·수집 장애가 생성 요청이나 성공 화면을 막으면 안 된다.
   try {
     if (isAdmin()) return;
-    const uiVersion = uiVersionFor(name, tableId);
-    pending = sendEvent({
-      name,
-      visitorId: getVisitorId(),
-      tableId,
-      source: getSource(),
-      device: getDevice(),
-      // 생성 경로. 서버가 랜딩 생성과 빠른 생성을 나눠 세도록 함께 보낸다(2026-09-29 랜딩 A/B).
-      ...(creationPath === "landing" || creationPath === "quick_create" ? { creationPath } : {}),
-      // 테이블 A/B에서 이 이벤트 때 보고 있던 화면. 실험이 꺼져 있거나 다른 표면 붙지 않는다.
-      ...(uiVersion ? { uiVersion } : {}),
-    });
+    const payload = payloadOf(name, tableId, creationPath, extra);
+    // 2회차 기록은 실험이 켜져 화면이 정해진 표에서만 보낸다(상태를 못 받은 기록만 예외).
+    if (AB_EVENTS.includes(name) && name !== EVENTS.AB_STATE_FAIL && !payload.uiVersion) return;
+    pending = sendEvent(payload);
   } catch (error) {
     return;
   }

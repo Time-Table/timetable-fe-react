@@ -76,3 +76,33 @@ test("대화 읽음 기록도 다른 표에 다녀와도 살아남는다(안 읽
   expect(JSON.parse(localStorage.getItem(CHAT_SEEN_KEY))).toEqual({ "table-a": "2026-09-30T11:00:00.000Z" });
   expect(localStorage.getItem("name")).toBeNull();
 });
+
+test("쓰기만 막힌 브라우저에서 표를 옮겨도 영구 키는 사라지지 않고 표 값만 지운다(Codex 2026-10-02)", () => {
+  localStorage.setItem(VISITOR_KEY, "visitor-123");
+  localStorage.setItem(ADMIN_KEY, "secret-token");
+  localStorage.setItem(TABLE_UI_KEY, JSON.stringify({ key: "table-ab-2", ui: "B" }));
+  localStorage.setItem("name", "홍길동");
+  const setItem = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new Error("QuotaExceededError");
+  });
+  const clear = jest.spyOn(Storage.prototype, "clear");
+
+  expect(() => clearTableScopedStorage()).not.toThrow();
+
+  expect(clear).not.toHaveBeenCalled();
+  expect(localStorage.getItem(VISITOR_KEY)).toBe("visitor-123");
+  expect(localStorage.getItem(ADMIN_KEY)).toBe("secret-token");
+  expect(JSON.parse(localStorage.getItem(TABLE_UI_KEY))).toEqual({ key: "table-ab-2", ui: "B" });
+  expect(localStorage.getItem("name")).toBeNull();
+  setItem.mockRestore();
+  clear.mockRestore();
+});
+
+test("저장소 접근이 전부 막혀도 오류 없이 넘어간다", () => {
+  const spies = ["getItem", "setItem", "removeItem", "clear", "key"].map((method) =>
+    jest.spyOn(Storage.prototype, method).mockImplementation(() => {
+      throw new Error("SecurityError");
+    }));
+  expect(() => clearTableScopedStorage()).not.toThrow();
+  spies.forEach((spy) => spy.mockRestore());
+});

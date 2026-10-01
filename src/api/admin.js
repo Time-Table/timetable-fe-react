@@ -114,3 +114,34 @@ export const stopLandingAb = async () => {
     return { error: "failed" };
   }
 };
+
+/** 표 화면 A/B 2회차 결과(2026-10-01, 하네스 specs/table-ab-2.md). 실패와 BE 미배포(404)를 구분한다. */
+export const getTableAb = async () => {
+  try {
+    const res = await axios.get("/api/admin/experiments/table-ab");
+    return res?.data || { error: "failed" };
+  } catch (error) {
+    if (error.response?.status === 404) return { error: "notDeployed" };
+    console.error("/api/admin/experiments/table-ab error: ", error.response);
+    return { error: "failed" };
+  }
+};
+
+const tableAbAction = async (action) => {
+  try {
+    const res = await axios.post(`/api/admin/experiments/table-ab/${action}`);
+    return res?.success ? { data: res.data } : { error: "failed" };
+  } catch (error) {
+    const { status, data } = error.response || {};
+    if (status === 409) return { error: "conflict", state: data?.data };
+    if (status === 404) return { error: "notDeployed" };
+    console.error(`/api/admin/experiments/table-ab/${action} error: `, error.response);
+    return { error: "failed" };
+  }
+};
+
+/** 표 화면 A/B [시작]. 한 번만 된다. 이미 시작했으면 { error: "conflict", state }. */
+export const startTableAb = () => tableAbAction("start");
+
+/** 표 화면 A/B [중단]. 시작 뒤 한 번만 된다. 되돌릴 수 없다. */
+export const stopTableAb = () => tableAbAction("stop");
