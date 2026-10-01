@@ -2,18 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled/macro";
 import theme from "../../../theme";
 
-// 두 화면 같은 글·같은 모양(표 화면 A/B 2회차, 하네스 specs/table-ab-2.md). "새"·"기존"이라는 말은 쓰지 않는다
-// (호기심·익숙함으로 바꾸는 쏠림을 줄인다).
-const TEXT = "다른 화면으로 볼 수 있어요";
-const BUTTON = "다른 화면 보기";
-const NOTICE = "화면을 바꿨어요. 언제든 다시 바꿀 수 있어요.";
+// 2026-10-02 사람 지시 "전 문구로 바꿔줘": 2회차 설계 때 대칭 문구("다른 화면으로 볼 수 있어요")로 바꿨다가
+// "기존 화면"·"새 화면" 이름과 A에서 새 화면을 권하는 채운 버튼으로 되돌렸다(실험 중 변경, 하네스 specs/table-ab-2.md에 시각 기록).
+const COPY = {
+  A: { text: "을 먼저 써 볼 수 있어요", button: "새 화면 써 보기" },
+  B: { text: "을 쓰는 중이에요", button: "기존 화면으로" },
+};
+// 바꾼 뒤 화면 기준의 알림
+const NOTICE = {
+  A: "기존 화면으로 바꿨어요.",
+  B: "새 화면으로 바꿨어요. 언제든 기존 화면으로 돌아갈 수 있어요.",
+};
 const NOTICE_MS = 2500;
 
 /**
- * 표 화면 A/B 전환 띠. 사이트 헤더 밑 표 화면 맨 위에 두고, 스크롤하면 함께 올라간다.
+ * 테이블 A/B 전환 띠(1안, 2026-09-29 사람 선택). 사이트 헤더 밑 표 화면 맨 위에 두고, 스크롤하면 함께 올라간다.
  * 표 화면과 함께 그려 나중에 끼어들며 내용을 밀지 않는다(0회차 지표에서 CLS가 나빴다).
+ * 명세: 하네스 specs/table-ab-2.md(2회차). version은 지금 화면, onSwitch(다음 화면)을 부른다.
  */
-export default function TableUiBand({ onSwitch }) {
+export default function TableUiBand({ version, onSwitch }) {
   // 글은 사라지는 동안에도 남겨 두어 흐려지는 도중에 상자가 줄지 않게 한다.
   const [notice, setNotice] = useState({ text: "", visible: false });
   const timer = useRef(null);
@@ -21,8 +28,9 @@ export default function TableUiBand({ onSwitch }) {
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const handleClick = () => {
-    onSwitch();
-    setNotice({ text: NOTICE, visible: true });
+    const next = version === "A" ? "B" : "A";
+    onSwitch(next);
+    setNotice({ text: NOTICE[next], visible: true });
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setNotice((prev) => ({ ...prev, visible: false })), NOTICE_MS);
   };
@@ -31,9 +39,12 @@ export default function TableUiBand({ onSwitch }) {
     <BandWrap>
       <Band role="region" aria-label="화면 바꾸기">
         <BandInner>
-          <BandText>{TEXT}</BandText>
-          <SwitchButton type="button" onClick={handleClick}>
-            {BUTTON}
+          <BandText>
+            <strong>새 화면</strong>
+            {COPY[version].text}
+          </BandText>
+          <SwitchButton type="button" $filled={version === "A"} onClick={handleClick}>
+            {COPY[version].button}
           </SwitchButton>
         </BandInner>
       </Band>
@@ -98,9 +109,9 @@ const SwitchButton = styled.button`
   font-size: ${theme.font.size.label};
   white-space: nowrap;
   cursor: pointer;
-  background-color: ${theme.color.surface};
-  color: ${theme.text.gamma[200]};
-  border: 1px solid ${theme.text.gamma[600]};
+  background-color: ${({ $filled }) => ($filled ? theme.color.primaryText : theme.color.surface)};
+  color: ${({ $filled }) => ($filled ? theme.color.surface : theme.text.gamma[200])};
+  border: 1px solid ${({ $filled }) => ($filled ? theme.color.primaryText : theme.text.gamma[600])};
 
   &:focus-visible {
     outline: 2px solid ${theme.color.focusRing};

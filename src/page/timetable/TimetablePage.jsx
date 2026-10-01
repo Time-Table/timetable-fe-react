@@ -725,7 +725,7 @@ function TimetablePageView() {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
       <>
-        <TableUiBand onSwitch={() => handleSwitchUi("A")} />
+        <TableUiBand version="B" onSwitch={handleSwitchUi} />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -762,7 +762,7 @@ function TimetablePageView() {
 
   return isValidTableId ? (
     <>
-      {abOn && <TableUiBand onSwitch={() => handleSwitchUi("B")} />}
+      {abOn && <TableUiBand version="A" onSwitch={handleSwitchUi} />}
       <PageWrapper>
         <Seo
           title={`${title || "테이블"}`}

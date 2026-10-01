@@ -309,9 +309,9 @@ test("B에서 고른 사람·보던 주는 기존 화면으로 갔다 와도 그
   await ready();
   fireEvent.click(screen.getByRole("button", { name: "서연. 고르기" }));
   fireEvent.click(screen.getByRole("button", { name: "다음 주" }));
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
   expect(await screen.findByRole("button", { name: /골든타임 순위/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   expect(await screen.findByRole("button", { name: "서연. 빼기" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByText(/^2 \/ 2주/)).toBeInTheDocument();
 });

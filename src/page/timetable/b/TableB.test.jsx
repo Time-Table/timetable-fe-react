@@ -119,7 +119,7 @@ afterEach(() => {
 describe("보기", () => {
   test("B로 배정된 표는 새 화면을 그린다(기존 화면 부품은 없다)", async () => {
     await renderB();
-    expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("다른 화면으로 볼 수 있어요");
+    expect(screen.getByRole("region", { name: "화면 바꾸기" })).toHaveTextContent("새 화면을 쓰는 중이에요");
     expect(screen.getByRole("button", { name: /가장 많이 모이는 시간 9월 28일 \(월\) 10:00 ~ 10:30, 2명 중 2명/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "전체 2명 보기" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "내 시간 넣기" })).toBeInTheDocument();
@@ -363,7 +363,7 @@ describe("전환·더보기·대화", () => {
   test("입력 중 띠로 기존 화면으로 가면 기존 화면이 같은 이름으로 내 일정을 연다", async () => {
     await renderB({ me: "민준" });
     fireEvent.click(screen.getByRole("button", { name: /^내 시간 고치기/ }));
-    fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+    fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
     expect(await screen.findByText(/님의 가능한 시간을 선택해주세요/)).toBeInTheDocument();
     expect(sent("ui_switch")).toEqual([expect.objectContaining({ uiVersion: "A" })]);
   });

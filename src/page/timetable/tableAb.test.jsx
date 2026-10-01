@@ -117,7 +117,7 @@ test("진행 중이면 브라우저 배정대로 그리고, 화면이 그려진 
   getTableAbState.mockResolvedValue(RUNNING);
   localStorage.setItem("visitor_id", V_A);
   await renderTable();
-  expect(band()).toHaveTextContent("다른 화면으로 볼 수 있어요");
+  expect(band()).toHaveTextContent("새 화면을 먼저 써 볼 수 있어요");
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(1));
   expect(sentEvents("ui_view")[0]).toEqual(expect.objectContaining({
     tableId: TABLE_1, uiVersion: "A", viewId: expect.any(String), tabId: expect.any(String), seq: expect.any(Number),
@@ -187,7 +187,7 @@ test("B에서 저장 뒤 재조회가 실패한 채 A로 바꾸면 A는 오류 �
   getAllSchedule.mockResolvedValue({ success: false, code: 500 });
   fireEvent.click(screen.getByRole("button", { name: /^저장하기/ }));
   await waitFor(() => expect(getAllSchedule.mock.calls.length).toBeGreaterThan(1));
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
   expect(await screen.findByText("참여자와 일정을 불러오지 못했습니다.")).toBeInTheDocument();
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -210,7 +210,7 @@ test("띠로 바꾸면 ui_switch(떠나는 화면) → 새 화면 ui_view 순서
   const { unmount } = await renderTable();
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(1));
   const firstView = sentEvents("ui_view")[0];
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(2));
   const [switched] = sentEvents("ui_switch");
@@ -235,9 +235,9 @@ test("다른 화면을 열어 봤다가 돌아오면 마지막 ui_view가 원래
   localStorage.setItem("visitor_id", V_A);
   await renderTable();
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(1));
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(2));
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
   await waitFor(() => expect(sentEvents("ui_view")).toHaveLength(3));
   expect(sentEvents("ui_view").map((v) => v.uiVersion)).toEqual(["A", "B", "A"]);
   expect(sentEvents("ui_switch").map((v) => v.uiVersion)).toEqual(["B", "A"]);
@@ -251,7 +251,7 @@ test("관리자 브라우저는 띠로 바꿀 수 있지만 실험 기록을 보
   grantAdmin("test-token");
   await renderTable();
   expect(band()).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "다른 화면 보기" }));
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
   expect(sendEvent).not.toHaveBeenCalled();
   expect(sendEventKeepalive).not.toHaveBeenCalled();
