@@ -68,9 +68,12 @@ const mount = ({ preview = true } = {}) =>
   );
 
 const originalMatchMedia = window.matchMedia;
+const originalScrollTo = window.scrollTo;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // jsdom에는 스크롤이 없다(호출하면 "Not implemented" 오류를 찍는다).
+  window.scrollTo = jest.fn();
   window.CSS = window.CSS || {};
   window.CSS.escape = window.CSS.escape || ((s) => s);
   mockMatchMedia(false);
@@ -78,9 +81,19 @@ beforeEach(() => {
 
 afterEach(() => {
   window.matchMedia = originalMatchMedia;
+  window.scrollTo = originalScrollTo;
 });
 
 describe("랜딩 실험 v2", () => {
+  test("새로고침해도 맨 위에서 시작하게 브라우저 스크롤 되살리기를 끄고, 떠나면 원래대로 돌린다", () => {
+    window.history.scrollRestoration = "auto";
+    const { unmount } = mount();
+    expect(window.history.scrollRestoration).toBe("manual");
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+    unmount();
+    expect(window.history.scrollRestoration).toBe("auto");
+  });
+
   test("넓은 화면은 단톡방·스크롤 안내·대화·제목(h1 하나)으로 시작한다", () => {
     mount();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -153,6 +166,15 @@ describe("랜딩 실험 v2", () => {
       expect(screen.getByRole("main")).toHaveAttribute("data-intro", "on");
       expect(document.body.style.overflow).toBe("hidden");
       lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toMatch(/^\d+px$/));
+
+      // 소개 중에 브라우저가 이전 스크롤 위치를 늦게 되살리면(크롬 새로고침) 맨 위로 되돌린다.
+      window.scrollTo.mockClear();
+      Object.defineProperty(window, "scrollY", { configurable: true, value: 400 });
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+      Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
 
       // 소개는 나머지(미리보기·폼)가 다 나타나는 2.75초에 끝난다.
       act(() => jest.advanceTimersByTime(3000));

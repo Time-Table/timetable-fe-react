@@ -99,9 +99,12 @@ const originalMatchMedia = window.matchMedia;
 const originalShare = navigator.share;
 const originalClipboard = navigator.clipboard;
 const originalExec = document.execCommand;
+const originalScrollTo = window.scrollTo;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // jsdom에는 스크롤이 없다(호출하면 "Not implemented" 오류를 찍는다).
+  window.scrollTo = jest.fn();
   localStorage.clear();
   window.CSS = window.CSS || {};
   window.CSS.escape = window.CSS.escape || ((s) => s);
@@ -117,7 +120,19 @@ afterEach(() => {
   else delete navigator.share;
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: originalClipboard });
   document.execCommand = originalExec;
+  window.scrollTo = originalScrollTo;
   document.body.style.overflow = "";
+});
+
+describe("새로고침해도 맨 위에서 시작", () => {
+  test("열면 브라우저 스크롤 되살리기를 끄고 맨 위로 가며, 떠나면 원래대로 돌린다", () => {
+    window.history.scrollRestoration = "auto";
+    const { unmount } = mount();
+    expect(window.history.scrollRestoration).toBe("manual");
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+    unmount();
+    expect(window.history.scrollRestoration).toBe("auto");
+  });
 });
 
 describe("만들기 전 확인 창", () => {

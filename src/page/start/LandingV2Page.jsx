@@ -526,6 +526,21 @@ export default function LandingV2Page({ preview = false }) {
     placeForm(formLift);
   };
 
+  /**
+   * 랜딩은 새로고침하거나 다시 들어와도 늘 맨 위에서 시작한다(2026-10-01 사람 결정, v1 랜딩과 같다).
+   * 브라우저가 이전 스크롤 위치를 되살리면 첫 화면 소개가 화면 밖에서 돌고, 소개가 끝난 뒤에야 화면이 보였다.
+   * 이 페이지에 있는 동안만 되살리기를 끄고, 떠날 때 원래 값으로 돌려 다른 페이지는 그대로 둔다.
+   */
+  useLayoutEffect(() => {
+    const { history } = window;
+    const prev = "scrollRestoration" in history ? history.scrollRestoration : null;
+    if (prev !== null) history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    return () => {
+      if (prev !== null) history.scrollRestoration = prev;
+    };
+  }, []);
+
   // 휴대폰 첫 화면 소개(위 isIntroPlaying). 헤더 아래 보이는 영역의 가운데에 [제목 + 간격 + 단톡방] 묶음을 놓았다가
   // introLift가 제자리로 올린다. 둘은 같은 거리만큼 내려가 사이 간격이 그대로다.
   useLayoutEffect(() => {
@@ -552,12 +567,19 @@ export default function LandingV2Page({ preview = false }) {
     window.addEventListener("wheel", block, { passive: false });
     window.addEventListener("touchmove", block, { passive: false });
     window.addEventListener("keydown", blockKeys);
+    // 소개 중에 브라우저가 이전 스크롤 위치를 늦게 되살리면 맨 위로 되돌린다.
+    // 사용자 스크롤은 위에서 막으므로 이때 생기는 스크롤은 브라우저가 옮긴 것뿐이다.
+    const keepTop = () => {
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+    };
+    window.addEventListener("scroll", keepTop);
     const timer = setTimeout(() => setIntroPlaying(false), INTRO_MS + 50);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("wheel", block);
       window.removeEventListener("touchmove", block);
       window.removeEventListener("keydown", blockKeys);
+      window.removeEventListener("scroll", keepTop);
       [html.style.overflow, document.body.style.overflow] = prevOverflow;
       targets.forEach((el) => el.style.removeProperty("--intro-dy"));
     };
