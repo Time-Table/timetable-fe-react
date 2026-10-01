@@ -31,8 +31,9 @@ const grid = (users, t = table) => {
   return { dates: datesOf(t), times: timesOf(t), locked: new Set(t.banedCells), info };
 };
 
-test("칸 시각은 시작·끝의 시만 보고 끝은 24시까지다(기존 화면과 같다)", () => {
-  expect(timesOf({ startHour: "10:30", endHour: "12:00" })).toEqual(["10:00", "10:30", "11:00", "11:30"]);
+test("칸 시각은 실제 시작·끝까지(10:30 시작이면 10:30부터, 끝은 24시까지, 기존 화면과 같다)", () => {
+  expect(timesOf({ startHour: "10:30", endHour: "12:00" })).toEqual(["10:30", "11:00", "11:30"]);
+  expect(timesOf({ startHour: "10:00", endHour: "11:30" })).toEqual(["10:00", "10:30", "11:00"]);
   expect(timesOf({ startHour: "22:00", endHour: "25:00" })).toEqual(["22:00", "22:30", "23:00", "23:30"]);
   expect(timesOf({ startHour: "12:00", endHour: "12:00" })).toEqual([]);
 });

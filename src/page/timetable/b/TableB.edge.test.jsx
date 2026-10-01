@@ -112,10 +112,14 @@ test("하루짜리 표는 주 넘기기와 주 수가 없고 기간은 한 날�
 
 // 기존 화면(TimeGrid)과 같은 시 단위 규칙이다(명세 "테이블 A/B 공유 상태"의 칸 범위, 2026-09-30 결정: B를 운영 중인 A에 맞춤).
 // 만들기 화면은 정각만 만들어 :30 표는 API로만 생긴다. 분 단위로 바꾸려면 A·B를 함께 바꾸는 별도 결정이 필요하다(Codex 재검증 2026-10-01 지적).
-test("시작이 :30인 표도 기존 화면처럼 그 시의 정각부터 칸을 그린다", async () => {
-  await renderB({ table: { ...baseTable, startHour: "10:30", endHour: "11:00" }, users: [{ name: "민준", availableTimes: ["2026-09-28-10:00"] }] });
+test("시작이 :30인 표는 :30 칸부터 그리고, 표 밖 칸에 저장된 시간은 세지 않는다", async () => {
+  await renderB({
+    table: { ...baseTable, startHour: "10:30", endHour: "11:00" },
+    users: [{ name: "민준", availableTimes: ["2026-09-28-10:00", "2026-09-28-10:30"] }],
+  });
   await ready();
-  expect(screen.getByRole("button", { name: "9월 28일 (월) 10:00 · 1명 가능" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "9월 28일 (월) 10:30 · 1명 가능" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /10:00 · / })).not.toBeInTheDocument();
 });
 
 test("막은 칸은 명단 칸이 아니고, 가장 많은 인원·골든에서도 빠지며, 하루 칠하기도 건너뛴다", async () => {

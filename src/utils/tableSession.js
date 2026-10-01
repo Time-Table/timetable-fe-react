@@ -70,27 +70,46 @@ export const clearTableState = (tableId) => {
   }
 };
 
-/** TimeGrid와 같은 규칙으로 표의 칸 목록을 만든다(시 단위, 막힌 칸 제외). */
+// "10:30"·"10" → 분. 시각 모양이 아니면(빈 값 포함) NaN이라 칸을 만들지 않는다.
+const minutesOf = (value) => {
+  const match = /^\s*(\d{1,2})(?::(\d{1,2}))?/.exec(String(value ?? ""));
+  return match ? Number(match[1]) * 60 + Number(match[2] || 0) : NaN;
+};
+
+/**
+ * 표의 30분 칸 시각. 시작·끝을 분까지 보고 그 사이만 칸으로 만든다(끝은 24시까지).
+ * 10:30~15:30 표는 10:30부터 15:00 칸까지다. 30분 단위가 아닌 값은 시작은 내리고 끝은 올려 30분 칸에 맞춘다.
+ * 전에는 "시"만 읽어 10:30 표가 10:00부터 그려지고 15:00~15:30 칸이 빠졌다(2026-10-01 사람 지시로 고침).
+ * 기존 화면(TimeGrid)·새 화면(bModel.timesOf)·칸 계산(validCellsOf)이 모두 이 함수를 쓴다.
+ */
+export const slotTimesOf = (startHour, endHour) => {
+  const start = Math.floor(minutesOf(startHour) / 30) * 30;
+  const end = Math.min(Math.ceil(minutesOf(endHour) / 30) * 30, 24 * 60);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return [];
+  const times = [];
+  for (let minute = start; minute < end; minute += 30) {
+    times.push(`${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`);
+  }
+  return times;
+};
+
+/** 표의 칸 목록(날짜 × slotTimesOf 시각, 막힌 칸 제외). */
 export const validCellsOf = ({ dates = [], startHour = "00:00", endHour = "00:00", banedCells = [] }) => {
-  const start = parseInt(String(startHour).split(":")[0], 10);
-  const end = Math.min(parseInt(String(endHour).split(":")[0], 10), 24);
   const cells = new Set();
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return cells;
+  const times = slotTimesOf(startHour, endHour);
   const banned = new Set(banedCells || []);
   (dates || []).forEach((date) => {
-    for (let hour = start; hour < end; hour += 1) {
-      const hh = String(hour).padStart(2, "0");
-      [`${date}-${hh}:00`, `${date}-${hh}:30`].forEach((cell) => {
-        if (!banned.has(cell)) cells.add(cell);
-      });
-    }
+    times.forEach((time) => {
+      const cell = `${date}-${time}`;
+      if (!banned.has(cell)) cells.add(cell);
+    });
   });
   return cells;
 };
 
 /**
  * 참여자 목록으로 칸마다 되는 사람을 센다. 새 화면(시안 shared.js recompute)과 같은 규칙이다.
- * validCells(표 날짜 × 시 단위 시간, 막은 칸 제외)를 주면 그 밖의 칸은 뺀다. 한 사람의 같은 시간은 한 번만 센다.
+ * validCells(표 날짜 × 표 시간, 막은 칸 제외)를 주면 그 밖의 칸은 뺀다. 한 사람의 같은 시간은 한 번만 센다.
  * 결과 [{ time, count, members, _id }]의 members는 목록 순서다.
  * 전에는 기존 화면이 서버 집계(GET /api/schedules)를 그대로 써서, 집계가 목록과 어긋나면 두 화면이 달랐다
  * (Codex 재검증, 2026-09-30).

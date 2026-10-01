@@ -23,6 +23,21 @@ test("시간 글자는 정각 선마다 하나, 마지막 선에는 끝 시각�
   expect(late.querySelector(".tb-hour.end")).toHaveTextContent("24");
 });
 
+test("10:30~12:30 표: 첫 줄 시간 칸은 숫자 없이 한 줄, 정각 선에만 숫자, 끝이 정각이 아니면 끝 숫자 없음", () => {
+  const { container } = draw({ times: ["10:30", "11:00", "11:30", "12:00"] });
+  const col = [...container.querySelectorAll(".tb-hour")];
+  // 첫 줄(10:30) 빈 시간 칸 → 11(두 줄) → 12(한 줄, 12:30 줄 없음) → 끝(숫자 없음)
+  expect(col.map((el) => [el.textContent, el.classList.contains("one")])).toEqual([
+    ["", true],
+    ["11", false],
+    ["12", true],
+    ["", false],
+  ]);
+  // 칸은 10:30부터
+  expect(container.querySelector('.tb-cell[data-key="2026-10-05-10:00"]')).toBeNull();
+  expect(container.querySelector('.tb-cell[data-key="2026-10-05-10:30"]')).toBeInTheDocument();
+});
+
 test("명단 안내는 칸 위에 띄워 꼬리로 칸 안을 짚고, 첫 줄이면 아래로, 양끝 열이면 말풍선만 안쪽으로 붙인다", () => {
   const place = (tipKey) => {
     const { container, unmount } = draw({ tipKey });

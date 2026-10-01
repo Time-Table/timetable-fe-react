@@ -33,6 +33,8 @@ const Corner = () => (
  * 시간 글자는 그 시간 선(:00 칸 윗선)에 가운데로 걸친다(2026-10-01 사람 지시 "시간을 시간 선과 동일한 레벨로 맞춰줘").
  * 첫 줄 숫자 윗부분이 붙는 날짜 줄에 가리지 않게 날짜 줄 밑에 틈을 두고, 그 틈 아래에 첫 시간 선을 긋는다.
  * 마지막 선(마지막 칸 아랫선)에는 끝 시각(예: 20)을 단다.
+ * 칸은 표의 실제 시작·끝까지만 그리고 숫자는 정각 선에만 단다(2026-10-01 사람 지시 "10시반부터면 10시반부터 보여주면 되는데",
+ * "시간 표시는 여전히 정각만"). 10:30에 시작하면 첫 줄 왼쪽은 빈칸, 15:30에 끝나면 마지막 선에 숫자가 없다.
  */
 const GridGap = () => (
   <>
@@ -46,10 +48,14 @@ const EndHour = ({ times }) => {
   const end = endOf(times[times.length - 1]);
   return (
     <div className="tb-hour end" aria-hidden="true">
-      <HourNum hour={Number(end.slice(0, 2))} />
+      {end.endsWith(":00") && <HourNum hour={Number(end.slice(0, 2))} />}
     </div>
   );
 };
+/** 그 정각 줄의 시간 칸이 한 줄(:30 줄 없이 끝남)인지. */
+const isLoneHour = (times, i) => times[i + 1] !== `${times[i].slice(0, 2)}:30`;
+/** :30에 시작하는 표의 첫 줄 시간 칸(숫자 없음). */
+const StartGap = () => <div className="tb-hour one" aria-hidden="true" />;
 
 /**
  * 모두의 시간(보기). 칸 채움은 인원 비율로 진해진다.
@@ -71,13 +77,20 @@ export const ViewGrid = forwardRef(function ViewGrid(
     ),
   );
   items.push(<GridGap key="gap" />);
-  times.forEach((t) => {
+  times.forEach((t, ti) => {
     if (t.endsWith(":00")) {
       items.push(
-        <div key={`h${t}`} className={`tb-hour${hlHour === t.slice(0, 2) ? " hl" : ""}`} data-hour={t.slice(0, 2)} aria-hidden="true">
+        <div
+          key={`h${t}`}
+          className={`tb-hour${isLoneHour(times, ti) ? " one" : ""}${hlHour === t.slice(0, 2) ? " hl" : ""}`}
+          data-hour={t.slice(0, 2)}
+          aria-hidden="true"
+        >
           <HourNum hour={Number(t.slice(0, 2))} />
         </div>,
       );
+    } else if (ti === 0) {
+      items.push(<StartGap key="h-start" />);
     }
     week.forEach((d, i) => {
       const key = `${d.key}-${t}`;
@@ -170,17 +183,18 @@ export const EditGrid = forwardRef(function EditGrid(
     ),
   );
   items.push(<GridGap key="gap" />);
-  times.forEach((t) => {
+  times.forEach((t, ti) => {
     if (t.endsWith(":00")) {
       const hh = t.slice(0, 2);
-      const next = `${String(Number(hh) + 1).padStart(2, "0")}:00`;
+      const lone = isLoneHour(times, ti);
+      const until = lone ? endOf(t) : endOf(endOf(t));
       items.push(
         <button
           key={`h${t}`}
           type="button"
-          className="tb-hour"
+          className={`tb-hour${lone ? " one" : ""}`}
           data-hour={hh}
-          aria-label={`${t} ~ ${next} 줄 전체 칠하기·지우기`}
+          aria-label={`${t} ~ ${until} 줄 전체 칠하기·지우기`}
           onClick={() =>
             onToggle(
               week.flatMap((d) => [`${d.key}-${hh}:00`, `${d.key}-${hh}:30`]).filter((k) => times.includes(k.slice(11))),
@@ -191,6 +205,8 @@ export const EditGrid = forwardRef(function EditGrid(
           <HourNum hour={Number(hh)} />
         </button>,
       );
+    } else if (ti === 0) {
+      items.push(<StartGap key="h-start" />);
     }
     week.forEach((d) => {
       const key = `${d.key}-${t}`;

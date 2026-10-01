@@ -3,7 +3,7 @@
  * 확정 시안(하네스 output/table-ab-sian/full의 shared.js·kit.js·wx.js, 2026-10-01 사람 확정)의 계산을 그대로 옮겼다.
  * 칸마다 되는 사람은 기존 화면과 같은 함수(utils/tableSession.js timeInfoOf)로 센다(두 화면이 같은 칸·명단·순위).
  */
-import { timeInfoOf, validCellsOf } from "../../../utils/tableSession";
+import { slotTimesOf, timeInfoOf, validCellsOf } from "../../../utils/tableSession";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 export const DAY_SHORT = ["월", "화", "수", "목", "금", "토", "일"];
@@ -22,16 +22,8 @@ export const endOf = (t) => fromMin(toMin(t) + 30);
 /** 표 날짜(정렬). */
 export const datesOf = (table) => (table?.dates || []).slice().sort();
 
-/** 30분 칸 시각. 기존 화면(TimeGrid)과 같은 규칙: 시작·끝의 "시"만 보고 끝은 24시까지. */
-export const timesOf = (table) => {
-  if (!table) return [];
-  const start = parseInt(String(table.startHour).split(":")[0], 10);
-  const end = Math.min(parseInt(String(table.endHour).split(":")[0], 10), 24);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return [];
-  const out = [];
-  for (let m = start * 60; m < end * 60; m += 30) out.push(fromMin(m));
-  return out;
-};
+/** 30분 칸 시각. 기존 화면(TimeGrid)과 같은 slotTimesOf: 시작·끝을 분까지 보고 끝은 24시까지. */
+export const timesOf = (table) => (table ? slotTimesOf(table.startHour, table.endHour) : []);
 
 /** 칸 → { count, members }. 표 칸(범위 안, 막은 칸 밖)만 보고 한 사람의 같은 시간은 한 번만 센다. */
 export const infoOf = (users, table) => {

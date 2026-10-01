@@ -4,6 +4,7 @@ import {
   writeTableState,
   clearTableDraft,
   clearTableState,
+  slotTimesOf,
   validCellsOf,
   draftFor,
   weekKeysOf,
@@ -71,7 +72,16 @@ test("저장소가 막혀 있어도 예외를 던지지 않는다", () => {
   expect(readTableState(ID).name).toBeNull();
 });
 
-test("표의 칸: 시 단위 범위 안이고 막힌 칸은 뺀다", () => {
+test("표의 칸 시각: 시작·끝을 분까지 보고, 30분 단위가 아니면 시작은 내리고 끝은 올리며, 끝은 24시까지", () => {
+  expect(slotTimesOf("10:30", "12:30")).toEqual(["10:30", "11:00", "11:30", "12:00"]);
+  expect(slotTimesOf("10:15", "11:10")).toEqual(["10:00", "10:30", "11:00"]);
+  expect(slotTimesOf("23:00", "25:00")).toEqual(["23:00", "23:30"]);
+  expect(slotTimesOf("12:00", "12:00")).toEqual([]);
+  expect(slotTimesOf(undefined, "12:00")).toEqual([]);
+  expect([...validCellsOf({ dates: ["2026-10-08"], startHour: "18:30", endHour: "19:30" })]).toEqual(["2026-10-08-18:30", "2026-10-08-19:00"]);
+});
+
+test("표의 칸: 표 시간 안이고 막힌 칸은 뺀다", () => {
   const cells = validCellsOf({ dates: ["2026-10-08"], startHour: "18:00", endHour: "20:00", banedCells: ["2026-10-08-19:00"] });
   expect([...cells]).toEqual(["2026-10-08-18:00", "2026-10-08-18:30", "2026-10-08-19:30"]);
   expect(validCellsOf({ dates: ["2026-10-08"], startHour: "20:00", endHour: "18:00" }).size).toBe(0);

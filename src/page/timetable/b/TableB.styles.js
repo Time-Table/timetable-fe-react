@@ -176,6 +176,7 @@ export const BPage = styled.div`
   .tb-hour { grid-row: span 2; position: relative; display: block; margin: 0; padding: 0; border: 0; background: none;
     font-size: 12px; line-height: 1; ${w5} color: var(--g400); }
   .tb-hour-num { position: absolute; left: 0; right: 0; top: 0; transform: translateY(-50%); text-align: center; }
+  .tb-hour.one { grid-row: span 1; }
   .tb-hour.end { grid-row: auto; grid-column: 1; height: 8px; }
   .tb-gridgap { grid-column: 1; height: 8px; }
   .tb-gridgap.line { grid-column: 2 / -1; border-bottom: 1px solid var(--g900); }

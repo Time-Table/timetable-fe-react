@@ -104,6 +104,16 @@ test("viewMaxCount를 주면 그 인원을 가장 진한 칸으로 본다(여러
   expect(Math.max(...opacities)).toBeCloseTo(0.6);
 });
 
+test("10:30~12:30 표는 10:30 줄부터 12:00 줄까지 그리고, 시간 글자는 정각 줄에만 단다", () => {
+  renderGrid({ startHour: "10:30", endHour: "12:30" });
+  const rows = [...document.body.querySelectorAll("[data-hoverdate='2026-09-28']")].map((el) => el.dataset.hovertime);
+  expect(rows).toEqual(["10:30", "11:00", "11:30", "12:00"]);
+  expect(screen.getByText("11:00")).toBeInTheDocument();
+  expect(screen.getByText("12:00")).toBeInTheDocument();
+  expect(screen.queryByText("10:30")).not.toBeInTheDocument();
+  expect(screen.queryByText("10:00")).not.toBeInTheDocument();
+});
+
 test("showGolden이 거짓이면 가장 많은 인원 칸에도 반짝임을 그리지 않는다(사람을 골라 볼 때)", async () => {
   const info = [{ time: "2026-09-28-09:00", count: 1, members: ["서연"], _id: "a" }];
   // 반짝임 층은 이름·역할이 없어 칸 안의 층 수로 본다(보기 모드: 칠하기 층 + 반짝임 층).

@@ -5,6 +5,7 @@ import theme from "../theme";
 import Arrow from "../assets/svg/Arrow";
 import Loader from "../page/timetable/components/Loading";
 import { AnimatePresence, motion } from "framer-motion";
+import { slotTimesOf } from "../utils/tableSession";
 
 export default function TimeGrid({
   dates = [],
@@ -295,22 +296,8 @@ export default function TimeGrid({
   }, [isWeekControlled, weeks, weekKey, onWeekChange]);
 
   const currentWeek = weeks[currentWeekIndex] || [];
-  const generateTimeRange = (start, end) => {
-    const times = [];
-    let startHourNum = parseInt(start.split(":")[0]);
-    let endHourNum = parseInt(end.split(":")[0]);
-    if (startHourNum >= endHourNum) return [];
-
-    const safeEnd = Math.min(endHourNum, 24);
-
-    while (startHourNum < safeEnd) {
-      times.push(`${startHourNum.toString().padStart(2, "0")}:00`);
-      times.push(`${startHourNum.toString().padStart(2, "0")}:30`);
-      startHourNum++;
-    }
-    return times;
-  };
-  const timeRange = generateTimeRange(startHour, endHour);
+  // 시작·끝을 분까지 본다(10:30~15:30 표는 10:30 칸부터 15:00 칸까지). 새 화면·칸 계산과 같은 함수.
+  const timeRange = slotTimesOf(startHour, endHour);
 
   const selectedDate = readOnly && selectedCellKey
     ? selectedCellKey.slice(0, selectedCellKey.lastIndexOf("-"))
@@ -439,8 +426,8 @@ export default function TimeGrid({
                   hoveredCell?.time === time
                 }
               >
-                {/* 평소에는 30분 간격으로만 표시하지만, 마우스를 올린 행은 항상 보여준다. */}
-                {timeIndex % 2 === 0 || hoveredCell?.time === time ? time : ""}
+                {/* 평소에는 정각 줄에만 표시하지만, 마우스를 올린 행은 항상 보여준다. */}
+                {time.endsWith(":00") || hoveredCell?.time === time ? time : ""}
               </TimeCell>
               {currentWeek.map((date) => {
                 const cellKey = `${date}-${time}`;
