@@ -793,13 +793,25 @@ export default function TableB({
 
             {edit ? (
               <p className="tb-hint">
-                <BIcon name="pointer" size={16} />
-                한 칸
-                <span className="tb-dotsep" aria-hidden="true">
-                  ·
+                {/* 손가락용·마우스용 중 하나만 보인다(TableB.styles.js .tb-hint-touch·.tb-hint-mouse). */}
+                <span className="tb-hint-touch">
+                  <BIcon name="pointer" size={16} />
+                  한 칸
+                  <span className="tb-dotsep" aria-hidden="true">
+                    ·
+                  </span>
+                  <BIcon name="move" size={16} />
+                  길게 눌러 끌기
                 </span>
-                <BIcon name="move" size={16} />
-                길게 눌러 끌기
+                <span className="tb-hint-mouse">
+                  <BIcon name="pointer" size={16} />
+                  클릭 한 칸
+                  <span className="tb-dotsep" aria-hidden="true">
+                    ·
+                  </span>
+                  <BIcon name="move" size={16} />
+                  누른 채 끌기
+                </span>
               </p>
             ) : total === 0 ? (
               <p className="tb-empty">아직 아무도 없어요. 첫 번째로 참여해 보세요!</p>

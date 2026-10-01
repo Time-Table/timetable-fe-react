@@ -54,8 +54,10 @@ const TableB = lazyPage(() => import("./b/TableB"), {
   onFail: () => reportBLoadFail("chunk_failed"),
 });
 
-// 새 화면(B) 본문 폭(b/TableB.styles.js .tb-col max-width). PC에서도 이 폭 한 줄이라 머리말·띠도 같은 폭으로 줄인다(2026-10-02 사람 지시).
+// 새 화면(B) 본문 폭(b/TableB.styles.js .tb-col max-width). 머리말·띠도 같은 폭으로 줄인다(2026-10-02 사람 지시).
+// 휴대폰·태블릿은 480px 한 줄, PC(1024px 이상)는 880px로 넓힌다(2026-10-02 사람 결정 "1번 - 넓힌 열").
 const B_COLUMN_WIDTH = 480;
+const B_COLUMN_WIDTH_PC = 880;
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -394,7 +396,8 @@ function TimetablePageView() {
 
   // 새 화면이 떠 있는 동안 사이트 머리말을 새 화면 폭으로 줄인다(바닥글은 그대로).
   const bShown = isValidTableId === true && uiVersion === "B";
-  useEffect(() => (bShown ? setShellWidth(B_COLUMN_WIDTH) : undefined), [bShown]);
+  const bColumnWidth = isDesktop ? B_COLUMN_WIDTH_PC : B_COLUMN_WIDTH;
+  useEffect(() => (bShown ? setShellWidth(bColumnWidth) : undefined), [bShown, bColumnWidth]);
   // 기록·저장은 상태 갱신 함수 밖에서 한 번만 한다(갱신 함수는 개발 모드에서 두 번 돌 수 있다).
   const handleVoteUi = () => setUiVote(voteTableUi(tableId, uiVersion, uiVote));
 
@@ -749,7 +752,7 @@ function TimetablePageView() {
           onSwitch={handleSwitchUi}
           vote={uiVote}
           onVote={handleVoteUi}
-          narrowWidth={B_COLUMN_WIDTH}
+          narrowWidth={bColumnWidth}
         />
         <Seo
           title={`${title || "테이블"}`}

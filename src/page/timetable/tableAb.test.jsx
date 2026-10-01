@@ -28,8 +28,9 @@ jest.mock("../../api/chat", () => ({ getChating: jest.fn(), postChat: jest.fn() 
 jest.mock("../../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
 jest.mock("../../api/blogView", () => ({ sendBlogView: jest.fn() }));
 jest.mock("../../api/visit", () => ({ trackVisit: jest.fn() }));
-// 휴대폰 배치(1024px 미만)로 그린다.
-jest.mock("../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
+// 기본은 휴대폰 배치(1024px 미만)로 그린다. PC 폭을 보는 시험만 mockIsDesktop을 켠다.
+let mockIsDesktop = false;
+jest.mock("../../hooks/useMediaQuery", () => ({ useMediaQuery: () => mockIsDesktop }));
 jest.mock("../../Seo", () => () => null);
 jest.mock("../../component/AdSense", () => () => null);
 jest.mock("../../component/TimeGrid", () => () => null);
@@ -81,6 +82,7 @@ const renderTable = async ({ tableId = TABLE_1, ui = "A" } = {}) => {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  mockIsDesktop = false;
   localStorage.clear();
   sessionStorage.clear();
   window.clarity = jest.fn();
@@ -257,6 +259,16 @@ test("새 화면이 떠 있는 동안만 사이트 머리말을 새 화면 폭(4
   fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
   await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
   expect(getShellWidth()).toBe(480);
+  unmount();
+  expect(getShellWidth()).toBeNull();
+});
+
+test("PC(1024px 이상)에서는 새 화면 폭을 880px로 넓히고 머리말·띠도 같은 폭으로 줄인다(넓힌 열)", async () => {
+  mockIsDesktop = true;
+  getTableAbState.mockResolvedValue(RUNNING);
+  localStorage.setItem("visitor_id", V_B);
+  const { unmount } = await renderTable({ ui: "B" });
+  expect(getShellWidth()).toBe(880);
   unmount();
   expect(getShellWidth()).toBeNull();
 });
