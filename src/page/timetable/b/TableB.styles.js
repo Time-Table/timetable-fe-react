@@ -89,6 +89,10 @@ export const BPage = styled.div`
   background: ${theme.color.appSurface};
   color: var(--g100);
   font-family: ${F.regular};
+  /* 표 화면이 띠 아래 남은 높이를 채운다(TimetablePage BShell). 첫 화면을 딱 채우고 바닥글은 그 아래에 둔다. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   /* 앱 전체의 -0.8px 자간 대신 확정 시안과 같은 기본 자간 */
   letter-spacing: normal;
   word-break: keep-all;
@@ -101,8 +105,9 @@ export const BPage = styled.div`
   .tb-ic { display: inline-flex; flex-shrink: 0; }
 
   /* ---------- 열·카드 ---------- */
-  .tb-col { position: relative; max-width: 480px; min-height: calc(100vh - var(--header-h)); margin: 0 auto; background: #fff; }
-  .tb-body { display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 0; }
+  /* 기둥은 첫 화면(머리말·띠 아래)을 딱 채우고, 내용(.tb-body)이 그 높이를 채운다. 아래 막대는 맨 아래(2026-10-02 사람 지시). */
+  .tb-col { position: relative; flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 480px; margin: 0 auto; }
+  .tb-body { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 0; background: #fff; }
   .tb-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 6px 0 0; }
 
   /* ---------- 머리 ---------- */
@@ -225,7 +230,7 @@ export const BPage = styled.div`
   .tb-legend-name { font-size: 13px; ${w6} color: var(--g300); }
 
   /* ---------- 아래 막대: 보기 [공유 · 내 시간 · 대화], 입력 중 [더보기 · 취소 · 저장] ---------- */
-  .tb-bar { position: sticky; bottom: 0; z-index: 40; margin: 0 -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  .tb-bar { position: sticky; bottom: 0; z-index: 40; margin: auto -16px 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.94); box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
   .tb-bar-in { display: flex; gap: 6px; }
   .tb-dock { position: relative; flex: 1; min-height: 58px; border: 0; border-radius: 18px; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center;

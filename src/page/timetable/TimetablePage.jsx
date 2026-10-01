@@ -21,6 +21,7 @@ import { experimentVisitorId, resolveTableUi, switchTableUi, tagTableUi } from "
 import { getTableAbState } from "../../api/experiment";
 import useUiSegment from "./useUiSegment";
 import { clearTableScopedStorage, readStorage, writeStorage } from "../../utils/storage";
+import { setShellWidth } from "../../utils/siteShell";
 import { readTableState, writeTableState, timeInfoOf, validCellsOf } from "../../utils/tableSession";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,6 +46,9 @@ const TableB = lazyPage(() => import("./b/TableB"), {
   onRetry: () => reportBLoadFail("chunk_retry"),
   onFail: () => reportBLoadFail("chunk_failed"),
 });
+
+// 새 화면(B) 본문 폭(b/TableB.styles.js .tb-col max-width). PC에서도 이 폭 한 줄이라 머리말·띠도 같은 폭으로 줄인다(2026-10-02 사람 지시).
+const B_COLUMN_WIDTH = 480;
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -378,6 +382,10 @@ function TimetablePageView() {
     uiVersion,
     active: abOn && (uiVersion === "A" ? scheduleStatus === "ready" : bRendered),
   });
+
+  // 새 화면이 떠 있는 동안 사이트 머리말을 새 화면 폭으로 줄인다(바닥글은 그대로).
+  const bShown = isValidTableId === true && uiVersion === "B";
+  useEffect(() => (bShown ? setShellWidth(B_COLUMN_WIDTH) : undefined), [bShown]);
 
   const handleSwitchUi = (next) => {
     switchTableUi(tableId, next, { viewId: currentViewId() });
@@ -724,8 +732,8 @@ function TimetablePageView() {
   if (isValidTableId && uiVersion === "B") {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
-      <>
-        <TableUiBand version="B" onSwitch={handleSwitchUi} />
+      <BShell>
+        <TableUiBand version="B" onSwitch={handleSwitchUi} narrowWidth={B_COLUMN_WIDTH} />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -756,7 +764,7 @@ function TimetablePageView() {
             onRendered={() => setBRendered(true)}
           />
         </Suspense>
-      </>
+      </BShell>
     );
   }
 
@@ -1411,6 +1419,15 @@ const RetryButton = styled.button`
 
 const ContentPanel = styled.main`
   width: 100%;
+`;
+
+// 새 화면(B): 띠와 표 화면을 첫 화면(머리말 아래 남은 높이)에 딱 맞춘다. 내용이 짧아도 아래 막대가 화면 맨 아래에 오고
+// 바닥글은 그 아래부터 보인다(2026-10-02 사람 지시 "첫 화면 딱 맞게 최소크기"). dvh는 휴대폰 주소창 높이를 뺀 값이다.
+const BShell = styled.div`
+     display: flex;
+     flex-direction: column;
+     min-height: calc(100vh - ${SITE_HEADER_HEIGHT});
+     min-height: calc(100dvh - ${SITE_HEADER_HEIGHT});
 `;
 
 const LoaderLayout = styled.div`

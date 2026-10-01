@@ -9,6 +9,7 @@ import { sendEvent, sendEventKeepalive } from "../../api/event";
 import { getTableAbState } from "../../api/experiment";
 import { grantAdmin } from "../../utils/admin";
 import { TABLE_UI_KEY } from "../../utils/storage";
+import { getShellWidth } from "../../utils/siteShell";
 
 // 표 화면 A/B 2회차(2026-10-01, 하네스 specs/table-ab-2.md). 합성 데이터와 mock API만 쓴다. 네트워크·DB 접근 없음.
 // 브라우저 ID는 명세 확인값: V_A는 table-ab-2 칸 56(A), V_B는 칸 14(B).
@@ -243,6 +244,21 @@ test("다른 화면을 열어 봤다가 돌아오면 마지막 ui_view가 원래
   expect(sentEvents("ui_switch").map((v) => v.uiVersion)).toEqual(["B", "A"]);
   expect(JSON.parse(localStorage.getItem(TABLE_UI_KEY))).toEqual({ key: "table-ab-2", ui: "A" });
   expect(sentEvents("ui_engaged")).toHaveLength(0);
+});
+
+test("새 화면이 떠 있는 동안만 사이트 머리말을 새 화면 폭(480px)으로 줄이고, 기존 화면·떠날 때는 되돌린다", async () => {
+  getTableAbState.mockResolvedValue(RUNNING);
+  localStorage.setItem("visitor_id", V_B);
+  const { unmount } = await renderTable({ ui: "B" });
+  expect(getShellWidth()).toBe(480);
+  fireEvent.click(screen.getByRole("button", { name: "기존 화면으로" }));
+  await screen.findByRole("button", { name: /골든타임 순위/ });
+  expect(getShellWidth()).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "새 화면 써 보기" }));
+  await screen.findByRole("button", { name: /^가장 많이 모이는 시간/ });
+  expect(getShellWidth()).toBe(480);
+  unmount();
+  expect(getShellWidth()).toBeNull();
 });
 
 test("관리자 브라우저는 띠로 바꿀 수 있지만 실험 기록을 보내지 않는다", async () => {

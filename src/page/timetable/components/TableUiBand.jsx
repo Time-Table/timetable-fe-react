@@ -19,8 +19,9 @@ const NOTICE_MS = 2500;
  * 테이블 A/B 전환 띠(1안, 2026-09-29 사람 선택). 사이트 헤더 밑 표 화면 맨 위에 두고, 스크롤하면 함께 올라간다.
  * 표 화면과 함께 그려 나중에 끼어들며 내용을 밀지 않는다(0회차 지표에서 CLS가 나빴다).
  * 명세: 하네스 specs/table-ab-2.md(2회차). version은 지금 화면, onSwitch(다음 화면)을 부른다.
+ * narrowWidth: 새 화면(B)처럼 PC에서도 휴대폰 폭으로 그리는 화면이면 띠도 그 폭(px)·휴대폰 여백으로 줄인다.
  */
-export default function TableUiBand({ version, onSwitch }) {
+export default function TableUiBand({ version, onSwitch, narrowWidth }) {
   // 글은 사라지는 동안에도 남겨 두어 흐려지는 도중에 상자가 줄지 않게 한다.
   const [notice, setNotice] = useState({ text: "", visible: false });
   const timer = useRef(null);
@@ -36,8 +37,8 @@ export default function TableUiBand({ version, onSwitch }) {
   };
 
   return (
-    <BandWrap>
-      <Band role="region" aria-label="화면 바꾸기">
+    <BandWrap $narrowWidth={narrowWidth}>
+      <Band role="region" aria-label="화면 바꾸기" $narrowWidth={narrowWidth}>
         <BandInner>
           <BandText>
             <strong>새 화면</strong>
@@ -58,6 +59,8 @@ export default function TableUiBand({ version, onSwitch }) {
 
 const BandWrap = styled.div`
   position: relative;
+  // 좁힐 때는 양옆을 새 화면 바탕(회색)으로 채우고 띠는 그 폭 한가운데에 둔다.
+  ${({ $narrowWidth }) => $narrowWidth && `@media (min-width: ${$narrowWidth + 1}px) { background-color: ${theme.color.appSurface}; }`}
 `;
 
 const Band = styled.div`
@@ -68,6 +71,8 @@ const Band = styled.div`
   @media (max-width: 480px) {
     padding: ${theme.space[2]} ${theme.space[4]};
   }
+  ${({ $narrowWidth }) =>
+    $narrowWidth && `@media (min-width: ${$narrowWidth + 1}px) { max-width: ${$narrowWidth}px; margin: 0 auto; padding: ${theme.space[2]} ${theme.space[4]}; }`}
 `;
 
 // 아래 표 화면 내용 폭(휴대폰·태블릿 800px, PC 1200px)에 맞춘다.
