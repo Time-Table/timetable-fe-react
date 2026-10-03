@@ -43,6 +43,30 @@ const pct = (value) => (value === null || value === undefined ? "-" : `${value.t
 const num = (value) => (value === null || value === undefined ? "-" : value.toLocaleString());
 const range = (ci) => (ci ? `${pct(ci[0])}~${pct(ci[1])}` : "-");
 
+const clamp = (value) => Math.max(0, Math.min(100, value));
+/**
+ * 비율 게이지(랜딩 1회차 ExperimentPanel의 주 지표 막대와 같은 모양, 2026-10-04 사람 지시 "일부 중요한 지표는 게이지로").
+ * 축은 0~100%. ci가 있으면 옅은 띠(95% 구간)와 세로 선(비율), 없으면 채운 막대. mark는 기준선(예: 50%).
+ */
+function Gauge({ label, value, detail, ci, mark, fill }) {
+  const has = value !== null && value !== undefined;
+  return (
+    <GaugeRow>
+      <SideName>{label}</SideName>
+      <GaugeBig>{pct(value)}</GaugeBig>
+      <Small>{detail}</Small>
+      <Bar aria-hidden="true">
+        {mark !== undefined && <BarMark style={{ left: `${clamp(mark)}%` }} />}
+        {fill && has && <BarFill style={{ width: `${clamp(value)}%` }} />}
+        {!fill && ci && (
+          <BarRange style={{ left: `${clamp(ci[0])}%`, width: `${Math.max(clamp(ci[1]) - clamp(ci[0]), 1)}%` }} />
+        )}
+        {!fill && has && <BarPoint style={{ left: `${clamp(value)}%` }} />}
+      </Bar>
+    </GaugeRow>
+  );
+}
+
 function PreferenceTable({ pref, caption }) {
   return (
     <DataTable $compact>
@@ -209,6 +233,30 @@ export default function TableAbPanel() {
         <Big>
           평균 {pct(pref.mean)} <small>(95% 구간 {range(pref.ci95)})</small>
         </Big>
+        <Bar aria-hidden="true">
+          <BarMark style={{ left: "50%" }} />
+          {pref.ci95 && (
+            <BarRange style={{ left: `${clamp(pref.ci95[0])}%`, width: `${Math.max(clamp(pref.ci95[1]) - clamp(pref.ci95[0]), 1)}%` }} />
+          )}
+          {pref.mean !== null && pref.mean !== undefined && <BarPoint style={{ left: `${clamp(pref.mean)}%` }} />}
+        </Bar>
+        <Small $muted>막대는 95% 구간, 세로 선은 비율, 축은 0~100%입니다. 가운데 점선이 50%(차이 없음)이고, 오른쪽으로 갈수록 B 선호입니다.</Small>
+        <Gauges>
+          {["A", "B"].map((arm) => (
+            <Gauge
+              key={arm}
+              label={
+                <>
+                  <b>{arm} 배정</b> B 유지 비율
+                </>
+              }
+              value={pref[arm].rate}
+              detail={`B 유지 ${num(pref[arm].finalB)} / 교체한 ${num(pref[arm].tried)}${pref[arm].ci95 ? ` · 95% 구간 ${range(pref[arm].ci95)}` : ""}`}
+              ci={pref[arm].ci95}
+              mark={50}
+            />
+          ))}
+        </Gauges>
         <PreferenceTable pref={pref} caption="대상 표 기준 조건부 선호" />
         <Note>
           참고 수치. 대상 표 조건 없이 모든 표로 계산한 평균 {pct(preference.allTables.mean)}({range(preference.allTables.ci95)}). 화면을 바꿔 본 브라우저의 비율은 A 배정{" "}
@@ -248,6 +296,26 @@ export default function TableAbPanel() {
           실패한 곳의 비율입니다. 괄호 안은 (실패 수/전체 수). 화면(A·B)은 그 기록이 남을 때 쓰던 화면입니다. "참여 입력 오류"는 빈칸이거나 쓸 수 없는 글자라서
           서버에 보내기 전에 막힌 시도이고, "참여 실패 이유"는 입력 오류와 서버 실패를 합쳐 이유별 시도 수를 셉니다.
         </CardSubtitle>
+        <Gauges $narrow>
+          {[
+            { key: "join", label: "참여 실패를 겪은 브라우저" },
+            { key: "save", label: "저장 실패를 겪은 브라우저" },
+          ].flatMap((metric) =>
+            ["A", "B"].map((ui) => (
+              <Gauge
+                key={`${metric.key}-${ui}`}
+                label={
+                  <>
+                    <b>{ui}</b> {metric.label}
+                  </>
+                }
+                value={failures[ui][metric.key].peopleRate}
+                detail={`${num(failures[ui][metric.key].peopleFailed)} / ${num(failures[ui][metric.key].people)}`}
+                fill
+              />
+            )),
+          )}
+        </Gauges>
         <DataTable $compact>
           <caption className="sr-only">화면별 실패</caption>
           <thead>
@@ -406,4 +474,88 @@ const Big = styled.p`
     font-size: 13px;
     font-weight: 400;
   }
+`;
+
+/* ---------- 비율 게이지(랜딩 1회차 ExperimentPanel과 같은 모양) ---------- */
+const Gauges = styled.div`
+  display: grid;
+  /* 실패 게이지 4개(A·B × 참여·저장)는 한 줄에 넷, 좁으면 둘씩(A·B 짝이 깨지지 않게) */
+  grid-template-columns: repeat(auto-fit, minmax(${(p) => (p.$narrow ? "150px" : "200px")}, 1fr));
+  gap: ${t.space(4)};
+  margin: ${t.space(4)} 0 ${t.space(3)};
+`;
+
+const GaugeRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${t.space(1)};
+`;
+
+const SideName = styled.p`
+  margin: 0;
+  font-size: 0.8125rem;
+  color: ${t.color.ink2};
+
+  b {
+    color: ${t.color.ink};
+  }
+`;
+
+const GaugeBig = styled.p`
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${t.color.ink};
+  font-variant-numeric: tabular-nums;
+`;
+
+const Small = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  color: ${(p) => (p.$muted ? t.color.muted : t.color.ink2)};
+  font-variant-numeric: tabular-nums;
+`;
+
+const Bar = styled.div`
+  position: relative;
+  height: 10px;
+  margin-top: ${t.space(1)};
+  border-radius: 999px;
+  background: ${t.color.surfaceSunken};
+`;
+
+const BarRange = styled.span`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: ${t.color.series1}55;
+`;
+
+const BarPoint = styled.span`
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 14px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: ${t.color.series1};
+`;
+
+const BarFill = styled.span`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background: ${t.color.series2};
+`;
+
+const BarMark = styled.span`
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  margin-left: -1px;
+  border-left: 2px dashed ${t.color.muted};
 `;

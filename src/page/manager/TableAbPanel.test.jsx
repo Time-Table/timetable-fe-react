@@ -54,6 +54,11 @@ test("진행 중이면 조건부 선호·배정 점검·실패를 보이고, 판
   expect(await screen.findByText(/^평균 70%/)).toBeInTheDocument();
   expect(screen.getByText(/판정 기준\(최소 인원·기간\)을 정하기 전/)).toBeInTheDocument();
   expect(screen.getByRole("row", { name: /A 배정 10 8 80%/ })).toBeInTheDocument();
+  // 게이지(2026-10-04): 배정별 B 유지 비율과 브라우저 기준 실패 경험률을 막대로.
+  expect(screen.getByText("B 유지 8 / 교체한 10 · 95% 구간 70%~90%")).toBeInTheDocument();
+  expect(screen.getByText("B 유지 6 / 교체한 10 · 95% 구간 50%~70%")).toBeInTheDocument();
+  expect(screen.getAllByText("2 / 9")).toHaveLength(2);
+  expect(screen.getAllByText("1 / 7")).toHaveLength(2);
   expect(screen.getByText(/50:50 검사 p = 0.83/)).toBeInTheDocument();
   expect(screen.getAllByText("비밀번호 1 · 입력 형식 2")).toHaveLength(2);
   expect(screen.getByRole("button", { name: /중단/ })).toBeInTheDocument();
