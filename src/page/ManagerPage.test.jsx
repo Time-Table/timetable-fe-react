@@ -135,6 +135,12 @@ test("월별 기록의 빈 상태와 조회 실패를 구분하고 재시도한�
   expect(await screen.findByText("아직 기록된 생성 통계가 없습니다.")).toBeTruthy();
 });
 
+test("관리자 통계가 실패해도 랜딩 신뢰 표시 카드는 따로 보인다", async () => {
+  getTrends.mockResolvedValue(null);
+  render(<ManagerPage />); await flushUpdates();
+  expect(screen.getByText("랜딩 신뢰 표시")).toBeInTheDocument();
+});
+
 test("KPI 조회 실패를 표시하고 재시도로 회복한다", async () => {
   const pending=deferred(); getFunnels.mockReturnValueOnce(pending.promise);
   render(<ManagerPage />); await flushUpdates(); await openParticipation();
