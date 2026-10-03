@@ -59,6 +59,16 @@ test("진행 중이면 조건부 선호·배정 점검·실패를 보이고, 판
   expect(screen.getByText("B 유지 6 / 교체한 10 · 95% 구간 50%~70%")).toBeInTheDocument();
   expect(screen.getAllByText("2 / 9")).toHaveLength(2);
   expect(screen.getAllByText("1 / 7")).toHaveLength(2);
+  // 막대 자리: A 배정 게이지는 50% 점선, 95% 구간 띠 70%~90%(폭 20%), 비율 선 80%. 실패 게이지는 채운 막대 22.2%.
+  // eslint-disable-next-line testing-library/no-node-access
+  const aBar = screen.getByText("B 유지 8 / 교체한 10 · 95% 구간 70%~90%").parentElement.querySelectorAll("span[style]");
+  expect(aBar[0]).toHaveStyle({ left: "50%" });
+  expect(aBar[1]).toHaveStyle({ left: "70%", width: "20%" });
+  expect(aBar[2]).toHaveStyle({ left: "80%" });
+  // eslint-disable-next-line testing-library/no-node-access
+  const joinA = screen.getAllByText("2 / 9")[0].parentElement.querySelectorAll("span[style]");
+  expect(joinA).toHaveLength(1);
+  expect(joinA[0]).toHaveStyle({ width: "22.2%" });
   expect(screen.getByText(/50:50 검사 p = 0.83/)).toBeInTheDocument();
   expect(screen.getAllByText("비밀번호 1 · 입력 형식 2")).toHaveLength(2);
   expect(screen.getByRole("button", { name: /중단/ })).toBeInTheDocument();

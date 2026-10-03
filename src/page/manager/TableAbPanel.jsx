@@ -13,9 +13,9 @@ import { Card, CardTitle, CardSubtitle, DataTable, Empty, Loading, Spinner, Tag,
  */
 const STATES = { off: "꺼짐", running: "진행 중", stopped: "중단됨" };
 const VERDICTS = {
-  srm_alert: "판정 보류 · 배정이 반반이 아님",
+  srm_alert: "판정 보류 · 배정 비율 이상(50:50이 아님)",
   rule_pending: "판정 기준(최소 인원·기간)을 정하기 전",
-  insufficient: "판정 보류 · 브라우저 수 부족",
+  insufficient: "판정 보류 · 표본 부족(교체한 브라우저가 최소 인원 미만)",
   no_difference: "차이 없음",
   b_preferred: "B(새 화면) 선호",
   a_preferred: "A(기존 화면) 선호",
@@ -217,8 +217,8 @@ export default function TableAbPanel() {
         <CardTitle>주 지표 · 교체한 브라우저가 마감 때 유지한 화면(조건부 선호)</CardTitle>
         <CardSubtitle>
           대상 표는 {num(tables.qualifying)}개입니다(마감된 표 {num(tables.closed)}개 가운데 조건에 맞는 표. 만든 뒤 날짜·시간을 바꾼 표 {num(tables.changed)}개 포함).
-          읽는 법: A 배정과 B 배정 각각 "B를 유지한 비율"을 구해 둘의 평균을 냅니다. 50%보다 높으면 B 선호, 낮으면 A 선호입니다. 이 수치는 두 화면을
-          다 써 본 사람의 선호이지, 무작위로 나뉜 전체에 대한 화면 효과가 아닙니다.
+          읽는 법: A 배정과 B 배정 각각 "B를 유지한 비율"을 구해 둘의 평균을 내고, 그 평균의 95% 구간을 봅니다. 구간이 통째로 50%보다 위면 B 선호,
+          아래면 A 선호, 50%에 걸치면 차이 없음입니다. 이 수치는 두 화면을 다 써 본 사람의 선호이지, 무작위로 나뉜 전체에 대한 화면 효과가 아닙니다.
         </CardSubtitle>
         <Verdict data-verdict={verdict}>
           {status === "running" && <small>중간 수치 · </small>}
@@ -240,7 +240,10 @@ export default function TableAbPanel() {
           )}
           {pref.mean !== null && pref.mean !== undefined && <BarPoint style={{ left: `${clamp(pref.mean)}%` }} />}
         </Bar>
-        <Small $muted>막대는 95% 구간, 세로 선은 비율, 축은 0~100%입니다. 가운데 점선이 50%(차이 없음)이고, 오른쪽으로 갈수록 B 선호입니다.</Small>
+        <Small $muted>
+          옅은 띠는 95% 구간, 세로 선은 비율, 축은 0~100%, 가운데 점선은 50%입니다. 평균의 띠가 점선 오른쪽에 통째로 있으면 B 선호, 왼쪽에 있으면 A 선호,
+          점선에 걸치면 차이 없음입니다.
+        </Small>
         <Gauges>
           {["A", "B"].map((arm) => (
             <Gauge
@@ -260,8 +263,8 @@ export default function TableAbPanel() {
         <PreferenceTable pref={pref} caption="대상 표 기준 조건부 선호" />
         <Note>
           참고 수치. 대상 표 조건 없이 모든 표로 계산한 평균 {pct(preference.allTables.mean)}({range(preference.allTables.ci95)}). 화면을 바꿔 본 브라우저의 비율은 A 배정{" "}
-          {pct(preference.triedShare.A)}, B 배정 {pct(preference.triedShare.B)}. 실험 전부터 기록이 있던 브라우저의 평균 {pct(preference.byHistory.observed.mean)}, 실험 뒤 처음 온 브라우저의
-          평균 {pct(preference.byHistory.notObserved.mean)}.
+          {pct(preference.triedShare.A)}, B 배정 {pct(preference.triedShare.B)}. 실험 전 기록이 관측된 브라우저의 평균 {pct(preference.byHistory.observed.mean)}, 관측되지 않은
+          브라우저의 평균 {pct(preference.byHistory.notObserved.mean)}(기록은 180일만 보관해 그 안에서만 관측됩니다).
         </Note>
       </Card>
 
@@ -293,8 +296,9 @@ export default function TableAbPanel() {
         <CardTitle>실패</CardTitle>
         <CardSubtitle>
           두 가지로 봅니다. "실패율"은 시도 횟수 기준이라 한 사람이 여러 번 실패하면 그만큼 셉니다. "실패를 겪은 브라우저"는 시도한 브라우저 가운데 한 번이라도
-          실패한 곳의 비율입니다. 괄호 안은 (실패 수/전체 수). 화면(A·B)은 그 기록이 남을 때 쓰던 화면입니다. "참여 입력 오류"는 빈칸이거나 쓸 수 없는 글자라서
-          서버에 보내기 전에 막힌 시도이고, "참여 실패 이유"는 입력 오류와 서버 실패를 합쳐 이유별 시도 수를 셉니다.
+          실패한 곳의 비율입니다. 괄호 안은 실패 수/전체 수이고, 입력 오류율 줄의 괄호는 입력 오류 수입니다. 화면(A·B)은 그 기록이 남을 때 쓰던 화면입니다.
+          "참여 요청 실패율"은 서버로 보낸 참여 요청 가운데 실패한 비율, "참여 입력 오류"는 빈칸이거나 쓸 수 없는 글자라서 서버에 보내기 전에 막힌 시도,
+          "참여 실패 이유"는 둘을 합쳐 이유별(입력 형식·비밀번호·요청 제한·연결 끊김·서버)로 센 시도 수입니다.
         </CardSubtitle>
         <Gauges $narrow>
           {[
