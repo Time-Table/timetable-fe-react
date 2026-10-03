@@ -80,16 +80,16 @@ test("참여 달성률은 별도 탭에서만 조회하고 대시보드는 표�
   expect(screen.queryByText("75%")).toBeNull();
 });
 
-test("오늘 한국시간 날짜의 네 수치를 일별 추이 위에 표시하며 마지막 행을 임의로 쓰지 않는다", async () => {
+test("오늘 한국시간 날짜의 다섯 수치를 일별 추이 위에 표시하며 마지막 행을 임의로 쓰지 않는다", async () => {
   const today = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Seoul"}).format(new Date());
   getTrends.mockResolvedValue({days:30,metrics:[],series:[
-    {date:today,visits:17,tables:3,signUps:8,logins:4},
-    {date:"2020-01-01",visits:99,tables:99,signUps:99,logins:99},
+    {date:today,visitors:12,visits:17,tables:3,signUps:8,logins:4},
+    {date:"2020-01-01",visitors:99,visits:99,tables:99,signUps:99,logins:99},
   ]});
   render(<ManagerPage />); await flushUpdates();
   const summary=await screen.findByRole("region",{name:"오늘 통계"});
   expect(within(summary).getByText(`오늘 · ${today}`)).toBeTruthy();
-  for(const value of [17,3,8,4]) expect(within(summary).getByText(String(value))).toBeTruthy();
+  for(const value of [12,17,3,8,4]) expect(within(summary).getByText(String(value))).toBeTruthy();
   expect(within(summary).queryByText("99")).toBeNull();
   expect(summary.compareDocumentPosition(screen.getByRole("heading",{name:"일별 추이"})) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   await click(screen.getByRole("button", {name:"그래프로 보기"}));
@@ -101,7 +101,7 @@ test("오늘 기록이 없으면 과거 값이나 가짜 0 대신 미조회 상�
   render(<ManagerPage />); await flushUpdates();
   const summary=await screen.findByRole("region",{name:"오늘 통계"});
   expect(within(summary).getByText(/오늘 통계를 불러오지 못했습니다/)).toBeTruthy();
-  expect(within(summary).getAllByText("—")).toHaveLength(4);
+  expect(within(summary).getAllByText("—")).toHaveLength(5);
 });
 
 test("월별 추이는 별도 메뉴에서 최근 3개월로 시작하고 기간 버튼만으로 범위를 바꾼다", async () => {
@@ -133,6 +133,24 @@ test("월별 기록의 빈 상태와 조회 실패를 구분하고 재시도한�
   expect(await screen.findByText("월별 생성 기록을 불러오지 못했습니다.")).toBeTruthy();
   await click(screen.getByRole("button", { name: "다시 조회" }));
   expect(await screen.findByText("아직 기록된 생성 통계가 없습니다.")).toBeTruthy();
+});
+
+test("방문자·방문·페이지 열기 타일을 이름·설명과 함께 보여 주고, 기록 시작 전이 직전 기간에 섞이면 알린다", async () => {
+  getTrends.mockResolvedValue({ days: 30, startDate: "2026-09-05", previousStart: "2026-08-06", eventsSince: "2026-08-20", series: [], metrics: [
+    { key: "visitors", total: 451, previousTotal: 300, changePercent: 50.3 },
+    { key: "visitDays", total: 620, previousTotal: 400, changePercent: 55 },
+    { key: "visits", total: 1476, previousTotal: 396, changePercent: 272.7 },
+  ] });
+  render(<ManagerPage />); await flushUpdates();
+  // 이름은 타일과 일별 추이 표 머리에 함께 있다.
+  expect(screen.getAllByText("방문자").length).toBeGreaterThan(0);
+  expect(screen.getByText("451")).toBeInTheDocument();
+  expect(screen.getByText("기록을 남긴 서로 다른 브라우저")).toBeInTheDocument();
+  expect(screen.getByText("방문")).toBeInTheDocument();
+  expect(screen.getByText("620")).toBeInTheDocument();
+  expect(screen.getAllByText("페이지 열기").length).toBeGreaterThan(0);
+  expect(screen.queryByText("페이지 방문")).not.toBeInTheDocument();
+  expect(screen.getByText(/방문자·방문 기록은 2026-08-20부터 쌓여 직전 기간 비교에 그 전이 섞여 있습니다/)).toBeInTheDocument();
 });
 
 test("관리자 통계가 실패해도 랜딩 신뢰 표시 카드는 따로 보인다", async () => {

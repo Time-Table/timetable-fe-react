@@ -109,11 +109,24 @@ const MONTHLY_PERIODS = [
   { label: "전체", value: 0 },
 ];
 
+/**
+ * 추이 지표 이름(2026-10-04): 사람 수(방문자·방문)를 더하고, 옛 "페이지 방문"은 연 횟수라 "페이지 열기"로 이름을 바로잡았다.
+ * - 방문자: 기간 안에 기록을 남긴 서로 다른 브라우저 수(랜딩 신뢰 표시의 방문자 정의와 같다)
+ * - 방문: 브라우저×날짜 수. 같은 브라우저가 다른 날 다시 오면 +1, 같은 날 새로고침은 0
+ * - 페이지 열기: 랜딩·만들기·소개·표 화면을 연 횟수 합. 새로고침도 센다
+ */
 const METRIC_LABELS = {
-  visits: "페이지 방문",
+  visitors: "방문자",
+  visitDays: "방문",
+  visits: "페이지 열기",
   tables: "테이블 생성",
   signUps: "참여 등록 건수",
   logins: "재로그인",
+};
+const METRIC_HINTS = {
+  visitors: "기록을 남긴 서로 다른 브라우저",
+  visitDays: "브라우저×날짜. 같은 날 새로고침은 안 셈",
+  visits: "화면을 연 횟수 합. 새로고침도 셈",
 };
 
 const formatDateTime = (value) => {
@@ -583,16 +596,22 @@ const ManagerPage = () => {
                   <LandingStatsCard />
                   {trends ? <>
                   <Explain label="지표 설명">
-                    <SectionCaption>보조 지표 · 선택 기간에 발생한 방문·생성·참여 등록 기록입니다. 참여 등록은 사람 수나 시간 입력 완료를 뜻하지 않습니다.</SectionCaption>
+                    <SectionCaption>
+                      보조 지표 · 선택 기간의 기록입니다. 방문자는 기록을 남긴 서로 다른 브라우저 수, 방문은 브라우저×날짜 수, 페이지 열기는 화면을 연
+                      횟수 합(새로고침 포함)입니다. 참여 등록은 사람 수나 시간 입력 완료를 뜻하지 않습니다.
+                      {trends.eventsSince && trends.previousStart && trends.previousStart < trends.eventsSince &&
+                        ` 방문자·방문 기록은 ${trends.eventsSince}부터 쌓여 직전 기간 비교에 그 전이 섞여 있습니다.`}
+                    </SectionCaption>
                   </Explain>
                   <Grid $min="200px" $mobileCols={2}>
                     {trends.metrics.map((metric) => (
                       <StatTile
                         key={metric.key}
-                        label={METRIC_LABELS[metric.key]}
+                        label={METRIC_LABELS[metric.key] || metric.key}
                         value={metric.total}
                         delta={metric.changePercent}
                         deltaLabel={`직전 ${trends.days}일 대비`}
+                        hint={METRIC_HINTS[metric.key]}
                       />
                     ))}
                   </Grid>
@@ -605,7 +624,7 @@ const ManagerPage = () => {
                       {!todayStats && <SectionCaption>오늘 통계를 불러오지 못했습니다. 다시 조회해 주세요.</SectionCaption>}
                     </div>
                     <TodayStats>
-                      {["visits", "tables", "signUps", "logins"].map((key) => (
+                      {["visitors", "visits", "tables", "signUps", "logins"].map((key) => (
                         <TodayStat key={key}>
                           <span>{METRIC_LABELS[key]}</span>
                           <strong>{formatStat(todayStats?.[key])}</strong>
@@ -644,7 +663,8 @@ const ManagerPage = () => {
                         <thead>
                           <tr>
                             <th>날짜</th>
-                            <th>방문</th>
+                            <th>방문자</th>
+                            <th>페이지 열기</th>
                             <th>생성</th>
                             <th>참여 등록</th>
                             <th>로그인</th>
@@ -654,7 +674,8 @@ const ManagerPage = () => {
                           {trendPages.rows.map((row) => (
                             <tr key={row.date}>
                               <td className="mono">{row.date}</td>
-                              <td className="num strong">{row.visits.toLocaleString()}</td>
+                              <td className="num strong">{formatStat(row.visitors)}</td>
+                              <td className="num">{row.visits.toLocaleString()}</td>
                               <td className="num">{row.tables.toLocaleString()}</td>
                               <td className="num">{row.signUps.toLocaleString()}</td>
                               <td className="num">{row.logins.toLocaleString()}</td>
@@ -670,7 +691,7 @@ const ManagerPage = () => {
                   ) : (
                     <Grid $min="300px">
                       {[
-                        { key: "visits", color: t.color.series1 },
+                        { key: "visitors", color: t.color.series1 },
                         { key: "tables", color: t.color.series2 },
                         { key: "signUps", color: t.color.series3 },
                       ].map((item) => (
