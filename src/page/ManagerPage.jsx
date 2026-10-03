@@ -127,6 +127,9 @@ const METRIC_HINTS = {
   visitors: "기록을 남긴 서로 다른 브라우저",
   visitDays: "브라우저×날짜. 같은 날 새로고침은 안 셈",
   visits: "화면을 연 횟수 합. 새로고침도 셈",
+  tables: "만들어진 표 수",
+  signUps: "표에 처음 참여해 시간을 적은 수. 사람 수 아님",
+  logins: "이름·비밀번호로 다시 들어온 수",
 };
 
 const formatDateTime = (value) => {

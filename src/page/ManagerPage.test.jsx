@@ -5,13 +5,14 @@ import Swal from "sweetalert2";
 import { getAllTables, deleteTable } from "../api/table";
 import { getFunnels } from "../api/event";
 import { adminVerify, getTrends, getBlogStats } from "../api/admin";
+import { TrendChart } from "./manager/charts";
 import { getTrackVisit } from "../api/visit";
 import { MonthlyBarChart } from "./manager/charts";
 
 jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("../Seo", () => () => null);
 jest.mock("./manager/charts", () => ({
-  TrendChart: () => null,
+  TrendChart: jest.fn(() => null),
   MonthlyBarChart: jest.fn(() => null),
   BarList: () => null,
 }));
@@ -135,22 +136,45 @@ test("월별 기록의 빈 상태와 조회 실패를 구분하고 재시도한�
   expect(await screen.findByText("아직 기록된 생성 통계가 없습니다.")).toBeTruthy();
 });
 
-test("방문자·방문·페이지 열기 타일을 이름·설명과 함께 보여 주고, 기록 시작 전이 직전 기간에 섞이면 알린다", async () => {
+test("타일 6개를 BE 순서대로 이름·설명과 함께 보여 주고, 기록 시작 전이 직전 기간에 섞이면 알리며, 그래프는 방문자를 그린다", async () => {
   getTrends.mockResolvedValue({ days: 30, startDate: "2026-09-05", previousStart: "2026-08-06", eventsSince: "2026-08-20", series: [], metrics: [
     { key: "visitors", total: 451, previousTotal: 300, changePercent: 50.3 },
     { key: "visitDays", total: 620, previousTotal: 400, changePercent: 55 },
     { key: "visits", total: 1476, previousTotal: 396, changePercent: 272.7 },
+    { key: "tables", total: 71, previousTotal: 20, changePercent: 255 },
+    { key: "signUps", total: 223, previousTotal: 62, changePercent: 259.7 },
+    { key: "logins", total: 57, previousTotal: 15, changePercent: 280 },
   ] });
   render(<ManagerPage />); await flushUpdates();
-  // 이름은 타일과 일별 추이 표 머리에 함께 있다.
+  const hints = ["기록을 남긴 서로 다른 브라우저", "브라우저×날짜. 같은 날 새로고침은 안 셈", "화면을 연 횟수 합. 새로고침도 셈", "만들어진 표 수", "표에 처음 참여해 시간을 적은 수. 사람 수 아님", "이름·비밀번호로 다시 들어온 수"];
+  // 타일은 BE 순서대로이고 설명이 하나씩 있다.
+  // eslint-disable-next-line testing-library/no-node-access -- 타일 순서를 설명 글의 문서 순서로 본다
+  const found = hints.map((h) => screen.getByText(h));
+  for (let i = 1; i < found.length; i += 1) {
+    expect(found[i - 1].compareDocumentPosition(found[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  }
+  for (const value of ["451", "620", "1,476", "71", "223", "57"]) expect(screen.getByText(value)).toBeInTheDocument();
   expect(screen.getAllByText("방문자").length).toBeGreaterThan(0);
-  expect(screen.getByText("451")).toBeInTheDocument();
-  expect(screen.getByText("기록을 남긴 서로 다른 브라우저")).toBeInTheDocument();
-  expect(screen.getByText("방문")).toBeInTheDocument();
-  expect(screen.getByText("620")).toBeInTheDocument();
   expect(screen.getAllByText("페이지 열기").length).toBeGreaterThan(0);
   expect(screen.queryByText("페이지 방문")).not.toBeInTheDocument();
   expect(screen.getByText(/방문자·방문 기록은 2026-08-20부터 쌓여 직전 기간 비교에 그 전이 섞여 있습니다/)).toBeInTheDocument();
+
+  await click(screen.getByRole("button", { name: "그래프로 보기" }));
+  const keys = TrendChart.mock.calls.map(([props]) => props.valueKey);
+  expect(keys).toContain("visitors");
+  expect(keys).not.toContain("visits");
+});
+
+test("옛 BE 응답(방문자 칸 없음)이어도 오늘 띠는 방문자만 — 로 두고 나머지는 그대로 보여 준다", async () => {
+  const today = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Seoul"}).format(new Date());
+  getTrends.mockResolvedValue({ days: 30, metrics: [{ key: "visits", total: 10, previousTotal: 5, changePercent: 100 }], series: [
+    { date: today, visits: 17, tables: 3, signUps: 8, logins: 4 },
+  ] });
+  render(<ManagerPage />); await flushUpdates();
+  const summary = await screen.findByRole("region", { name: "오늘 통계" });
+  expect(within(summary).getAllByText("—")).toHaveLength(1);
+  for (const value of [17, 3, 8, 4]) expect(within(summary).getByText(String(value))).toBeTruthy();
+  expect(screen.queryByText(/방문자·방문 기록은/)).not.toBeInTheDocument();
 });
 
 test("관리자 통계가 실패해도 랜딩 신뢰 표시 카드는 따로 보인다", async () => {
