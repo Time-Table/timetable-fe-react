@@ -186,7 +186,8 @@ const Line = styled.p`
   }
 `;
 
-/* 숫자 줄. 브랜드 빨강(글자용 단계) 36px, 넓은 화면 48px. 숫자 폭이 흔들리지 않게 고정폭 숫자를 쓴다.
+/* 숫자 줄. 브랜드 빨강(primary, 2026-10-04 사람 지시. 글자용 단계 primaryText에서 바꿈. 흰 배경 2.72:1이라 AA 미달이지만
+   /start는 2026-08-01 사람 결정으로 브랜드 톤을 우선한다) 36px, 넓은 화면 48px. 숫자 폭이 흔들리지 않게 고정폭 숫자를 쓴다.
    받기 전 자리(BigSkeleton)도 같은 높이(1.15em)를 차지해 받은 뒤 아래 내용이 밀리지 않는다. */
 const Big = styled.p`
   ${appear}
@@ -199,7 +200,7 @@ const Big = styled.p`
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: ${theme.color.primaryText};
+  color: ${theme.color.primary};
 
   @media (min-width: ${theme.breakpoint.lg}) {
     font-size: ${({ $compact }) => ($compact ? "32px" : "48px")};
