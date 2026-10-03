@@ -5,9 +5,10 @@ import theme from "../../theme";
 import { MAU_MIN, MAU_COUNT_MS, fetchMauMock, floorTens } from "./mauStats";
 
 /**
- * 랜딩 신뢰 표시(MAU) — MAU가 주인공(2026-10-02 사람 지시).
- * 세 줄을 한 문장으로 읽히게 쌓는다: "최근 30일 동안 / 450+명 / 타임테이블로 시간을 아꼈어요".
- * 숫자는 십 단위로 내리고 +를 붙인다(2026-10-04 사람 확정. 정확한 수 451명과 비교해 450+명을 골랐다).
+ * 랜딩 신뢰 표시 — 숫자가 주인공(2026-10-02 사람 지시).
+ * 세 줄을 한 문장으로 읽히게 쌓는다: "최근 30일 동안 / 220+명 / 타임테이블로 시간을 아꼈어요".
+ * 숫자는 최근 30일 참여 등록 건수(mauStats 참고)를 십 단위로 내리고 +를 붙인다
+ * (2026-10-04 사람 확정. 정확한 수와 비교해 "N0+명"을 골랐고, 방문자 수 대신 참여 등록 건수로 바꿨다).
  * 등장은 "마지막에"(2026-10-02 시안 5개 중 사람이 고른 5번): 페이지가 introDone을 참으로 넘기면 세 줄이 위에서부터
  * 조금씩 늦게 떠오르고 숫자가 0부터 올라간 뒤 +가 붙는다. 그 전에는 투명한 채 자리만 차지해 아래 내용이 밀리지 않는다.
  * - 휴대폰·A 넓은 화면: 첫 진입 소개가 끝났을 때
@@ -15,7 +16,6 @@ import { MAU_MIN, MAU_COUNT_MS, fetchMauMock, floorTens } from "./mauStats";
  *
  * 지금 숫자는 가짜 API(목데이터)다. 운영에 내보내기 전에 BE 공개 API로 바꾼다.
  * 글자 크기(36·48px, 20·24px)는 크기 목록(font.size) 밖의 값이다. 확정하면 디자인 시스템에 올린다.
- * 숫자는 이벤트를 남긴 서로 다른 방문자 수다(관리자 audience의 totalVisitors. 관리자·봇 요청은 기록 단계에서 빠진다).
  * 정렬은 놓는 자리가 정한다(`--mau-align`: center | flex-start).
  */
 const PERIOD = "최근 30일 동안";
@@ -35,8 +35,8 @@ export default function MauHero({ introDone = true }) {
   const [data, setData] = useState(null);
   const [shown, setShown] = useState(0);
   const [isCounted, setCounted] = useState(false);
-  const target = data ? floorTens(data.mau) : 0;
-  const isHidden = Boolean(data) && data.mau < MAU_MIN;
+  const target = data ? floorTens(data.count) : 0;
+  const isHidden = Boolean(data) && data.count < MAU_MIN;
 
   useEffect(() => {
     let alive = true;
@@ -183,7 +183,7 @@ const Current = styled.span`
   justify-self: end;
 `;
 
-/* "450+"의 +. 자리는 처음부터 잡아 두고 숫자가 다 올라간 뒤에 나타난다(올라가는 중의 "123+"는 뜻이 없다). */
+/* "220+"의 +. 자리는 처음부터 잡아 두고 숫자가 다 올라간 뒤에 나타난다(올라가는 중의 "123+"는 뜻이 없다). */
 const Plus = styled.span`
   opacity: ${({ $on }) => ($on ? 1 : 0)};
   transition: opacity ${theme.duration.base} ${theme.easing.out};
