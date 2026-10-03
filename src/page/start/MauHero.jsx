@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import styled from "@emotion/styled";
 import { css, keyframes } from "@emotion/react";
 import theme from "../../theme";
-import { MAU_MIN, MAU_COUNT_MS, fetchMauMock, floorTens } from "./mauStats";
+import { getLandingStats } from "../../api/stats";
+import { HIDE_AT_OR_BELOW, MAU_COUNT_MS, floorTens } from "./mauStats";
 
 /**
  * 랜딩 신뢰 표시 — 숫자가 주인공(2026-10-02 사람 지시).
@@ -14,7 +15,9 @@ import { MAU_MIN, MAU_COUNT_MS, fetchMauMock, floorTens } from "./mauStats";
  * - 휴대폰·A 넓은 화면: 첫 진입 소개가 끝났을 때
  * - B 넓은 화면: 스크롤 이야기의 제목이 거의 다 사라졌을 때
  *
- * 지금 숫자는 가짜 API(목데이터)다. 운영에 내보내기 전에 BE 공개 API로 바꾼다.
+ * 숫자는 BE 공개 API(GET /api/stats/landing)에서 받는다. 못 받거나 100 이하면 세 줄을 그리지 않는다.
+ * 받기 전에는 투명한 자리만 차지한다(첫 진입 소개가 가운데 계산을 이 자리까지 넣어 두므로, 응답이 늦어 자리가
+ * 사라지면 소개 중 배치가 한 번 움직인다. 보통 소개(2.8초)보다 응답이 먼저 온다).
  * 글자 크기(36·48px, 20·24px)는 크기 목록(font.size) 밖의 값이다. 확정하면 디자인 시스템에 올린다.
  * 정렬은 놓는 자리가 정한다(`--mau-align`: center | flex-start).
  */
@@ -32,15 +35,18 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function MauHero({ introDone = true }) {
-  const [data, setData] = useState(null);
+  // undefined: 아직 받는 중, null: 못 받음(숨김), 그 밖에는 { count, asOf }
+  const [data, setData] = useState(undefined);
   const [shown, setShown] = useState(0);
   const [isCounted, setCounted] = useState(false);
   const target = data ? floorTens(data.count) : 0;
-  const isHidden = Boolean(data) && data.count < MAU_MIN;
+  const isHidden = data === null || (Boolean(data) && data.count <= HIDE_AT_OR_BELOW);
+  // 세 줄은 페이지 신호가 오고 숫자도 받았을 때 나타난다. 둘 중 하나가 늦으면 그때까지 투명하다.
+  const isOn = introDone && Boolean(data);
 
   useEffect(() => {
     let alive = true;
-    fetchMauMock().then((value) => {
+    getLandingStats().then((value) => {
       if (alive) setData(value);
     });
     return () => {
@@ -73,11 +79,11 @@ export default function MauHero({ introDone = true }) {
   const total = target.toLocaleString("ko-KR");
 
   return (
-    <Hero data-nosnippet aria-busy={!data}>
-      <Line aria-hidden="true" $on={introDone}>
+    <Hero data-nosnippet aria-busy={data === undefined}>
+      <Line aria-hidden="true" $on={isOn}>
         {PERIOD}
       </Line>
-      <Big aria-hidden="true" $on={introDone} $delay={LINE_STAGGER_MS}>
+      <Big aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS}>
         {data ? (
           <>
             <Odometer>
@@ -91,7 +97,7 @@ export default function MauHero({ introDone = true }) {
           <BigSkeleton />
         )}
       </Big>
-      <Line aria-hidden="true" $on={introDone} $delay={LINE_STAGGER_MS * 2}>
+      <Line aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS * 2}>
         {CAPTION}
       </Line>
       {data && <SrOnly>{`${PERIOD} ${total}명 넘게 ${CAPTION}`}</SrOnly>}
