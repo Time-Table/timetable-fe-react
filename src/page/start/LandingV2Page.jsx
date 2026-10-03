@@ -59,6 +59,7 @@ import {
 import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
 import useLandingFormTracking from "./useLandingFormTracking";
+import MauHero from "./MauHero";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 /** 화면에 그리는 순서. 주는 월요일에 시작한다. */
@@ -136,6 +137,11 @@ const STORY = {
   roomOut: [1.62, 1.86],
   titleIn: [1.74, 1.98],
   titleOut: [2.19, 2.37], // 제목이 사라짐과 동시에 폼·미리보기가 나타나기 시작한다
+  // MAU 시안이 폼·미리보기 묶음 바로 위에 나타남(2026-10-02 사람 지시: "스크롤 내리면서 문구가 다 사라질 때쯤
+  // 저 세 줄이 등장해야 해. 애니메이션과 함께"). 같은 자리에 겹치는 제목이 거의 다 사라졌을 때(투명도 약 0.03)다.
+  // 거꾸로 올라가면 mauFade 구간에서 흐려져, 다시 나타나는 제목과 겹쳐 보이지 않는다.
+  mauFade: 2.34,
+  mauIn: 2.365,
 };
 /** 이야기 구간에서 스크롤할 거리. 구간 높이는 여기에 한 화면을 더한 만큼이다. */
 const STORY_DISTANCE = STORY.titleOut[1];
@@ -343,7 +349,7 @@ const FAQ_ITEMS = [
  * 정본 랜딩(`/`). 랜딩 자체가 생성 폼이다.
  *
  * 2026-09-27 시안(`/landing-v3`)을 사람 결정으로 `/`에 올렸다. 이전 랜딩과 달라진 큰 줄기:
- * - 첫 화면에 입력창과 줄인 미리보기가 함께 보이도록 배치(휴대폰은 하단 고정 만들기 버튼)
+ * - 첫 화면에 입력창과 줄인 미리보기가 함께 보이도록 배치(휴대폰 만들기 버튼은 폼 끝. 하단 고정 막대는 2026-10-04 뗐다)
  * - 제목 위 카카오톡 단톡방 그림, h1 "단체 약속 잡기, 이 링크 하나면 끝"
  * - 단색 위주의 시각 정리(만들기 버튼만 강조색), 골든타임 칸에만 반짝임
  * - 만들기 전 확인 창(요약 + 시간 잠금 선택), 휴대폰 공유 창 중심의 완료 창
@@ -464,8 +470,6 @@ export default function LandingV2Page({ preview = false }) {
   const promptOpacity = useTransform(pageScrollY, PROMPT_IN, [0, 1]);
   const promptY = useTransform(pageScrollY, PROMPT_IN, [8, 0]);
   const [isPromptShown, setPromptShown] = useState(false);
-  // 휴대폰에서 제목을 입력하는 동안에는 하단 고정 막대를 내린다. 키보드 바로 위에 붙어 입력칸 주변을 가렸다.
-  const [isTitleFocused, setTitleFocused] = useState(false);
   // 휴대폰 시간 선택 창. "start" | "end" | null
   const [timeSheet, setTimeSheet] = useState(null);
   const closeTimeSheet = useCallback(() => setTimeSheet(null), []);
@@ -548,7 +552,8 @@ export default function LandingV2Page({ preview = false }) {
     window.scrollTo(0, 0);
     const targets = [titleWrapRef.current, roomRef.current].filter(Boolean);
     if (targets.length === 2) {
-      const top = targets[0].getBoundingClientRect().top;
+      // 제목 칸 맨 위의 MAU 시안은 소개가 끝난 뒤에 나타나 소개 동안 비어 있으니 제목(h1) 윗변부터 잰다.
+      const top = (targets[0].querySelector("h1") || targets[0]).getBoundingClientRect().top;
       const bottom = targets[1].getBoundingClientRect().bottom;
       const dy = Math.max(0, Math.round((window.innerHeight + HEADER_PX) / 2 - (top + bottom) / 2));
       targets.forEach((el) => el.style.setProperty("--intro-dy", `${dy}px`));
@@ -611,6 +616,13 @@ export default function LandingV2Page({ preview = false }) {
     // 처음 한 번만 잰다. 화면 폭이 바뀌어도 다시 하지 않는다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // 넓은 화면 MAU 시안은 이야기 제목이 거의 다 사라졌을 때(STORY.mauIn) 처음 나타난다. 한 번 나타나면 그 뒤로는
+  // 다시 숨기지 않고, 위로 되돌릴 때는 투명도(restMauOpacity)만 낮춘다.
+  const [isStoryTitleGone, setStoryTitleGone] = useState(false);
+  useMotionValueEvent(storyProgress, "change", (v) => {
+    if (!isStacked && !isStoryTitleGone && v >= at(STORY.mauIn)) setStoryTitleGone(true);
+  });
+  const restMauOpacity = useTransform(storyProgress, [STORY.mauFade, STORY.mauIn].map(at), [0, 1]);
   const storyRoomOpacity = useTransform(storyProgress, STORY.roomOut.map(at), [1, 0]);
   const storyTitleOpacity = useTransform(
     storyProgress,
@@ -658,9 +670,26 @@ export default function LandingV2Page({ preview = false }) {
    * 헤더는 모든 페이지가 같이 쓰므로 여기서 그 요소([data-site-header])의 인라인 스타일만 바꾸고,
    * 넓은 화면·확인/완료 창이 떠 있을 때·이 페이지를 떠날 때는 되돌린다.
    */
+  /**
+   * MAU 시안이 제목 위에 차지하는 높이(자리 + 간격, px). 제목 칸(TitleWrap)이 그만큼 커져도 헤더 밀어 올리기가
+   * MAU가 없을 때와 같은 스크롤 구간(맨 위 내용과 함께 1px에 1px)에서 돌게 기준에서 빼 준다.
+   */
+  const mauSlotRef = useRef(null);
+  const [mauSpan, setMauSpan] = useState(0);
+  useLayoutEffect(() => {
+    const slot = mauSlotRef.current;
+    const heading = titleWrapRef.current?.querySelector("h1");
+    if (!slot || !heading) return undefined;
+    // 제목 칸은 position: relative라 h1의 offsetTop이 곧 그 위에 놓인 MAU 자리의 높이다.
+    const measure = () => setMauSpan(Math.max(0, Math.round(heading.offsetTop)));
+    measure();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(slot);
+    return () => observer?.disconnect();
+  }, [isStacked]);
   const { scrollYProgress: headerOut } = useScroll({
     target: isStacked ? titleWrapRef : undefined,
-    offset: [`end ${HEADER_PX * 2}px`, `end ${HEADER_PX}px`],
+    offset: [`end ${HEADER_PX * 2 + mauSpan}px`, `end ${HEADER_PX + mauSpan}px`],
   });
   const pushesHeader = isStacked && !isLockOpen && !created;
   const placeHeader = useCallback(
@@ -705,19 +734,6 @@ export default function LandingV2Page({ preview = false }) {
     window.addEventListener("resize", updateQuickFade);
     return () => window.removeEventListener("resize", updateQuickFade);
   }, [updateQuickFade]);
-
-  // 폼 끝의 만들기 버튼이 아직 화면 아래에 있으면 같은 버튼을 화면 하단에 띄워 둔다.
-  const inlineCtaRef = useRef(null);
-  const [isInlineCtaBelow, setInlineCtaBelow] = useState(true);
-  useEffect(() => {
-    const el = inlineCtaRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return undefined;
-    const observer = new IntersectionObserver(([entry]) => {
-      setInlineCtaBelow(!entry.isIntersecting && entry.boundingClientRect.top > 0);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (hasTracked.current) return;
@@ -1190,7 +1206,7 @@ export default function LandingV2Page({ preview = false }) {
   /** 버튼을 눌러도 바로 만들지 않는다. 시간 잠금을 한 번 물어본 뒤 만든다. */
   const openLock = () => {
     if (!isValid || isLoading) return;
-    // 창을 연 버튼. 하단 고정 막대의 버튼은 창이 뜨는 순간 내려가므로 렌더 전에 잡아 둔다.
+    // 창을 연 버튼. 렌더 전에 잡아 두어 닫을 때 초점을 돌려준다.
     lockOpenerRef.current = document.activeElement;
     tracker.current.event(EVENTS.CREATE_CTA_CLICK, undefined, "landing");
     setBanedCells((prev) => prev.filter((c) => selectedDates.includes(c.slice(0, c.lastIndexOf("-")))));
@@ -1213,16 +1229,24 @@ export default function LandingV2Page({ preview = false }) {
       if (createdRef.current) return null;
       const opener = lockOpenerRef.current;
       if (opener && opener !== document.body && opener.isConnected) return opener;
-      // 하단 고정 막대의 버튼은 잠금 창이 떠 있는 동안 내려갔다 다시 그려진다.
-      // 지금 화면 안에 보이는 만들기 버튼으로 간다(화면 밖 버튼에 초점을 주면 페이지가 그쪽으로 튄다).
-      const shown = [...document.querySelectorAll("[data-create-cta]")].filter(
-        (el) => el.getClientRects().length
-      );
+      // 연 요소가 사라졌으면(초점이 body였거나 다시 그려짐) 지금 화면 안에 보이는 만들기 버튼으로 간다
+      // (화면 밖 버튼에 초점을 주면 페이지가 그쪽으로 튄다).
+      // 배치를 하지 않는 환경(테스트)에서는 그려지는 버튼이 없으니 display: none이 아닌 첫 버튼으로 간다.
+      const all = [...document.querySelectorAll("[data-create-cta]")];
+      const shown = all.filter((el) => el.getClientRects().length);
+      const isDisplayed = (el) => {
+        for (let node = el; node && node !== document.body; node = node.parentElement) {
+          if (window.getComputedStyle(node).display === "none") return false;
+        }
+        return true;
+      };
       return (
         shown.find((el) => {
           const r = el.getBoundingClientRect();
           return r.top >= 0 && r.bottom <= window.innerHeight;
-        }) || shown[0]
+        }) ||
+        shown[0] ||
+        all.find(isDisplayed)
       );
     }
   );
@@ -1331,7 +1355,7 @@ export default function LandingV2Page({ preview = false }) {
   };
 
   /**
-   * 만들기 버튼. 넓은 화면은 미리보기 아래, 좁은 화면은 폼 끝과 화면 하단 고정 막대에 둔다.
+   * 만들기 버튼. 넓은 화면은 미리보기 아래, 좁은 화면은 폼 끝(시간 범위 아래)에 둔다.
    * 화면마다 하나만 보이므로 안내 문구 id는 자리마다 따로 둔다.
    */
   const renderCta = (hintId, { announce = true } = {}) => (
@@ -1425,11 +1449,25 @@ export default function LandingV2Page({ preview = false }) {
         )}
         {/* 휴대폰 폭에서는 투명도를 1로 되돌려 둔다. 넓은 화면에서 연 뒤 창을 좁히면
             움직임 값이 마지막 투명도 0을 남겨 휴대폰 화면 전체가 안 보였다(2026-09-28 사람 보고, restOpacity 참고). */}
-        <RestReveal ref={restRef} style={{ opacity: restOpacity }}>
+        <RestReveal ref={restRef}>
+        {/* 넓은 화면 MAU 신뢰 표시 시안. 폼·미리보기 묶음 바로 위 빈자리에 떠 있다가, 이야기 제목이 거의 다 사라지면
+            세 줄이 떠오르며 숫자가 올라간다(STORY.mauIn). 묶음의 투명도(restOpacity)를 받지 않아 또렷하게 나타나고,
+            위로 되돌리면 제목이 다시 나타나기 전에 흐려진다(restMauOpacity). 휴대폰은 제목 위에 있다(아래 TitleWrap). */}
+        {!isStacked && (
+          <RestMau style={{ opacity: restMauOpacity }}>
+            <MauHero introDone={isStoryTitleGone} />
+          </RestMau>
+        )}
+        <RestFade style={{ opacity: restOpacity }}>
         {/* 넓은 화면 양옆은 AdSense 자동 광고(사이드 레일) 자리다. 이 칸 위로는 광고가 겹치지 않게 한다. */}
         <StartShell google-side-rail-overlap="false">
           {isStacked && (
           <TitleWrap ref={titleWrapRef}>
+            {/* MAU 신뢰 표시 시안(2026-10-02 사람 지시: MAU가 주인공, 등장은 "마지막에"). 제목 위에 자리를 잡아 두고
+                첫 진입 소개가 끝나면 세 줄이 떠오르며 숫자가 올라간다. 스크롤하면 제목과 같이 흐려진다. */}
+            <MauSlot ref={mauSlotRef} style={{ opacity: heroOpacity }}>
+              <MauHero introDone={!isIntroPlaying} />
+            </MauSlot>
             <PageTitle style={{ opacity: heroOpacity, y: 0 }}>
               단체 약속 잡기,{" "}
               <br />
@@ -1827,12 +1865,10 @@ export default function LandingV2Page({ preview = false }) {
                   setTitle(e.target.value);
                 }}
                 onFocus={() => {
-                  setTitleFocused(true);
                   setTitleVisited(true);
                   setQuickShown(true);
                 }}
                 onClick={() => setQuickShown(true)}
-                onBlur={() => setTitleFocused(false)}
                 $nudge={
                   promptActive
                     ? "steady"
@@ -2105,11 +2141,13 @@ export default function LandingV2Page({ preview = false }) {
           </TimeBlock>
         </Builder>
 
-        {/* 좁은 화면: 폼을 다 고친 자리에서 누르는 버튼. 여기가 보이면 하단 고정 막대를 거둔다. */}
-        <CtaBlock ref={inlineCtaRef}>
+        {/* 좁은 화면: 폼(시간 범위) 바로 아래에 두는 만들기 버튼. 화면 아래에 떠 있던 막대는 뗐다
+            (2026-10-04 사람 지시: 붙어 있는 것을 떼서 시간 범위 밑에 고정). */}
+        <CtaBlock>
           {renderCta("start-cta-hint")}
         </CtaBlock>
         </StartShell>
+        </RestFade>
         </RestReveal>
 
         {timeSheet &&
@@ -2127,13 +2165,6 @@ export default function LandingV2Page({ preview = false }) {
             />,
             document.body
           )}
-
-        {/* 좁은 화면 하단 고정 버튼. 첫 화면에서 미리보기·입력창과 함께 보이게 한다. */}
-        {isInlineCtaBelow && !isLockOpen && !created && !(isTouchDevice && isTitleFocused) && (
-          <MobileCtaBar>
-            <MobileCtaInner>{renderCta("start-cta-hint-bar", { announce: false })}</MobileCtaInner>
-          </MobileCtaBar>
-        )}
 
         {/* 열린 칸 옆에 붙는 팝업. /table 의 셀 팝업과 같은 구성이다.
             포털로 body 에 붙여야 미리보기 카드의 overflow 에 잘리지 않는다. */}
@@ -2593,16 +2624,6 @@ const PreviewColumn = styled.div`
   }
 `;
 
-const CtaBlock = styled.div`
-  position: relative;
-  z-index: 1;
-  ${intro(INTRO.rest)}
-
-  @media (min-width: ${theme.breakpoint.lg}) {
-    display: none;
-  }
-`;
-
 /* 좌우로 갈라진 화면 전용. 미리보기 아래에 붙어 미리보기와 함께 고정된다. */
 const SideCta = styled.div`
   display: none;
@@ -2613,40 +2634,15 @@ const SideCta = styled.div`
   }
 `;
 
-/* 좁은 화면 하단 고정 막대. 안내 문구까지 넣으면 첫 화면의 입력창을 가려 버튼만 둔다. */
-const MobileCtaBar = styled.div`
+/* 좁은 화면: 폼 아래 만들기 버튼 칸. 넓은 화면은 미리보기 아래(SideCta)에 둔다. */
+const CtaBlock = styled.div`
+  position: relative;
+  z-index: 1;
   ${intro(INTRO.rest)}
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 900;
-  padding: ${theme.space[3]} ${theme.space[4]} calc(${theme.space[3]} + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
-
-  p {
-    display: none;
-  }
-
-  @media (max-width: 640px) {
-    padding-top: 10px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-
-    button {
-      min-height: 48px;
-    }
-  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
     display: none;
   }
-`;
-
-const MobileCtaInner = styled.div`
-  max-width: 720px;
-  margin: 0 auto;
 `;
 
 /* 제목과 그 위에 겹치는 입력 유도 문구를 같은 자리에 둔다. 제목과 아래 미리보기 사이 간격도 여기서 준다. */
@@ -2826,6 +2822,29 @@ const ScrollHintInner = styled(motion.div)`
       animation: none;
     }
   }
+`;
+
+/* 넓은 화면 MAU 시안 자리. 폼·미리보기 묶음 바로 위(32px 띄움) 가운데에 띄워 둔다. 흐름에서 빠져 있어
+   묶음의 위치와 나타나는 시점(restIn은 묶음 윗변을 잰다)은 MAU가 없을 때와 같다. */
+const RestMau = styled(motion.div)`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  display: flex;
+  justify-content: center;
+  padding-bottom: ${theme.space[8]};
+  pointer-events: none;
+`;
+
+/* 폼·미리보기 묶음의 투명도만 받는 칸. MAU 시안은 이 밖에 있어 묶음과 따로 나타난다. */
+const RestFade = styled(motion.div)``;
+
+/* 휴대폰 제목 위 MAU 시안 자리. 나타나는 때와 움직임은 시안(MauHero)이 맡는다. */
+const MauSlot = styled(motion.div)`
+  display: flex;
+  justify-content: center;
+  margin-bottom: ${theme.space[3]};
 `;
 
 const StoryTitle = styled(motion.h1)`

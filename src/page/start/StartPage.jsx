@@ -9,6 +9,7 @@ import {
   useReducedMotion,
   useScroll,
   useTransform,
+  useMotionValue,
   useMotionValueEvent,
 } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
@@ -52,6 +53,7 @@ import {
 import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
 import useLandingFormTracking from "./useLandingFormTracking";
+import MauHero from "./MauHero";
 
 const DAY_FULL = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 /** 화면에 그리는 순서. 주는 월요일에 시작한다. */
@@ -88,10 +90,13 @@ const HEADER_PX = 72;
 const HEADER_HEIGHT = `${HEADER_PX}px`;
 /** 넓은 화면에서 헤더와 본문 첫 줄(제목·단톡방) 사이 간격(px). theme.space[6]과 같다. */
 const TOP_GAP = 24;
-/** 한 줄로 쌓이는 화면에서 스크롤해 단톡방이 사라지면 제목 자리에 보여 줄 입력 유도 문구(2026-09-27 사람 선택). */
+/** 한 줄로 쌓이는 화면의 입력 유도 문구(2026-09-27 사람 선택). */
 const TITLE_PROMPT = "모임 이름부터 바꿔 보세요";
-/** 휴대폰 입력 유도 문구 막대 높이(px). 카톡방이 멈췄던 화면 맨 위 자리에 붙는다. */
-const PROMPT_BAR_PX = 56;
+/**
+ * 휴대폰 입력 유도 문구가 나타나는 스크롤 구간(px). v2 랜딩과 같은 방식이다(2026-10-04 사람 지시: A에도 똑같이).
+ * 첫 화면에서 폼이 덮고 있던 문구 줄 자리는 스크롤 56px 안에 다 열리므로(formLift) 그 안에서 다 보이게 한다.
+ */
+const PROMPT_IN = [12, 44];
 /** 넓은 화면 모임 이름 입력칸 유도: 기다림 3초 + 강조색·느린 깜빡임 두 번 5초(2026-09-28 사람 지시). */
 const NUDGE_DELAY_MS = 3000;
 const NUDGE_MS = 5000;
@@ -283,7 +288,7 @@ const FAQ_ITEMS = [
  * 정본 랜딩(`/`). 랜딩 자체가 생성 폼이다.
  *
  * 2026-09-27 시안(`/landing-v3`)을 사람 결정으로 `/`에 올렸다. 이전 랜딩과 달라진 큰 줄기:
- * - 첫 화면에 입력창과 줄인 미리보기가 함께 보이도록 배치(휴대폰은 하단 고정 만들기 버튼)
+ * - 첫 화면에 입력창과 줄인 미리보기가 함께 보이도록 배치(휴대폰 만들기 버튼은 폼 끝. 하단 고정 막대는 2026-10-04 뗐다)
  * - 제목 위 카카오톡 단톡방 그림, h1 "단체 약속 잡기, 이 링크 하나면 끝"
  * - 단색 위주의 시각 정리(만들기 버튼만 강조색), 골든타임 칸에만 반짝임
  * - 만들기 전 확인 창(요약 + 시간 잠금 선택), 휴대폰 공유 창 중심의 완료 창
@@ -379,59 +384,92 @@ export default function StartPage() {
    */
   const roomRef = useRef(null);
   const titleWrapRef = useRef(null);
-  const previewColumnRef = useRef(null);
   const builderRef = useRef(null);
   const [isTitleTouched, setTitleTouched] = useState(false);
   // 넓은 화면의 제목 입력 유도(3초 뒤 강조색·두 번 깜빡임)는 입력칸을 한 번 누르면 멈춘다(색은 제목을 고칠 때까지 남는다).
   const [isTitleVisited, setTitleVisited] = useState(false);
-  // 제목 윗변이 화면 위 끝에 닿을 때 0, 아래 끝이 닿을 때 1.
-  const { scrollYProgress: titleOut } = useScroll({
-    target: titleWrapRef,
-    offset: ["start start", "end start"],
-  });
-  const titleOpacity = useTransform(titleOut, [0, 0.6], [1, 0]);
-  const promptOpacity = useTransform(titleOut, [0.6, 0.9], [0, 1]);
-  // 카톡방이 맨 위에 멈춘 뒤 미리보기 윗변이 카톡방 아래 끝에서 화면 위 끝까지 올라오는 동안 0→1.
-  const [roomHeight, setRoomHeight] = useState(160);
+  /**
+   * 한 줄로 쌓이는 화면(휴대폰) 스크롤 연출. v2 랜딩과 같다(2026-10-04 사람 지시: B처럼 스크롤을 내리면 채팅방과
+   * 그 위 MAU 상자가 사라지게).
+   * - 스크롤을 내리기 시작하면 MAU·제목·카톡방이 함께 흐려진다(0→120px). 제목은 헤더를 데리고 올라간다.
+   * - 입력 유도 문구는 미리보기 아래 자리에서 나타난다(PROMPT_IN). 자리는 처음부터 잡아 두어 아래가 밀리지 않는다.
+   *   첫 화면에서는 폼이 그 자리를 덮고 있다가 스크롤만큼 내려가며 비켜 준다(아래 formLift).
+   * 시간이 아니라 스크롤 위치에 묶어 있어 되돌리면 그대로 되돌아온다.
+   * 넓은 화면의 제목 칸은 아래 스크롤 처리가 인라인으로 흐리므로 여기 모션 값을 style에 넣지 않는다(둘이 겹치면
+   * React가 다시 그릴 때 인라인 값이 되돌아간다). 카톡방은 넓은 화면에서 늘 1이어야 해서 폭을 모션 값(stackedValue)으로
+   * 섞어 늘 모션 값 하나를 넘긴다(모션 값과 고정값을 번갈아 넣으면 폭을 바꿀 때 마지막 값이 남는다. v2의 restOpacity 참고).
+   */
+  const promptRowRef = useRef(null);
+  const { scrollY: pageScrollY } = useScroll();
+  const heroOpacity = useTransform(pageScrollY, [0, 120], [1, 0]);
+  const stackedValue = useMotionValue(isStacked ? 1 : 0);
   useLayoutEffect(() => {
-    const room = roomRef.current;
-    if (!room) return undefined;
-    const measure = () => setRoomHeight(Math.max(1, Math.round(room.offsetHeight)));
-    measure();
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
-    observer?.observe(room);
-    return () => observer?.disconnect();
-  }, []);
-  const { scrollYProgress: roomCover } = useScroll({
-    target: previewColumnRef,
-    offset: [`start ${roomHeight}px`, "start start"],
-  });
-  const roomOpacity = useTransform(roomCover, [0, 0.8], [1, 0]);
-  // 다 흐려진 방이 맨 위에 남아 아래 입력칸 터치를 가로채지 않게 한다.
-  const roomVisibility = useTransform(roomCover, (v) => (v >= 0.8 ? "hidden" : "visible"));
-  // 모임 입력 상자 윗변이 문구 막대 세 칸 높이에서 막대 아래 끝까지 올라오는 동안 문구를 거둔다.
-  const { scrollYProgress: promptOut } = useScroll({
-    target: builderRef,
-    offset: [`start ${PROMPT_BAR_PX * 3}px`, `start ${PROMPT_BAR_PX}px`],
-  });
-  const promptBarOpacity = useTransform([promptOpacity, promptOut], ([a, b]) => a * (1 - b));
+    stackedValue.set(isStacked ? 1 : 0);
+  }, [isStacked, stackedValue]);
+  const roomOpacity = useTransform([heroOpacity, stackedValue], ([v, stacked]) => (stacked ? v : 1));
+  const promptOpacity = useTransform(pageScrollY, PROMPT_IN, [0, 1]);
+  const promptY = useTransform(pageScrollY, PROMPT_IN, [8, 0]);
   const [isPromptShown, setPromptShown] = useState(false);
-  const [isPromptTappable, setPromptTappable] = useState(false);
-  // 휴대폰에서 제목을 입력하는 동안에는 하단 고정 막대를 내린다. 키보드 바로 위에 붙어 입력칸 주변을 가렸다.
-  const [isTitleFocused, setTitleFocused] = useState(false);
   // 휴대폰 시간 선택 창. "start" | "end" | null
   const [timeSheet, setTimeSheet] = useState(null);
   const closeTimeSheet = useCallback(() => setTimeSheet(null), []);
-  useMotionValueEvent(titleOut, "change", (v) => {
-    const shown = v > 0.7;
+  useMotionValueEvent(pageScrollY, "change", (v) => {
+    const shown = v >= PROMPT_IN[1];
     setPromptShown((prev) => (prev === shown ? prev : shown));
-  });
-  useMotionValueEvent(promptBarOpacity, "change", (v) => {
-    const tappable = v > 0.5;
-    setPromptTappable((prev) => (prev === tappable ? prev : tappable));
   });
   const showsPrompt = isStacked && !isTitleTouched;
   const promptActive = showsPrompt && isPromptShown;
+
+  /**
+   * 첫 화면 폼 끌어올리기(v2 랜딩의 2026-10-01 사람 지시를 2026-10-04 지시로 여기에도 똑같이): 첫 화면에서는 미리보기와
+   * 입력 박스 사이를 줄이고, 내리기 시작하면 그 사이가 빠르게 벌어지며 입력 유도 문구가 나타난다.
+   * 문구 줄 자리는 그대로 두고 폼만 [문구 줄 높이 + 격자 간격]만큼 올려 미리보기 바로 아래(간격 한 칸)에 붙인다.
+   * 스크롤 1px에 1px씩 제자리로 돌아오므로 그동안 폼은 화면에서 멈춰 있고 미리보기만 올라가며 틈이 벌어진다.
+   * 자리를 줄이지 않고 translate로 옮기므로 문서 배치는 바뀌지 않는다. transform은 폼 등장 애니메이션(introRest)이
+   * 쓰고 있어 따로 적용되는 translate 속성을 쓴다(모르는 브라우저는 예전처럼 틈이 열린 채로 보인다).
+   */
+  const [formLift, setFormLift] = useState(0);
+  useLayoutEffect(() => {
+    const row = promptRowRef.current;
+    if (!isStacked || !row) {
+      setFormLift(0);
+      return undefined;
+    }
+    const measure = () => {
+      const gap = parseFloat(window.getComputedStyle(row.parentElement).rowGap) || 0;
+      setFormLift(Math.round(row.offsetHeight + gap));
+    };
+    measure();
+    // 화면 폭이 바뀌면 격자 간격(12px·24px)과 문구 줄 줄바꿈이 달라진다.
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(row);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [isStacked]);
+  const placeForm = useCallback(
+    (y) => {
+      const form = builderRef.current;
+      if (!form) return;
+      // iOS가 맨 위에서 더 당겨 음수가 되어도 첫 화면 모습을 유지한다.
+      const lift = Math.max(0, formLift - Math.max(0, y));
+      form.style.translate = lift > 0 ? `0 ${-lift}px` : "";
+    },
+    [formLift]
+  );
+  useMotionValueEvent(pageScrollY, "change", placeForm);
+  useLayoutEffect(() => {
+    placeForm(pageScrollY.get());
+  }, [placeForm, pageScrollY]);
+  // 틈이 다 열리기 전에 폼 안을 누르면 틈이 다 열린 스크롤 위치로 먼저 옮긴다. 폼은 화면에서 그대로다.
+  // 휴대폰이 입력칸을 키보드 위로 올릴 자리를 계산한 뒤에 틈이 열리면 입력칸이 그만큼 내려가 키보드에 가린다.
+  const settleFormLift = () => {
+    if (formLift <= 0 || window.scrollY >= formLift) return;
+    window.scrollTo(0, formLift);
+    placeForm(formLift);
+  };
 
   /**
    * 사이트 헤더도 맨 위 제목과 같은 속도로 밀려 올라가며 옅어진다(2026-09-27 사람 지시: 시간으로 접히면 경박하다).
@@ -441,9 +479,26 @@ export default function StartPage() {
    * 헤더는 모든 페이지가 같이 쓰므로 여기서 그 요소([data-site-header])의 인라인 스타일만 바꾸고,
    * 넓은 화면·확인/완료 창이 떠 있을 때·이 페이지를 떠날 때는 되돌린다.
    */
+  /**
+   * MAU 시안이 제목 위에 차지하는 높이(자리 + 간격, px). 제목 칸(TitleWrap)이 그만큼 커져도 헤더 밀어 올리기가
+   * MAU가 없을 때와 같은 스크롤 구간(맨 위 내용과 함께 1px에 1px)에서 돌게 기준에서 빼 준다.
+   */
+  const mauSlotRef = useRef(null);
+  const [mauSpan, setMauSpan] = useState(0);
+  useLayoutEffect(() => {
+    const slot = mauSlotRef.current;
+    const heading = titleWrapRef.current?.querySelector("h1");
+    if (!slot || !heading) return undefined;
+    // 제목 칸은 position: relative라 h1의 offsetTop이 곧 그 위에 놓인 MAU 자리의 높이다.
+    const measure = () => setMauSpan(Math.max(0, Math.round(heading.offsetTop)));
+    measure();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(slot);
+    return () => observer?.disconnect();
+  }, [isStacked]);
   const { scrollYProgress: headerOut } = useScroll({
     target: titleWrapRef,
-    offset: [`end ${HEADER_PX * 2}px`, `end ${HEADER_PX}px`],
+    offset: [`end ${HEADER_PX * 2 + mauSpan}px`, `end ${HEADER_PX + mauSpan}px`],
   });
   const pushesHeader = isStacked && !isLockOpen && !created;
   const placeHeader = useCallback(
@@ -570,19 +625,6 @@ export default function StartPage() {
     window.addEventListener("resize", updateQuickFade);
     return () => window.removeEventListener("resize", updateQuickFade);
   }, [updateQuickFade]);
-
-  // 폼 끝의 만들기 버튼이 아직 화면 아래에 있으면 같은 버튼을 화면 하단에 띄워 둔다.
-  const inlineCtaRef = useRef(null);
-  const [isInlineCtaBelow, setInlineCtaBelow] = useState(true);
-  useEffect(() => {
-    const el = inlineCtaRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return undefined;
-    const observer = new IntersectionObserver(([entry]) => {
-      setInlineCtaBelow(!entry.isIntersecting && entry.boundingClientRect.top > 0);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (hasTracked.current) return;
@@ -1012,11 +1054,14 @@ export default function StartPage() {
   // framer-motion의 페이지 scrollY는 개발 미리보기에서 첫 변화 뒤 갱신이 멈추는 경우가 있었다.
   useEffect(() => {
     if (isStacked) return undefined;
-    const title = titleWrapRef.current?.querySelector("h1");
-    if (!title) return undefined;
+    // MAU 시안과 그 아래 제목(h1)을 함께 흐린다.
+    const parts = titleWrapRef.current ? [...titleWrapRef.current.children] : [];
+    if (!parts.length) return undefined;
     const apply = () => {
       const p = Math.min(Math.max(window.scrollY / titleFadeEnd.current, 0), 1);
-      title.style.opacity = String(1 - p);
+      parts.forEach((el) => {
+        el.style.opacity = String(1 - p);
+      });
     };
     apply();
     window.addEventListener("scroll", apply, { passive: true });
@@ -1024,7 +1069,9 @@ export default function StartPage() {
     return () => {
       window.removeEventListener("scroll", apply);
       window.removeEventListener("resize", apply);
-      title.style.opacity = "";
+      parts.forEach((el) => {
+        el.style.opacity = "";
+      });
     };
   }, [isStacked]);
 
@@ -1102,7 +1149,7 @@ export default function StartPage() {
   /** 버튼을 눌러도 바로 만들지 않는다. 시간 잠금을 한 번 물어본 뒤 만든다. */
   const openLock = () => {
     if (!isValid || isLoading) return;
-    // 창을 연 버튼. 하단 고정 막대의 버튼은 창이 뜨는 순간 내려가므로 렌더 전에 잡아 둔다.
+    // 창을 연 버튼. 렌더 전에 잡아 두어 닫을 때 초점을 돌려준다.
     lockOpenerRef.current = document.activeElement;
     trackEvent(EVENTS.CREATE_CTA_CLICK, undefined, "landing");
     setBanedCells((prev) => prev.filter((c) => selectedDates.includes(c.slice(0, c.lastIndexOf("-")))));
@@ -1125,16 +1172,24 @@ export default function StartPage() {
       if (createdRef.current) return null;
       const opener = lockOpenerRef.current;
       if (opener && opener !== document.body && opener.isConnected) return opener;
-      // 하단 고정 막대의 버튼은 잠금 창이 떠 있는 동안 내려갔다 다시 그려진다.
-      // 지금 화면 안에 보이는 만들기 버튼으로 간다(화면 밖 버튼에 초점을 주면 페이지가 그쪽으로 튄다).
-      const shown = [...document.querySelectorAll("[data-create-cta]")].filter(
-        (el) => el.getClientRects().length
-      );
+      // 연 요소가 사라졌으면(초점이 body였거나 다시 그려짐) 지금 화면 안에 보이는 만들기 버튼으로 간다
+      // (화면 밖 버튼에 초점을 주면 페이지가 그쪽으로 튄다).
+      // 배치를 하지 않는 환경(테스트)에서는 그려지는 버튼이 없으니 display: none이 아닌 첫 버튼으로 간다.
+      const all = [...document.querySelectorAll("[data-create-cta]")];
+      const shown = all.filter((el) => el.getClientRects().length);
+      const isDisplayed = (el) => {
+        for (let node = el; node && node !== document.body; node = node.parentElement) {
+          if (window.getComputedStyle(node).display === "none") return false;
+        }
+        return true;
+      };
       return (
         shown.find((el) => {
           const r = el.getBoundingClientRect();
           return r.top >= 0 && r.bottom <= window.innerHeight;
-        }) || shown[0]
+        }) ||
+        shown[0] ||
+        all.find(isDisplayed)
       );
     }
   );
@@ -1243,7 +1298,7 @@ export default function StartPage() {
   };
 
   /**
-   * 만들기 버튼. 넓은 화면은 미리보기 아래, 좁은 화면은 폼 끝과 화면 하단 고정 막대에 둔다.
+   * 만들기 버튼. 넓은 화면은 미리보기 아래, 좁은 화면은 폼 끝(시간 범위 아래)에 둔다.
    * 화면마다 하나만 보이므로 안내 문구 id는 자리마다 따로 둔다.
    */
   const renderCta = (hintId, { announce = true } = {}) => (
@@ -1275,55 +1330,25 @@ export default function StartPage() {
         {/* 넓은 화면 양옆은 AdSense 자동 광고(사이드 레일) 자리다. 이 칸 위로는 광고가 겹치지 않게 한다. */}
         <StartShell google-side-rail-overlap="false">
           <TitleWrap ref={titleWrapRef}>
-            <PageTitle
-              style={
-                showsPrompt
-                  ? { opacity: titleOpacity, y: 0 }
-                  : isStacked
-                    ? { opacity: 1, y: 0 }
-                    : { y: 0 }
-              }
-            >
+            {/* MAU 신뢰 표시(2026-10-02 사람 지시: MAU가 주인공, 등장은 "마지막에"). 제목 위에 자리를 잡아 두고
+                첫 화면 소개가 끝나면 세 줄이 떠오르며 숫자가 올라간다. 스크롤하면 제목과 같이 흐려진다
+                (휴대폰은 heroOpacity, 넓은 화면은 위 스크롤 처리가 인라인으로). */}
+            <MauSlot ref={mauSlotRef} style={isStacked ? { opacity: heroOpacity } : undefined}>
+              <MauHero introDone={!isIntroPlaying} />
+            </MauSlot>
+            <PageTitle style={isStacked ? { opacity: heroOpacity, y: 0 } : { y: 0 }}>
               단체 약속 잡기,{" "}
               <br />
               이 링크 하나면 끝
             </PageTitle>
           </TitleWrap>
-          {/* 입력 유도 문구 막대. 높이 0인 sticky 자리라 흐름을 밀지 않는다. 카톡방 윗변에서 나타나 함께 올라오다가
-              화면 맨 위(카톡방이 멈추는 자리)에 멈춘다. 누르면 입력칸으로 간다.
-              키보드·스크린리더는 입력칸에 바로 갈 수 있어 이 문구는 건너뛴다(aria-hidden, 초점 없음). */}
-          {showsPrompt && (
-            <PromptDock>
-              <TitlePrompt
-                aria-hidden="true"
-                data-nosnippet
-                onClick={focusTitle}
-                style={{
-                  opacity: promptBarOpacity,
-                  pointerEvents: isPromptShown && isPromptTappable ? "auto" : "none",
-                }}
-              >
-                {TITLE_PROMPT}
-                <FiArrowDown size={20} />
-              </TitlePrompt>
-            </PromptDock>
-          )}
           {/* 카카오톡 단체 톡방 화면 윗부분을 줄여 옮긴 그림. 방 모양은 사람이 준 실제 아이폰 카카오톡 캡처를 따른다.
               그림이라 스크린리더는 건너뛰고(aria-hidden) 뜻은 제목이 말한다. 제목(h1) 밖에 두어
               방 이름·보낸 사람 같은 그림 속 글자가 제목에 섞이지 않게 한다. 링크 글자는 CSS로 그린다.
               좁은 화면은 제목 → 방 → 미리보기 → 폼 순으로 쌓고(2026-09-28 사람 지시로 제목을 먼저), 넓은 화면은
               방을 오른쪽 미리보기 위에 둔다(링크 말풍선 바로 아래에 그 링크로 만들어질 화면이 온다). */}
           {/* data-nosnippet: 그림 속 가짜 글자(방 이름·"언제 시간 돼?")가 검색결과 요약으로 뽑히지 않게 한다. 색인에는 영향이 없다. */}
-          <ChatRoom
-            ref={roomRef}
-            aria-hidden="true"
-            data-nosnippet
-            style={
-              isStacked
-                ? { opacity: roomOpacity, visibility: roomVisibility }
-                : { opacity: 1, visibility: "visible" }
-            }
-          >
+          <ChatRoom ref={roomRef} aria-hidden="true" data-nosnippet style={{ opacity: roomOpacity }}>
             <RoomHeader>
               <RoomAvatars>
                 <RoomAvatar $kind="default">
@@ -1367,7 +1392,7 @@ export default function StartPage() {
           </ChatRoom>
 
         {/* data-nosnippet: 미리보기의 예시 이름·시간·"예시 데이터입니다…"가 검색결과 요약으로 뽑히지 않게 한다. */}
-        <PreviewColumn ref={previewColumnRef} data-nosnippet>
+        <PreviewColumn data-nosnippet>
             {/* 실제 /table 화면을 가짜 데이터로 재현한 미리보기.
                 누를 수 있는 것이 생겼으므로 통짜 role="img"로 감싸지 않는다.
                 격자는 장식으로 감추고, 격자가 말하는 내용은 아래 요약에 글로 남긴다. */}
@@ -1669,7 +1694,29 @@ export default function StartPage() {
             <SideCta>{renderCta("start-cta-hint-side")}</SideCta>
         </PreviewColumn>
 
-        <Builder ref={builderRef} aria-busy={isLoading}>
+        {/* 휴대폰: 입력 유도 문구. 미리보기 아래 자리에서 스크롤을 내리기 시작하면 나타나고, 누르면 입력칸으로 간다.
+            자리는 늘 잡아 두어(제목을 고친 뒤에도 감추기만) 아래 폼이 밀리지 않는다. 첫 화면에서는 폼이 이 자리를
+            덮고 있다가 스크롤만큼 내려가며 비켜 준다(formLift). v2 랜딩과 같다.
+            키보드·스크린리더는 입력칸에 바로 갈 수 있어 이 문구는 건너뛴다(aria-hidden, 초점 없음). */}
+        {isStacked && (
+          <PromptRow
+            ref={promptRowRef}
+            aria-hidden="true"
+            data-nosnippet
+            onClick={focusTitle}
+            style={{
+              opacity: promptOpacity,
+              y: reduceMotion ? 0 : promptY,
+              visibility: showsPrompt ? "visible" : "hidden",
+              pointerEvents: showsPrompt && isPromptShown ? "auto" : "none",
+            }}
+          >
+            {TITLE_PROMPT}
+            <FiArrowDown size={20} />
+          </PromptRow>
+        )}
+
+        <Builder ref={builderRef} aria-busy={isLoading} onFocus={settleFormLift}>
           <SrOnly role="status">{presetAnnounce}</SrOnly>
 
           <FieldBlock>
@@ -1684,12 +1731,10 @@ export default function StartPage() {
                   setTitle(e.target.value);
                 }}
                 onFocus={() => {
-                  setTitleFocused(true);
                   setTitleVisited(true);
                   setQuickShown(true);
                 }}
                 onClick={() => setQuickShown(true)}
-                onBlur={() => setTitleFocused(false)}
                 $nudge={
                   promptActive
                     ? "steady"
@@ -1962,8 +2007,9 @@ export default function StartPage() {
           </TimeBlock>
         </Builder>
 
-        {/* 좁은 화면: 폼을 다 고친 자리에서 누르는 버튼. 여기가 보이면 하단 고정 막대를 거둔다. */}
-        <CtaBlock ref={inlineCtaRef}>
+        {/* 좁은 화면: 폼(시간 범위) 바로 아래에 두는 만들기 버튼. 화면 아래에 떠 있던 막대는 뗐다
+            (2026-10-04 사람 지시: 붙어 있는 것을 떼서 시간 범위 밑에 고정). */}
+        <CtaBlock>
           {renderCta("start-cta-hint")}
         </CtaBlock>
         </StartShell>
@@ -1983,13 +2029,6 @@ export default function StartPage() {
             />,
             document.body
           )}
-
-        {/* 좁은 화면 하단 고정 버튼. 첫 화면에서 미리보기·입력창과 함께 보이게 한다. */}
-        {isInlineCtaBelow && !isLockOpen && !created && !(isTouchDevice && isTitleFocused) && (
-          <MobileCtaBar>
-            <MobileCtaInner>{renderCta("start-cta-hint-bar", { announce: false })}</MobileCtaInner>
-          </MobileCtaBar>
-        )}
 
         {/* 열린 칸 옆에 붙는 팝업. /table 의 셀 팝업과 같은 구성이다.
             포털로 body 에 붙여야 미리보기 카드의 overflow 에 잘리지 않는다. */}
@@ -2443,7 +2482,6 @@ const StartShell = styled("div", withRailAttr)`
 
 const PreviewColumn = styled.div`
   min-width: 0;
-  /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
   position: relative;
   z-index: 1;
   ${introPlay(introRest)}
@@ -2457,16 +2495,6 @@ const PreviewColumn = styled.div`
   }
 `;
 
-const CtaBlock = styled.div`
-  position: relative;
-  z-index: 1;
-  ${introPlay(introRest)}
-
-  @media (min-width: ${theme.breakpoint.lg}) {
-    display: none;
-  }
-`;
-
 /* 좌우로 갈라진 화면 전용. 미리보기 아래에 붙어 미리보기와 함께 고정된다. */
 const SideCta = styled.div`
   display: none;
@@ -2477,43 +2505,18 @@ const SideCta = styled.div`
   }
 `;
 
-/* 좁은 화면 하단 고정 막대. 안내 문구까지 넣으면 첫 화면의 입력창을 가려 버튼만 둔다. */
-const MobileCtaBar = styled.div`
+/* 좁은 화면: 폼 아래 만들기 버튼 칸. 넓은 화면은 미리보기 아래(SideCta)에 둔다. */
+const CtaBlock = styled.div`
+  position: relative;
+  z-index: 1;
   ${introPlay(introRest)}
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 900;
-  padding: ${theme.space[3]} ${theme.space[4]} calc(${theme.space[3]} + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
-
-  p {
-    display: none;
-  }
-
-  @media (max-width: 640px) {
-    padding-top: 10px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-
-    button {
-      min-height: 48px;
-    }
-  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
     display: none;
   }
 `;
 
-const MobileCtaInner = styled.div`
-  max-width: 720px;
-  margin: 0 auto;
-`;
-
-/* 제목과 그 위에 겹치는 입력 유도 문구를 같은 자리에 둔다. 제목과 아래 미리보기 사이 간격도 여기서 준다. */
+/* 제목 칸. 제목과 아래 미리보기 사이 간격도 여기서 준다. */
 const TitleWrap = styled.div`
   position: relative;
   margin-bottom: 14px;
@@ -2532,32 +2535,14 @@ const TitleWrap = styled.div`
   }
 `;
 
-/* 제목 두 줄 자리 한가운데에 한 줄로 뜬다. 화살표만 강조색으로 입력칸 쪽(아래)을 가리킨다. */
-/* 높이 0인 sticky 자리. 카톡방과 같은 격자 칸(2행)에 겹쳐 두어 격자 간격을 하나 더 만들지 않는다.
-   따로 한 줄을 차지하면 높이가 0이어도 제목과 카톡방 사이에 간격이 두 번 붙었다. */
-const PromptDock = styled.div`
-  grid-row: 2;
-  grid-column: 1;
-  align-self: start;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  height: 0;
-`;
-
-/* 입력 유도 문구 막대. 아래로 지나가는 미리보기·폼이 글자 뒤로 비치지 않게 페이지 바탕색을 깐다. */
-const TitlePrompt = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: ${PROMPT_BAR_PX}px;
+/* 휴대폰 입력 유도 문구 줄. 미리보기와 폼 사이에 늘 자리를 잡아 둔다(v2 랜딩의 PromptRow와 같다).
+   화살표만 강조색으로 입력칸 쪽(아래)을 가리킨다. */
+const PromptRow = styled(motion.div)`
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: ${theme.space[1]};
-  background: ${theme.text.gamma[950]};
-  box-shadow: 0 1px 0 ${theme.text.gamma[900]};
   font-family: ${theme.font.family.bold};
   font-size: ${theme.font.size.title3};
   line-height: 1.3;
@@ -2568,6 +2553,18 @@ const TitlePrompt = styled(motion.div)`
   svg {
     flex-shrink: 0;
     color: ${theme.color.primary};
+  }
+`;
+
+/* 제목 위 MAU 시안 자리. 나타나는 때와 움직임은 시안(MauHero)이 맡는다. 넓은 화면은 제목처럼 왼쪽 정렬. */
+const MauSlot = styled(motion.div)`
+  display: flex;
+  justify-content: center;
+  margin-bottom: ${theme.space[3]};
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    --mau-align: flex-start;
+    justify-content: flex-start;
   }
 `;
 
@@ -2602,20 +2599,10 @@ const KAKAO_ROOM = "#BECDDE"; // 채팅방 배경
 const KAKAO_BUBBLE = "#FAE64D"; // 보낸 메시지
 
 /* 단톡방 창. 제목과의 간격은 StartShell의 gap이 맡는다. 넓은 화면에서는 오른쪽 미리보기 위 칸 전체 폭이다.
-   한 줄로 쌓이는 화면에서는 스크롤에 맞춰 작아지고 옅어진다(style로 받는 모션 값). */
+   한 줄로 쌓이는 화면에서는 스크롤에 맞춰 제목과 함께 옅어진다(style로 받는 모션 값, v2 랜딩과 같다). */
 const ChatRoom = styled(motion.div)`
   margin: 0;
   ${introPlay(introGroup)}
-
-  /* 휴대폰: 화면 맨 위에 닿으면 멈춘 채 흐려지고(투명도는 스크롤에 묶음), 미리보기가 그 위로 올라온다.
-     입력 유도 문구 자리(PromptDock)와 같은 칸에 놓이도록 2행을 정해 둔다. 나머지는 자동으로 1·3·4…행에 들어간다. */
-  @media (max-width: ${parseInt(theme.breakpoint.lg, 10) - 1}px) {
-    grid-row: 2;
-    grid-column: 1;
-    position: sticky;
-    top: 0;
-    z-index: 0;
-  }
 
   @media (min-width: ${theme.breakpoint.lg}) {
     grid-area: room;
@@ -2825,7 +2812,6 @@ const LinkText = styled.span`
 
 /* 테두리는 미리보기 카드(PreviewCard)와 같게 둔다(2026-09-28 사람 지시). 두 상자가 나란히·위아래로 놓여 한 벌로 보이게. */
 const Builder = styled.section`
-  /* 휴대폰: 화면 맨 위에 멈춘 카톡방 위로 덮으며 올라온다. */
   position: relative;
   z-index: 1;
   ${introPlay(introRest)}

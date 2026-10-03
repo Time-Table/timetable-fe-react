@@ -17,15 +17,20 @@ jest.mock("react-dom/test-utils", () => ({
   ...jest.requireActual("react-dom/test-utils"), act: require("react").act,
 }));
 jest.mock("../../component/TimeGrid", () => () => null);
+// MAU 신뢰 표시 시안은 가짜 API가 늦게 답해 화면 테스트에 섞이지 않게 뺀다(MauHero.test.jsx에서 따로 본다).
+// 페이지가 넘긴 "이제 나타나도 된다" 신호(introDone)만 표시해 둔다.
+jest.mock("./MauHero", () => ({ introDone }) => <i data-testid="mau-hero" data-intro-done={introDone ? "1" : "0"} />);
 jest.mock("framer-motion", () => {
   const React = require("react");
   const components = {};
-  // 스크롤 연출용 모션 값. jsdom에는 스크롤이 없으니 0에 머무는 값으로 둔다.
+  // 스크롤 연출용 모션 값. jsdom에는 스크롤이 없으니 0에 머무는 값으로 둔다. 스크롤 위치(scrollY)도 이 값을 쓴다.
   const still = { get: () => global.mockScrollProgress ?? 0, on: () => () => {} };
   return {
-    useReducedMotion: () => true,
-    useScroll: () => ({ scrollYProgress: still }),
+    // 기본은 움직임 줄이기(첫 화면 소개 없음). 소개를 보는 테스트만 global.mockReducedMotion = false로 바꾼다.
+    useReducedMotion: () => global.mockReducedMotion ?? true,
+    useScroll: () => ({ scrollY: still, scrollYProgress: still }),
     useTransform: () => still,
+    useMotionValue: () => ({ ...still, set: () => {} }),
     // 테스트가 global.mockScrollProgress를 정하면 첫 렌더 뒤 그 스크롤 진행도로 한 번 알린다.
     useMotionValueEvent: (value, event, callback) => {
       React.useEffect(() => {
@@ -162,6 +167,41 @@ describe("새로고침해도 맨 위에서 시작", () => {
   });
 });
 
+describe("MAU 시안 등장 신호", () => {
+  // jsdom의 Range에는 위치 재기가 없다. 소개가 제목 글자 영역을 잴 때만 빈 상자를 돌려준다.
+  const hadRangeRect = typeof Range.prototype.getBoundingClientRect === "function";
+  beforeEach(() => {
+    jest.useFakeTimers();
+    if (!hadRangeRect) {
+      Range.prototype.getBoundingClientRect = () => ({ top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 });
+    }
+  });
+  afterEach(() => {
+    if (!hadRangeRect) delete Range.prototype.getBoundingClientRect;
+    jest.useRealTimers();
+    delete global.mockReducedMotion;
+  });
+
+  test("첫 화면 소개가 도는 동안은 기다리게 하고, 소개(2.8초)가 끝나면 나타나라고 알린다", () => {
+    global.mockReducedMotion = false;
+    mount();
+    expect(screen.getByRole("main")).toHaveAttribute("data-intro", "on");
+    expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "0");
+
+    act(() => jest.advanceTimersByTime(2700));
+    expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "0");
+
+    act(() => jest.advanceTimersByTime(200));
+    expect(screen.getByRole("main")).not.toHaveAttribute("data-intro");
+    expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "1");
+  });
+
+  test("움직임 줄이기 설정이면 소개가 없으니 처음부터 나타나라고 알린다", () => {
+    mount();
+    expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "1");
+  });
+});
+
 describe("만들기 전 확인 창", () => {
   test("열리면 '링크 만들기'로 초점이 가고 만들 내용을 요약해 보여준다", async () => {
     mount();
@@ -173,15 +213,16 @@ describe("만들기 전 확인 창", () => {
     expect(document.body.style.overflow).toBe("hidden");
   });
 
-  test("Esc는 초점 위치와 상관없이 닫고, 연 버튼으로 초점을 돌려준다", async () => {
+  test("Esc는 초점 위치와 상관없이 닫고, 만들기 버튼으로 초점을 돌려준다", async () => {
     mount();
-    const cta = screen.getAllByRole("button", { name: "이대로 만들기" })[0];
-    cta.focus();
+    screen.getAllByRole("button", { name: "이대로 만들기" })[0].focus();
     await openLock();
     document.body.focus();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: "이대로 만들까요?" })).not.toBeInTheDocument();
-    expect(cta).toHaveFocus();
+    // 하단 고정 막대의 버튼은 창이 떠 있는 동안 내려갔다 다시 그려지므로, 같은 요소가 아니라 만들기 버튼이면 된다.
+    // eslint-disable-next-line testing-library/no-node-access -- 초점이 어느 만들기 버튼에 있는지 본다
+    expect(screen.getAllByRole("button", { name: "이대로 만들기" })).toContain(document.activeElement);
     expect(document.body.style.overflow).toBe("");
     expect(createTable).not.toHaveBeenCalled();
   });
@@ -300,7 +341,7 @@ describe("완료 창", () => {
 describe("휴대폰 스크롤 문구", () => {
   const prompt = () => screen.queryByText("모임 이름부터 바꿔 보세요");
 
-  test("한 줄로 쌓이는 화면에서는 원래 제목(h1)을 남긴 채 문구를 겹쳐 두고, 누르면 입력칸의 기본 제목을 전부 골라 둔다", () => {
+  test("한 줄로 쌓이는 화면에서는 원래 제목(h1)을 남긴 채 문구를 두고, 누르면 입력칸의 기본 제목을 전부 골라 둔다", () => {
     mockMatchMedia(true, true);
     mount();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("단체 약속 잡기, 이 링크 하나면 끝");
@@ -312,11 +353,53 @@ describe("휴대폰 스크롤 문구", () => {
     expect([input.selectionStart, input.selectionEnd]).toEqual([0, input.value.length]);
   });
 
-  test("제목을 한 번 고치면 문구를 거둔다", () => {
+  test("휴대폰은 제목 → 카톡방 → 미리보기 → 입력 유도 문구 → 모임 이름 입력칸 순서다(v2 랜딩과 같다)", () => {
+    mockMatchMedia(true, true);
+    mount();
+    const order = [
+      screen.getByRole("heading", { level: 1 }),
+      screen.getByText("팀플 단체 톡방"),
+      screen.getByRole("region", { name: /타임테이블/ }),
+      prompt(),
+      screen.getByRole("textbox", { name: "모임 이름" }),
+    ];
+    for (let i = 1; i < order.length; i += 1) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  test("제목을 한 번 고치면 문구를 감추되 자리는 남겨 아래 폼이 밀리지 않는다", () => {
     mockMatchMedia(true, true);
     mount();
     fireEvent.change(screen.getByRole("textbox", { name: "모임 이름" }), { target: { value: "동아리 모임" } });
-    expect(prompt()).not.toBeInTheDocument();
+    expect(prompt()).toBeInTheDocument();
+    expect(prompt()).toHaveStyle({ visibility: "hidden" });
+  });
+
+  test("휴대폰 첫 화면은 폼을 문구 줄 자리만큼 올려 미리보기에 붙이고, 그만큼 내리면 제자리에 둔다(v2 랜딩과 같다)", () => {
+    // jsdom은 배치를 하지 않아 문구 줄 높이(44px)만 정해 준다. 격자 간격은 jsdom이 계산하지 않아 0이다.
+    const height = jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(44);
+    mockMatchMedia(true, true);
+    // 폼 상자(section)에 직접 넣은 translate를 읽어야 해서 노드에 접근한다.
+    // eslint-disable-next-line testing-library/no-node-access
+    const form = () => screen.getByRole("textbox", { name: "모임 이름" }).closest("section");
+    try {
+      const { unmount } = mount();
+      expect(form().style.translate).toBe("0 -44px");
+      // 첫 화면에서 입력칸을 누르면 틈이 다 열린 자리(44px)로 먼저 옮겨, 키보드가 입력칸을 가리지 않게 한다.
+      window.scrollTo.mockClear();
+      act(() => screen.getByRole("textbox", { name: "모임 이름" }).focus());
+      expect(window.scrollTo).toHaveBeenCalledWith(0, 44);
+      expect(form().style.translate).toBe("");
+      unmount();
+
+      global.mockScrollProgress = 44;
+      mount();
+      expect(form().style.translate).toBe("");
+    } finally {
+      height.mockRestore();
+      delete global.mockScrollProgress;
+    }
   });
 
   test("좌우로 갈라진 넓은 화면에는 문구가 없다", () => {
@@ -325,16 +408,16 @@ describe("휴대폰 스크롤 문구", () => {
   });
 });
 
-test("휴대폰에서 제목을 입력하는 동안에는 하단 고정 만들기 막대를 내린다", () => {
+test("휴대폰은 만들기 버튼이 폼(시간 범위) 바로 아래에 있고, 화면 아래에 떠 있는 막대는 없다", () => {
   mockMatchMedia(true, true);
   mount();
-  const count = () => screen.getAllByRole("button", { name: "이대로 만들기", hidden: true }).length;
-  const before = count();
-  const input = screen.getByRole("textbox", { name: "모임 이름" });
-  fireEvent.focus(input);
-  expect(count()).toBe(before - 1);
-  fireEvent.blur(input);
-  expect(count()).toBe(before);
+  const buttons = screen.getAllByRole("button", { name: "이대로 만들기" });
+  expect(buttons).toHaveLength(1);
+  const timeRange = screen.getByText("시간 범위");
+  expect(timeRange.compareDocumentPosition(buttons[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // 제목 입력칸에 초점을 줘도 버튼은 그대로다(전에는 하단 막대를 내렸다).
+  fireEvent.focus(screen.getByRole("textbox", { name: "모임 이름" }));
+  expect(screen.getAllByRole("button", { name: "이대로 만들기" })).toHaveLength(1);
 });
 
 describe("헤더 밀어 올리기", () => {
@@ -491,6 +574,21 @@ describe("넓은 화면 제목", () => {
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     fireEvent.scroll(window);
     expect(title.style.opacity).toBe("1");
+  });
+
+  test("제목 위 MAU 시안도 제목과 함께 흐려지고 다시 보인다", () => {
+    mount();
+    // eslint-disable-next-line testing-library/no-node-access -- 시안을 감싼 자리 칸의 인라인 투명도를 본다
+    const slot = screen.getByTestId("mau-hero").parentElement;
+    expect(slot.style.opacity).toBe("1");
+
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 200 });
+    fireEvent.scroll(window);
+    expect(slot.style.opacity).toBe("0");
+
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    fireEvent.scroll(window);
+    expect(slot.style.opacity).toBe("1");
   });
 
   test("한 줄로 쌓이는 화면에서는 이 흐려짐을 쓰지 않는다", () => {

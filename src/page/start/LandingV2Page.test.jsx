@@ -16,21 +16,26 @@ jest.mock("react-dom/test-utils", () => ({
   ...jest.requireActual("react-dom/test-utils"), act: require("react").act,
 }));
 jest.mock("../../component/TimeGrid", () => () => null);
+// MAU 신뢰 표시 시안은 가짜 API가 늦게 답해 화면 테스트에 섞이지 않게 뺀다(MauHero.test.jsx에서 따로 본다).
+// 페이지가 넘긴 "이제 나타나도 된다" 신호(introDone)만 표시해 둔다.
+jest.mock("./MauHero", () => ({ introDone }) => <i data-testid="mau-hero" data-intro-done={introDone ? "1" : "0"} />);
 jest.mock("framer-motion", () => {
   const React = require("react");
   const components = {};
   // 스크롤 연출용 모션 값. jsdom에는 스크롤이 없으니 0에 머무는 값으로 둔다. 스크롤 위치(scrollY)도 이 값을 쓴다.
   const still = { get: () => global.mockScrollProgress ?? 0, on: () => () => {} };
+  // 구간 진행도(scrollYProgress)만 따로 정할 때 쓴다. global.mockStoryProgress가 없으면 위 값과 같다.
+  const progress = { get: () => global.mockStoryProgress ?? global.mockScrollProgress ?? 0, on: () => () => {} };
   return {
     // 기본은 움직임 줄이기(첫 화면 소개 없음). 소개를 보는 테스트만 global.mockReducedMotion = false로 바꾼다.
     useReducedMotion: () => global.mockReducedMotion ?? true,
-    useScroll: () => ({ scrollY: still, scrollYProgress: still }),
+    useScroll: () => ({ scrollY: still, scrollYProgress: progress }),
     useTransform: () => still,
     useMotionValue: () => ({ ...still, set: () => {} }),
-    // 테스트가 global.mockScrollProgress를 정하면 첫 렌더 뒤 그 스크롤 진행도로 한 번 알린다.
+    // 테스트가 global.mockScrollProgress(또는 mockStoryProgress)를 정하면 첫 렌더 뒤 그 모션 값의 지금 값으로 한 번 알린다.
     useMotionValueEvent: (value, event, callback) => {
       React.useEffect(() => {
-        if (global.mockScrollProgress != null) callback(global.mockScrollProgress);
+        if (global.mockScrollProgress != null || global.mockStoryProgress != null) callback(value.get());
       }, []); // eslint-disable-line react-hooks/exhaustive-deps
     },
     AnimatePresence: ({ children }) => children,
@@ -183,11 +188,21 @@ describe("랜딩 실험 v2", () => {
     // 소개가 옮기는 두 요소. 제목은 h1을 감싼 칸, 카톡방은 방 이름이 든 창이다.
     // eslint-disable-next-line testing-library/no-node-access
     const lifted = () => [screen.getByRole("heading", { level: 1 }).parentElement, screen.getByText("팀플 단체 톡방").closest("[aria-hidden]")];
+    let rects;
     try {
+      // 가운데까지 거리는 제목(h1) 윗변과 카톡방 아랫변으로 잰다. 제목 칸 윗변(그 위 MAU 시안 자리 포함)으로 재면 안 된다.
+      // 화면 높이 768, 헤더 72 → 가운데 420. h1 윗변 140, 카톡방 아랫변 400이면 420 - 270 = 150px.
+      rects = jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function rect() {
+        const box = (top, bottom) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top });
+        if (this.tagName === "H1") return box(140, 200);
+        if (this.contains(screen.getByRole("heading", { level: 1 }))) return box(100, 200);
+        if (this.getAttribute("aria-hidden") === "true" && this.textContent.startsWith("팀플 단체 톡방")) return box(212, 400);
+        return box(0, 0);
+      });
       mount();
       expect(screen.getByRole("main")).toHaveAttribute("data-intro", "on");
       expect(document.body.style.overflow).toBe("hidden");
-      lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toMatch(/^\d+px$/));
+      lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toBe("150px"));
 
       // 소개 중에 브라우저가 이전 스크롤 위치를 늦게 되살리면(크롬 새로고침) 맨 위로 되돌린다.
       window.scrollTo.mockClear();
@@ -204,8 +219,40 @@ describe("랜딩 실험 v2", () => {
       expect(document.body.style.overflow).toBe("");
       lifted().forEach((el) => expect(el.style.getPropertyValue("--intro-dy")).toBe(""));
     } finally {
+      rects?.mockRestore();
       jest.useRealTimers();
       delete global.mockReducedMotion;
+    }
+  });
+
+  test("휴대폰 MAU 시안은 첫 진입 소개가 끝난 뒤에 나타나라는 신호를 받는다", () => {
+    jest.useFakeTimers();
+    global.mockReducedMotion = false;
+    mockMatchMedia(true, true);
+    try {
+      mount();
+      expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "0");
+      act(() => jest.advanceTimersByTime(3000));
+      expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "1");
+    } finally {
+      jest.useRealTimers();
+      delete global.mockReducedMotion;
+    }
+  });
+
+  test("넓은 화면 MAU 시안은 이야기 제목이 거의 다 사라질 때(진행도 2.365/2.37) 나타나라는 신호를 받는다", () => {
+    try {
+      // 이야기 구간 진행도만 정한다. 페이지 스크롤 위치(scrollY)는 0이라, 신호가 스크롤 위치에 묶이면 실패한다.
+      global.mockStoryProgress = 2.35 / 2.37;
+      const { unmount } = mount();
+      expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "0");
+      unmount();
+
+      global.mockStoryProgress = 2.366 / 2.37;
+      mount();
+      expect(screen.getByTestId("mau-hero")).toHaveAttribute("data-intro-done", "1");
+    } finally {
+      delete global.mockStoryProgress;
     }
   });
 

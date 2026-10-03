@@ -28,8 +28,9 @@ jest.mock("framer-motion", () => {
   const still = { get: () => 0, on: () => () => {} };
   return {
     useReducedMotion: () => true,
-    useScroll: () => ({ scrollYProgress: still }),
+    useScroll: () => ({ scrollY: still, scrollYProgress: still }),
     useTransform: () => still,
+    useMotionValue: () => ({ ...still, set: () => {} }),
     useMotionValueEvent: () => {},
     AnimatePresence: ({ children }) => children,
     motion: new Proxy({}, { get: (_, tag) => {
