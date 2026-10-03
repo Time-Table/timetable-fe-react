@@ -686,17 +686,20 @@ export default function LandingV2Page({ preview = false }) {
    */
   const mauSlotRef = useRef(null);
   const [mauSpan, setMauSpan] = useState(0);
+  // 제목 칸은 position: relative라 h1의 offsetTop이 곧 그 위에 놓인 MAU 자리의 높이다.
+  const measureMauSpan = useCallback(() => {
+    const heading = titleWrapRef.current?.querySelector("h1");
+    if (heading) setMauSpan(Math.max(0, Math.round(heading.offsetTop)));
+  }, []);
   useLayoutEffect(() => {
     const slot = mauSlotRef.current;
-    const heading = titleWrapRef.current?.querySelector("h1");
-    if (!slot || !heading) return undefined;
-    // 제목 칸은 position: relative라 h1의 offsetTop이 곧 그 위에 놓인 MAU 자리의 높이다.
-    const measure = () => setMauSpan(Math.max(0, Math.round(heading.offsetTop)));
-    measure();
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    if (!slot) return undefined;
+    measureMauSpan();
+    // 자리 높이가 바뀌면(응답이 와서 숨김) 다시 잰다. ResizeObserver가 없는 브라우저는 MauHero의 onSettled로 받는다.
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measureMauSpan) : null;
     observer?.observe(slot);
     return () => observer?.disconnect();
-  }, [isStacked]);
+  }, [isStacked, measureMauSpan]);
   // 소개 중에 제목 위 MAU 자리 높이가 바뀌면(응답이 와서 숨김) 가운데를 다시 잰다.
   useLayoutEffect(() => {
     if (isIntroPlaying) placeIntro();
@@ -1480,7 +1483,7 @@ export default function LandingV2Page({ preview = false }) {
             {/* MAU 신뢰 표시 시안(2026-10-02 사람 지시: MAU가 주인공, 등장은 "마지막에"). 제목 위에 자리를 잡아 두고
                 첫 진입 소개가 끝나면 세 줄이 떠오르며 숫자가 올라간다. 스크롤하면 제목과 같이 흐려진다. */}
             <MauSlot ref={mauSlotRef} style={{ opacity: heroOpacity }}>
-              <MauHero introDone={!isIntroPlaying} />
+              <MauHero introDone={!isIntroPlaying} onSettled={measureMauSpan} />
             </MauSlot>
             <PageTitle style={{ opacity: heroOpacity, y: 0 }}>
               단체 약속 잡기,{" "}

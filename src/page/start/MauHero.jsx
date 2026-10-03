@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import styled from "@emotion/styled";
 import { css, keyframes } from "@emotion/react";
 import theme from "../../theme";
@@ -20,6 +20,7 @@ import { HIDE_AT_OR_BELOW, MAU_COUNT_MS, floorTens } from "./mauStats";
  * 받기 전에는 투명한 자리만 차지한다. 자리가 사라지면 페이지가 첫 진입 소개의 가운데를 다시 잰다(두 랜딩의 placeIntro).
  * 100 이하라 숨겼으면 저장소에 표시해 두어, 다음 방문에서는 받기 전부터 자리를 두지 않는다(배치가 움직이지 않게).
  * 못 받은 경우(null)는 잠깐의 장애일 수 있어 표시를 바꾸지 않는다.
+ * 응답이 와서 자리가 정해지면(그려지거나 사라지면) onSettled를 한 번 불러 페이지가 자리 높이를 다시 재게 한다.
  * 글자 크기(36·48px, 20·24px)는 크기 목록(font.size) 밖의 값이다. 확정하면 디자인 시스템에 올린다.
  * 정렬은 놓는 자리가 정한다(`--mau-align`: center | flex-start).
  */
@@ -36,7 +37,7 @@ const prefersReducedMotion = () =>
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export default function MauHero({ introDone = true }) {
+export default function MauHero({ introDone = true, onSettled }) {
   // undefined: 아직 받는 중, null: 못 받음(숨김), 그 밖에는 { count, asOf }
   const [data, setData] = useState(undefined);
   // 지난번에 100 이하라 숨겼으면 받기 전에도 자리를 두지 않는다. 처음 한 번만 읽는다.
@@ -82,6 +83,11 @@ export default function MauHero({ introDone = true }) {
     frame = window.requestAnimationFrame(step);
     return () => window.cancelAnimationFrame(frame);
   }, [data, introDone, isHidden, target]);
+
+  // 응답 뒤 자리가 정해진 다음(그린 뒤)에 알린다. 페이지는 이때 MAU 자리 높이를 다시 잰다.
+  useLayoutEffect(() => {
+    if (data !== undefined) onSettled?.();
+  }, [data, onSettled]);
 
   if (isHidden || (data === undefined && !reservesSpace)) return null;
   const total = target.toLocaleString("ko-KR");

@@ -1,4 +1,4 @@
-import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY } from "./storage";
+import { clearTableScopedStorage, ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY, LANDING_STATS_HIDDEN_KEY } from "./storage";
 
 /**
  * 2026-07-29 실제 발생한 버그의 회귀 테스트.
@@ -63,8 +63,18 @@ test("보존 대상이 없어도 오류 없이 동작한다", () => {
 
 test("보존 키들은 서로 다른 값을 쓴다", () => {
   // 키가 겹치면 한쪽을 덮어써서 조용히 데이터가 섞인다.
-  const keys = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY];
+  const keys = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, CHAT_SEEN_KEY, LANDING_STATS_HIDDEN_KEY];
   expect(new Set(keys).size).toBe(keys.length);
+});
+
+test("랜딩 신뢰 표시 숨김 힌트도 다른 표에 다녀와도 살아남는다", () => {
+  localStorage.setItem(LANDING_STATS_HIDDEN_KEY, "1");
+  localStorage.setItem("name", "홍길동");
+
+  clearTableScopedStorage();
+
+  expect(localStorage.getItem(LANDING_STATS_HIDDEN_KEY)).toBe("1");
+  expect(localStorage.getItem("name")).toBeNull();
 });
 
 test("대화 읽음 기록도 다른 표에 다녀와도 살아남는다(안 읽은 수가 다시 늘지 않게)", () => {
