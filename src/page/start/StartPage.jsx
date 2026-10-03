@@ -1355,7 +1355,7 @@ export default function StartPage() {
                 첫 화면 소개가 끝나면 세 줄이 떠오르며 숫자가 올라간다. 스크롤하면 제목과 같이 흐려진다
                 (휴대폰은 heroOpacity, 넓은 화면은 위 스크롤 처리가 인라인으로). */}
             <MauSlot ref={mauSlotRef} style={isStacked ? { opacity: heroOpacity } : undefined}>
-              <MauHero introDone={!isIntroPlaying} onSettled={measureMauSpan} />
+              <MauHero introDone={!isIntroPlaying} onSettled={measureMauSpan} compact />
             </MauSlot>
             <PageTitle style={isStacked ? { opacity: heroOpacity, y: 0 } : { y: 0 }}>
               단체 약속 잡기,{" "}
@@ -2577,7 +2577,9 @@ const PromptRow = styled(motion.div)`
   }
 `;
 
-/* 제목 위 MAU 시안 자리. 나타나는 때와 움직임은 시안(MauHero)이 맡는다. 넓은 화면은 제목처럼 왼쪽 정렬. */
+/* 제목 위 MAU 자리. 나타나는 때와 움직임은 MauHero가 맡는다.
+   넓은 화면은 흐름에서 빼 제목 바로 아래(제목 칸 안, 단톡방 높이 안의 빈 78px)에 두 줄로 띄운다(compact). 제목 칸 높이가
+   그대로라 폼·미리보기 자리와 제목 흐림 거리가 MAU가 없을 때와 같다(2026-10-04 사람 선택). 제목처럼 왼쪽 정렬. */
 const MauSlot = styled(motion.div)`
   display: flex;
   justify-content: center;
@@ -2585,6 +2587,11 @@ const MauSlot = styled(motion.div)`
 
   @media (min-width: ${theme.breakpoint.lg}) {
     --mau-align: flex-start;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    margin: 0;
     justify-content: flex-start;
   }
 `;

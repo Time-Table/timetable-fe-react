@@ -23,6 +23,8 @@ import { HIDE_AT_OR_BELOW, MAU_COUNT_MS, floorTens } from "./mauStats";
  * 응답이 와서 자리가 정해지면(그려지거나 사라지면) onSettled를 한 번 불러 페이지가 자리 높이를 다시 재게 한다.
  * 글자 크기(36·48px, 20·24px)는 크기 목록(font.size) 밖의 값이다. 확정하면 디자인 시스템에 올린다.
  * 정렬은 놓는 자리가 정한다(`--mau-align`: center | flex-start).
+ * compact: 넓은 화면(lg 이상)에서 두 줄로 줄인다("최근 30일 동안 230+명" / "타임테이블로 시간을 아꼈어요", 숫자 32px).
+ * A 넓은 화면의 제목 아래 78px 안에 들어가야 폼·미리보기가 밀리지 않는다(2026-10-04 사람 선택: 다른 요소를 밀지 않는 1번).
  */
 const PERIOD = "최근 30일 동안";
 const CAPTION = "타임테이블로 시간을 아꼈어요";
@@ -37,7 +39,7 @@ const prefersReducedMotion = () =>
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export default function MauHero({ introDone = true, onSettled }) {
+export default function MauHero({ introDone = true, onSettled, compact = false }) {
   // undefined: 아직 받는 중, null: 못 받음(숨김), 그 밖에는 { count, asOf }
   const [data, setData] = useState(undefined);
   // 지난번에 100 이하라 숨겼으면 받기 전에도 자리를 두지 않는다. 처음 한 번만 읽는다.
@@ -93,11 +95,11 @@ export default function MauHero({ introDone = true, onSettled }) {
   const total = target.toLocaleString("ko-KR");
 
   return (
-    <Hero data-nosnippet aria-busy={data === undefined}>
-      <Line aria-hidden="true" $on={isOn}>
+    <Hero data-nosnippet aria-busy={data === undefined} $compact={compact}>
+      <Line aria-hidden="true" $on={isOn} $compact={compact} $area="period">
         {PERIOD}
       </Line>
-      <Big aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS}>
+      <Big aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS} $compact={compact}>
         {data ? (
           <>
             <Odometer>
@@ -111,7 +113,7 @@ export default function MauHero({ introDone = true, onSettled }) {
           <BigSkeleton />
         )}
       </Big>
-      <Line aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS * 2}>
+      <Line aria-hidden="true" $on={isOn} $delay={LINE_STAGGER_MS * 2} $compact={compact} $area="caption">
         {CAPTION}
       </Line>
       {data && <SrOnly>{`${PERIOD} ${total}명 넘게 ${CAPTION}`}</SrOnly>}
@@ -144,13 +146,29 @@ const appear = ({ $on, $delay = 0 }) =>
         opacity: 0;
       `;
 
-/* 숫자 블록. 세 줄을 세로로 쌓는다. */
+/* 숫자 블록. 세 줄을 세로로 쌓는다. compact는 넓은 화면에서 기간과 숫자를 한 줄에 놓는다. */
 const Hero = styled.div`
   display: flex;
   flex-direction: column;
   align-items: var(--mau-align, center);
   gap: ${theme.space[1]};
   margin: 0;
+
+  ${({ $compact }) =>
+    $compact &&
+    css`
+      @media (min-width: ${theme.breakpoint.lg}) {
+        display: grid;
+        grid-template-columns: auto auto;
+        grid-template-areas:
+          "period big"
+          "caption caption";
+        justify-content: var(--mau-align, center);
+        align-items: baseline;
+        column-gap: ${theme.space[2]};
+        row-gap: 0;
+      }
+    `}
 `;
 
 /* 숫자 위아래 줄("최근 30일 동안", "타임테이블로 시간을 아꼈어요"). 굵은 검정 20px, 넓은 화면 24px. */
@@ -163,11 +181,13 @@ const Line = styled.p`
   color: ${theme.text.gamma[100]};
 
   @media (min-width: ${theme.breakpoint.lg}) {
-    font-size: 24px;
+    font-size: ${({ $compact }) => ($compact ? theme.font.size.bodyLg : "24px")};
+    grid-area: ${({ $area }) => $area || "auto"};
   }
 `;
 
-/* 숫자 줄. 브랜드 빨강(글자용 단계) 36px, 넓은 화면 48px. 숫자 폭이 흔들리지 않게 고정폭 숫자를 쓴다.
+/* 숫자 줄. 브랜드 빨강(primary, 2026-10-04 사람 지시. 글자용 단계 primaryText에서 바꿈. 흰 배경 2.72:1이라 AA 미달이지만
+   /start는 2026-08-01 사람 결정으로 브랜드 톤을 우선한다) 36px, 넓은 화면 48px. 숫자 폭이 흔들리지 않게 고정폭 숫자를 쓴다.
    받기 전 자리(BigSkeleton)도 같은 높이(1.15em)를 차지해 받은 뒤 아래 내용이 밀리지 않는다. */
 const Big = styled.p`
   ${appear}
@@ -180,10 +200,11 @@ const Big = styled.p`
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: ${theme.color.primaryText};
+  color: ${theme.color.primary};
 
   @media (min-width: ${theme.breakpoint.lg}) {
-    font-size: 48px;
+    font-size: ${({ $compact }) => ($compact ? "32px" : "48px")};
+    grid-area: big;
   }
 `;
 
