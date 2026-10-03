@@ -5,6 +5,7 @@ import { FiAlertCircle, FiStopCircle } from "react-icons/fi";
 import { getLandingAb, stopLandingAb } from "../../api/admin";
 import t from "./tokens";
 import { Card, CardTitle, CardSubtitle, DataTable, Empty, Loading, Spinner, Tag, Segmented, SegmentedItem, Button } from "./ui";
+import LandingChangesCard from "./LandingChangesCard";
 
 /**
  * 매니저 페이지 "A/B 테스트" 탭(2026-09-29). 설계: 하네스 specs/landing-ab-manager.md.
@@ -49,7 +50,7 @@ const formatWhen = (value) =>
 const pct = (value) => (value === null || value === undefined ? "-" : `${value.toLocaleString()}%`);
 const points = (value) => (value === null || value === undefined ? "-" : `${value > 0 ? "+" : ""}${value}%p`);
 
-export default function ExperimentPanel() {
+export default function ExperimentPanel({ focusChangesKey = 0 }) {
   const [device, setDevice] = useState("all");
   const [state, setState] = useState({ loading: true, data: null });
   const [stopError, setStopError] = useState(null);
@@ -87,19 +88,26 @@ export default function ExperimentPanel() {
   };
 
   const { data } = state;
+  // 결과를 못 받아도 "기간 중 변경" 카드는 둔다. 변경 목록은 API와 무관하고, 대시보드 표의 "변경" 단추가 여기로 보낸다.
   if (state.loading && !data) {
     return (
-      <Loading>
-        <Spinner />
-        A/B 결과를 불러오는 중입니다
-      </Loading>
+      <Stack>
+        <Loading>
+          <Spinner />
+          A/B 결과를 불러오는 중입니다
+        </Loading>
+        <LandingChangesCard focusKey={focusChangesKey} />
+      </Stack>
     );
   }
   if (!data || data.error) {
     return (
-      <Card>
-        <Empty>{LOAD_ERRORS[data?.error] || LOAD_ERRORS.failed}</Empty>
-      </Card>
+      <Stack>
+        <Card>
+          <Empty>{LOAD_ERRORS[data?.error] || LOAD_ERRORS.failed}</Empty>
+        </Card>
+        <LandingChangesCard focusKey={focusChangesKey} />
+      </Stack>
     );
   }
 
@@ -237,6 +245,9 @@ export default function ExperimentPanel() {
           차이(B − A) {difference ? `${points(difference.primaryPoints)} · 95% 구간 ${points(difference.ci95[0])}~${points(difference.ci95[1])}` : "-"}
         </Small>
       </Card>
+
+      {/* 실험 중 화면·계측이 바뀐 시각(2026-10-04). 수치를 읽을 때 전후를 나눠 보게 한다. */}
+      <LandingChangesCard focusKey={focusChangesKey} />
 
       <Card style={{ padding: 0 }}>
         <TableHead>

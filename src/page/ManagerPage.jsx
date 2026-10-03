@@ -65,6 +65,7 @@ import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import InquiryFeed from "./manager/InquiryFeed";
 import LandingStatsCard from "./manager/LandingStatsCard";
+import { changesOn, formatChangeTime } from "./manager/landingChanges";
 import ExperimentsTab from "./manager/ExperimentsTab";
 import Explain from "./manager/Explain";
 import Pagination, { usePaged, Anchor } from "./manager/Pagination";
@@ -153,6 +154,8 @@ const ManagerPage = () => {
   const isChecking = useRef(false);
 
   const [activeTab, setActiveTab] = useState("dashboard");
+  // 일별 추이 표의 "변경"을 눌러 A/B 테스트 탭 "기간 중 변경" 카드로 보낼 때 올리는 번호. 0이면 보내지 않는다.
+  const [changesFocusKey, setChangesFocusKey] = useState(0);
   const [period, setPeriod] = useState(30);
   const [monthlyPeriod, setMonthlyPeriod] = useState(3);
   const [monthlyVisits, setMonthlyVisits] = useState(null);
@@ -480,6 +483,13 @@ const ManagerPage = () => {
   };
 
   const currentTab = TABS.find((tab) => tab.key === activeTab);
+
+  // 표의 "변경"을 누르면 A/B 테스트 탭의 "기간 중 변경" 카드로 간다(마우스를 올릴 수 없는 터치 기기·스크린 리더용).
+  const showLandingChanges = () => {
+    setActiveTab("experiments");
+    if (period === 0) setPeriod(30);
+    setChangesFocusKey((key) => key + 1);
+  };
   const todayDate = formatDateTime(new Date()).slice(0, 10);
   const todayStats = trends?.series.find((row) => row.date === todayDate);
 
@@ -526,6 +536,7 @@ const ManagerPage = () => {
               aria-current={activeTab === tab.key ? "page" : undefined}
               onClick={(event) => {
                 setActiveTab(tab.key);
+                setChangesFocusKey(0);
                 if (tab.key !== "blog" && period === 0) setPeriod(30);
                 // 탭 줄에서 고른 탭이 화면 밖에 걸쳐 있으면 보이게 끌어온다.
                 event.currentTarget.scrollIntoView?.({ block: "nearest", inline: "nearest" });
@@ -674,16 +685,32 @@ const ManagerPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {trendPages.rows.map((row) => (
-                            <tr key={row.date}>
-                              <td className="mono">{row.date}</td>
-                              <td className="num strong">{formatStat(row.visitors)}</td>
-                              <td className="num">{row.visits.toLocaleString()}</td>
-                              <td className="num">{row.tables.toLocaleString()}</td>
-                              <td className="num">{row.signUps.toLocaleString()}</td>
-                              <td className="num">{row.logins.toLocaleString()}</td>
-                            </tr>
-                          ))}
+                          {trendPages.rows.map((row) => {
+                            // 그날 랜딩 화면·계측이 바뀌었으면 "변경"을 붙인다(2026-10-04). 내용은 A/B 탭 "기간 중 변경"과 같다.
+                            const changes = changesOn(row.date);
+                            return (
+                              <tr key={row.date}>
+                                <td className="mono">
+                                  {row.date}
+                                  {changes.length > 0 && (
+                                    <ChangeMark
+                                      type="button"
+                                      title={changes.map((c) => `${formatChangeTime(c)} ${c.title}`).join("\n")}
+                                      aria-label={`${row.date} 랜딩 변경 ${changes.length}건: ${changes.map((c) => c.title).join(", ")}. A/B 테스트 탭에서 보기`}
+                                      onClick={showLandingChanges}
+                                    >
+                                      변경
+                                    </ChangeMark>
+                                  )}
+                                </td>
+                                <td className="num strong">{formatStat(row.visitors)}</td>
+                                <td className="num">{row.visits.toLocaleString()}</td>
+                                <td className="num">{row.tables.toLocaleString()}</td>
+                                <td className="num">{row.signUps.toLocaleString()}</td>
+                                <td className="num">{row.logins.toLocaleString()}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </DataTable>
                     </Card>
@@ -1306,7 +1333,7 @@ const ManagerPage = () => {
               {activeTab === "inquiries" && <InquiryFeed onOpenTable={openDetail} />}
 
               {/* ------------------------------------------------ A/B 테스트 */}
-              {activeTab === "experiments" && <ExperimentsTab />}
+              {activeTab === "experiments" && <ExperimentsTab focusChangesKey={changesFocusKey} />}
             </>
           )}
         </Content>
@@ -1753,6 +1780,30 @@ const TodayStats = styled.div`
     flex-basis: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: ${t.space(1)} ${t.space(4)};
+  }
+`;
+
+/* 일별 추이 표에서 랜딩이 바뀐 날 표시. 마우스를 올리면 내용이 보이고, 누르면 A/B 테스트 탭의 "기간 중 변경" 카드로 간다. */
+const ChangeMark = styled.button`
+  display: inline-block;
+  min-height: 24px;
+  margin-left: ${t.space(2)};
+  padding: 2px ${t.space(2)};
+  border: 0;
+  border-radius: 999px;
+  background: ${t.color.surfaceSunken};
+  color: ${t.color.ink2};
+  font: inherit;
+  font-size: 0.6875rem;
+  cursor: pointer;
+
+  &:hover {
+    color: ${t.color.ink};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${t.color.series1};
+    outline-offset: 1px;
   }
 `;
 

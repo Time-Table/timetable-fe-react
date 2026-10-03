@@ -17,7 +17,7 @@ jest.mock("./manager/charts", () => ({
   BarList: () => null,
 }));
 jest.mock("../api/event", () => ({ getFunnels: jest.fn() }));
-jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn() }));
+jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn(), getLandingAb: jest.fn(), stopLandingAb: jest.fn() }));
 jest.mock("../api/visit", () => ({ getTrackVisit: jest.fn() }));
 jest.mock("../api/table", () => ({ getAllTables: jest.fn(), updateTable: jest.fn(), deleteTable: jest.fn() }));
 jest.mock("../utils/admin", () => ({ isAdmin: () => true }));
@@ -163,6 +163,24 @@ test("타일 6개를 BE 순서대로 이름·설명과 함께 보여 주고, 기
   const keys = TrendChart.mock.calls.map(([props]) => props.valueKey);
   expect(keys).toContain("visitors");
   expect(keys).not.toContain("visits");
+});
+
+test("일별 추이 표에서 랜딩이 바뀐 날에는 '변경' 단추가 붙고, 누르면 A/B 테스트 탭으로 간다", async () => {
+  getTrends.mockResolvedValue({ days: 30, metrics: [], series: [
+    { date: "2026-10-04", visitors: 1, visits: 1, tables: 0, signUps: 0, logins: 0 },
+    { date: "2026-10-03", visitors: 1, visits: 1, tables: 0, signUps: 0, logins: 0 },
+  ] });
+  render(<ManagerPage />); await flushUpdates();
+  expect(screen.getAllByText("변경")).toHaveLength(1);
+  const mark = screen.getByRole("button", { name: /2026-10-04 랜딩 변경 3건: .*A PC 신뢰 표시 두 줄 배치.*A\/B 테스트 탭에서 보기/ });
+  expect(mark).toHaveAttribute("title", expect.stringContaining("10-04 02:42"));
+  expect(screen.getByText("2026-10-03")).not.toHaveTextContent("변경");
+
+  await click(mark);
+  expect(screen.getByRole("button", { name: "A/B 테스트" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("group", { name: "실험" })).toBeInTheDocument();
+  // A/B 결과 API가 없어도(여기서는 undefined) 카드는 있고 거기로 초점이 간다.
+  await waitFor(() => expect(screen.getByRole("region", { name: "기간 중 변경" })).toHaveFocus());
 });
 
 test("옛 BE 응답(방문자 칸 없음)이어도 오늘 띠는 방문자만 — 로 두고 나머지는 그대로 보여 준다", async () => {

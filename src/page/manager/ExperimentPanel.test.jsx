@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import Swal from "sweetalert2";
 import ExperimentPanel from "./ExperimentPanel";
+import { LANDING_CHANGES } from "./landingChanges";
 import { getLandingAb, stopLandingAb } from "../../api/admin";
 
 jest.mock("sweetalert2", () => ({ fire: jest.fn() }));
@@ -68,6 +69,54 @@ test("진행 중에는 중간 수치로 판정을 보여 주고, 쪽별 주 지�
   expect(within(table).getByText("빠른 생성 성공")).toBeInTheDocument();
   expect(screen.getByText(/점검용 방문자 ID 2개는 뺐습니다/)).toBeInTheDocument();
   expect(getLandingAb).toHaveBeenCalledWith("all");
+});
+
+test("기간 중 변경 카드가 최근 변경부터 시각·쪽·내용을 보여 준다", async () => {
+  getLandingAb.mockResolvedValue(report());
+  render(<ExperimentPanel />);
+  await screen.findByText("단계별");
+  const card = screen.getByRole("region", { name: "기간 중 변경" });
+  expect(within(card).getAllByRole("listitem")).toHaveLength(LANDING_CHANGES.length);
+  expect(within(card).getByText("A/B 1회차 시작(startAt)")).toBeInTheDocument();
+  expect(within(card).getByText("FE f7451e6·41d6f5a")).toBeInTheDocument();
+  expect(within(card).getAllByText("A·B 둘 다")).toHaveLength(6);
+  expect(within(card).getByText("B만")).toBeInTheDocument();
+  expect(within(card).getByText("계측")).toBeInTheDocument();
+  // 최근 것이 먼저다.
+  const first = within(card).getAllByRole("listitem")[0];
+  expect(first).toHaveTextContent("10-04 02:42");
+});
+
+test("대시보드 표의 '변경'에서 왔으면(focusChangesKey) 기간 중 변경 카드로 초점을 옮기고 화면에 보이게 한다", async () => {
+  getLandingAb.mockResolvedValue(report());
+  const scrollIntoView = jest.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  try {
+    render(<ExperimentPanel focusChangesKey={1} />);
+    const card = await screen.findByRole("region", { name: "기간 중 변경" });
+    await waitFor(() => expect(card).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+  } finally {
+    delete Element.prototype.scrollIntoView;
+  }
+});
+
+test("A/B 결과를 못 받아도(실패·불러오는 중) 기간 중 변경 카드는 보인다", async () => {
+  let resolve;
+  getLandingAb.mockReturnValue(new Promise((r) => { resolve = r; }));
+  render(<ExperimentPanel />);
+  expect(screen.getByText("A/B 결과를 불러오는 중입니다")).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "기간 중 변경" })).toBeInTheDocument();
+  await act(async () => { resolve({ error: "failed" }); });
+  expect(screen.getByText("A/B 결과를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "기간 중 변경" })).toBeInTheDocument();
+});
+
+test("기간 중 변경 카드는 그냥 열었을 때(focusChangesKey 없음)는 초점을 옮기지 않는다", async () => {
+  getLandingAb.mockResolvedValue(report());
+  render(<ExperimentPanel />);
+  const card = await screen.findByRole("region", { name: "기간 중 변경" });
+  expect(card).not.toHaveFocus();
 });
 
 test("기기를 바꾸면 그 기기로 다시 불러온다", async () => {

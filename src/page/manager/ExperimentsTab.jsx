@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "@emotion/styled";
 import t from "./tokens";
 import { Segmented, SegmentedItem } from "./ui";
@@ -11,8 +11,13 @@ const EXPERIMENTS = [
   { value: "table", label: "표 화면 2회차" },
 ];
 
-export default function ExperimentsTab() {
+export default function ExperimentsTab({ focusChangesKey = 0 }) {
   const [which, setWhich] = useState("landing");
+
+  // 대시보드 표의 "변경"에서 왔으면(focusChangesKey > 0) 랜딩 1회차를 보여 준다. "기간 중 변경" 카드가 거기 있다.
+  useEffect(() => {
+    if (focusChangesKey) setWhich("landing");
+  }, [focusChangesKey]);
   return (
     <Stack>
       <Segmented role="group" aria-label="실험">
@@ -28,7 +33,7 @@ export default function ExperimentsTab() {
           </SegmentedItem>
         ))}
       </Segmented>
-      {which === "landing" ? <ExperimentPanel /> : <TableAbPanel />}
+      {which === "landing" ? <ExperimentPanel focusChangesKey={focusChangesKey} /> : <TableAbPanel />}
     </Stack>
   );
 }
