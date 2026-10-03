@@ -643,7 +643,7 @@ export default function TableB({
   const weekSub = edit
     ? (() => {
         const m = M.myInWeek(week, times, selected);
-        return m ? `내 ${M.duration(m)}` : "내 시간 없음";
+        return m ? `이번주 ${M.duration(m)}` : "이번주 시간 없음";
       })()
     : (() => {
         const mx = M.weekMax(week, { times, locked, info });
@@ -784,36 +784,7 @@ export default function TableB({
                 </button>
               )}
             </div>
-            {edit && (
-              <p className="tb-editing" role="status" data-clarity-mask="true">
-                <BIcon name="pen" size={14} />
-                {`${me} 님의 시간`}
-              </p>
-            )}
-
-            {edit ? (
-              <p className="tb-hint">
-                {/* 손가락용·마우스용 중 하나만 보인다(TableB.styles.js .tb-hint-touch·.tb-hint-mouse). */}
-                <span className="tb-hint-touch">
-                  <BIcon name="pointer" size={16} />
-                  한 칸
-                  <span className="tb-dotsep" aria-hidden="true">
-                    ·
-                  </span>
-                  <BIcon name="move" size={16} />
-                  길게 눌러 끌기
-                </span>
-                <span className="tb-hint-mouse">
-                  <BIcon name="pointer" size={16} />
-                  클릭 한 칸
-                  <span className="tb-dotsep" aria-hidden="true">
-                    ·
-                  </span>
-                  <BIcon name="move" size={16} />
-                  누른 채 끌기
-                </span>
-              </p>
-            ) : total === 0 ? (
+            {edit ? null : total === 0 ? (
               <p className="tb-empty">아직 아무도 없어요. 첫 번째로 참여해 보세요!</p>
             ) : (
               <div
@@ -883,25 +854,66 @@ export default function TableB({
               </div>
             )}
 
-            {nWeeks > 1 && (
-              <div className="tb-weekbar">
-                <button className="tb-navbtn" type="button" aria-label="이전 주" disabled={weekIndex === 0} onClick={() => go(weekIndex - 1)}>
-                  <BIcon name="left" size={20} />
-                </button>
-                <div className="tb-weeklabel" role="status">
-                  <b>{M.weekRangeOf(week)}</b>
-                  <span>{`${weekIndex + 1} / ${nWeeks}주 · ${weekSub}`}</span>
-                </div>
-                <button
-                  className="tb-navbtn"
-                  type="button"
-                  aria-label="다음 주"
-                  disabled={weekIndex === nWeeks - 1}
-                  onClick={() => go(weekIndex + 1)}
-                >
-                  <BIcon name="right" size={20} />
-                </button>
+            {/* 입력 중에는 제목 아래 알약 대신 주 넘기기 가운데에 "ㅇㅇ 님의 가능한 시간"을 크게 두고, 칠하기 안내는 그 아래에 둔다
+                (2026-10-04 사람 결정: 시안 1·안내 띠 아래·primary 색, output/table-ab-sian/edit-label). 1주짜리 표는 화살표 없이 문구만. */}
+            {(edit || nWeeks > 1) && (
+              <div className={`tb-weekbar${nWeeks > 1 ? "" : " solo"}`}>
+                {nWeeks > 1 && (
+                  <button className="tb-navbtn" type="button" aria-label="이전 주" disabled={weekIndex === 0} onClick={() => go(weekIndex - 1)}>
+                    <BIcon name="left" size={20} />
+                  </button>
+                )}
+                {edit ? (
+                  <div className="tb-weeklabel me" role="status" data-clarity-mask="true">
+                    <span className="tb-melabel">
+                      <span className="tb-mewho">{`${me} 님의`}</span>
+                      <span className="tb-mewhat">가능한 시간</span>
+                    </span>
+                    {nWeeks > 1 && <span className="tb-mesub">{`${weekIndex + 1} / ${nWeeks}주`}</span>}
+                    <span className="tb-mesub">{weekSub}</span>
+                  </div>
+                ) : (
+                  <div className="tb-weeklabel" role="status">
+                    <b>{M.weekRangeOf(week)}</b>
+                    <span>{`${weekIndex + 1} / ${nWeeks}주 · ${weekSub}`}</span>
+                  </div>
+                )}
+                {nWeeks > 1 && (
+                  <button
+                    className="tb-navbtn"
+                    type="button"
+                    aria-label="다음 주"
+                    disabled={weekIndex === nWeeks - 1}
+                    onClick={() => go(weekIndex + 1)}
+                  >
+                    <BIcon name="right" size={20} />
+                  </button>
+                )}
               </div>
+            )}
+
+            {edit && (
+              <p className="tb-hint">
+                {/* 손가락용·마우스용 중 하나만 보인다(TableB.styles.js .tb-hint-touch·.tb-hint-mouse). */}
+                <span className="tb-hint-touch">
+                  <BIcon name="pointer" size={16} />
+                  한 칸
+                  <span className="tb-dotsep" aria-hidden="true">
+                    ·
+                  </span>
+                  <BIcon name="move" size={16} />
+                  길게 눌러 끌기
+                </span>
+                <span className="tb-hint-mouse">
+                  <BIcon name="pointer" size={16} />
+                  클릭 한 칸
+                  <span className="tb-dotsep" aria-hidden="true">
+                    ·
+                  </span>
+                  <BIcon name="move" size={16} />
+                  누른 채 끌기
+                </span>
+              </p>
             )}
 
             {edit ? (
