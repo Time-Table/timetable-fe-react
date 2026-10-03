@@ -11,8 +11,10 @@ export const TABLE_UI_KEY = "table_ui_choice_v2";
 export const TABLE_UI_VOTE_KEY = "table_ui_vote_v2";
 // 대화 읽음(2026-09-30): 표마다 이 기기에서 마지막으로 본 대화 시각. 다른 표에 다녀와도 남아야 안 읽은 수가 맞다.
 export const CHAT_SEEN_KEY = "tt_chat_seen";
+// 랜딩 신뢰 표시(2026-10-04): 지난번에 숫자가 100명 이하라 숨겼으면 "1". 다음 방문에서 받기 전부터 자리를 비워 둔다.
+export const LANDING_STATS_HIDDEN_KEY = "tt_landing_stats_hidden";
 
-const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY];
+const PERSISTENT_KEYS = [ADMIN_KEY, VISITOR_KEY, SOURCE_KEY, TABLE_UI_KEY, TABLE_UI_VOTE_KEY, CHAT_SEEN_KEY, LANDING_STATS_HIDDEN_KEY];
 
 /**
  * 저장소 읽기·쓰기·지우기. 브라우저가 사이트 저장소를 막으면(접근 자체가 예외) 값이 없는 것으로 보고 화면을 계속 그린다

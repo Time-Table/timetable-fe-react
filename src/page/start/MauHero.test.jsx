@@ -37,6 +37,7 @@ describe("MauHero (랜딩 신뢰 표시: 최근 30일 참여 등록 220+명)", (
   afterEach(() => {
     jest.useRealTimers();
     getLandingStats.mockReset();
+    localStorage.removeItem("tt_landing_stats_hidden");
   });
 
   test("페이지가 신호를 줄 때까지 세 줄은 투명한 채 자리만 차지하고, 신호가 오면 떠오르며 숫자가 0부터 220까지 올라간다", async () => {
@@ -102,6 +103,32 @@ describe("MauHero (랜딩 신뢰 표시: 최근 30일 참여 등록 220+명)", (
     render(<MauHero />);
     await advance(1500);
     expect(screen.queryByText("최근 30일 동안")).not.toBeInTheDocument();
+  });
+
+  test("100명 이하라 숨기면 저장소에 표시하고, 다음 방문에서는 받기 전부터 자리를 두지 않는다", async () => {
+    answerWith({ count: 100, asOf: "2026-10-03" });
+    const { unmount } = render(<MauHero />);
+    expect(screen.getByText("최근 30일 동안")).toBeInTheDocument();
+    await advance(1500);
+    expect(localStorage.getItem("tt_landing_stats_hidden")).toBe("1");
+    unmount();
+
+    // 다음 방문: 받기 전에도 세 줄 자리가 없다. 받은 뒤 101명 이상이면 그리고 표시를 지운다.
+    answerWith({ count: 223, asOf: "2026-10-03" });
+    render(<MauHero />);
+    expect(screen.queryByText("최근 30일 동안")).not.toBeInTheDocument();
+    await advance(1500);
+    expect(screen.getByText("최근 30일 동안")).toBeInTheDocument();
+    expect(localStorage.getItem("tt_landing_stats_hidden")).toBeNull();
+  });
+
+  test("못 받은 경우(null)는 저장소 표시를 바꾸지 않는다", async () => {
+    localStorage.setItem("tt_landing_stats_hidden", "1");
+    answerWith(null);
+    render(<MauHero />);
+    await advance(1500);
+    expect(localStorage.getItem("tt_landing_stats_hidden")).toBe("1");
+    localStorage.removeItem("tt_landing_stats_hidden");
   });
 
   test("십 단위로 내린다(부풀리지 않는다)", () => {

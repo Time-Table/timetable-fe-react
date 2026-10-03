@@ -3,6 +3,7 @@ import styled from "@emotion/styled";
 import { css, keyframes } from "@emotion/react";
 import theme from "../../theme";
 import { getLandingStats } from "../../api/stats";
+import { readStorage, writeStorage, removeStorage, LANDING_STATS_HIDDEN_KEY } from "../../utils/storage";
 import { HIDE_AT_OR_BELOW, MAU_COUNT_MS, floorTens } from "./mauStats";
 
 /**
@@ -16,8 +17,9 @@ import { HIDE_AT_OR_BELOW, MAU_COUNT_MS, floorTens } from "./mauStats";
  * - B 넓은 화면: 스크롤 이야기의 제목이 거의 다 사라졌을 때
  *
  * 숫자는 BE 공개 API(GET /api/stats/landing)에서 받는다. 못 받거나 100 이하면 세 줄을 그리지 않는다.
- * 받기 전에는 투명한 자리만 차지한다(첫 진입 소개가 가운데 계산을 이 자리까지 넣어 두므로, 응답이 늦어 자리가
- * 사라지면 소개 중 배치가 한 번 움직인다. 보통 소개(2.8초)보다 응답이 먼저 온다).
+ * 받기 전에는 투명한 자리만 차지한다. 자리가 사라지면 페이지가 첫 진입 소개의 가운데를 다시 잰다(두 랜딩의 placeIntro).
+ * 100 이하라 숨겼으면 저장소에 표시해 두어, 다음 방문에서는 받기 전부터 자리를 두지 않는다(배치가 움직이지 않게).
+ * 못 받은 경우(null)는 잠깐의 장애일 수 있어 표시를 바꾸지 않는다.
  * 글자 크기(36·48px, 20·24px)는 크기 목록(font.size) 밖의 값이다. 확정하면 디자인 시스템에 올린다.
  * 정렬은 놓는 자리가 정한다(`--mau-align`: center | flex-start).
  */
@@ -37,6 +39,8 @@ const prefersReducedMotion = () =>
 export default function MauHero({ introDone = true }) {
   // undefined: 아직 받는 중, null: 못 받음(숨김), 그 밖에는 { count, asOf }
   const [data, setData] = useState(undefined);
+  // 지난번에 100 이하라 숨겼으면 받기 전에도 자리를 두지 않는다. 처음 한 번만 읽는다.
+  const [reservesSpace] = useState(() => readStorage(LANDING_STATS_HIDDEN_KEY) !== "1");
   const [shown, setShown] = useState(0);
   const [isCounted, setCounted] = useState(false);
   const target = data ? floorTens(data.count) : 0;
@@ -47,7 +51,11 @@ export default function MauHero({ introDone = true }) {
   useEffect(() => {
     let alive = true;
     getLandingStats().then((value) => {
-      if (alive) setData(value);
+      if (!alive) return;
+      setData(value);
+      if (value === null) return;
+      if (value.count <= HIDE_AT_OR_BELOW) writeStorage(LANDING_STATS_HIDDEN_KEY, "1");
+      else removeStorage(LANDING_STATS_HIDDEN_KEY);
     });
     return () => {
       alive = false;
@@ -75,7 +83,7 @@ export default function MauHero({ introDone = true }) {
     return () => window.cancelAnimationFrame(frame);
   }, [data, introDone, isHidden, target]);
 
-  if (isHidden) return null;
+  if (isHidden || (data === undefined && !reservesSpace)) return null;
   const total = target.toLocaleString("ko-KR");
 
   return (

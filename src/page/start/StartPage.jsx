@@ -533,16 +533,22 @@ export default function StartPage() {
     };
   }, []);
 
-  useLayoutEffect(() => {
-    if (!isIntroPlaying) return undefined;
-    window.scrollTo(0, 0);
-    // 헤더 아래 보이는 영역의 가운데에 [제목(위, 크게) + 간격 + 단톡방(아래)] 묶음을 놓는다.
+  /**
+   * 첫 화면 소개의 자리 계산. 헤더 아래 보이는 영역의 가운데에 [제목(위, 크게) + 간격 + 단톡방(아래)] 묶음을 놓는다.
+   * 제목·단톡방은 제자리에 그려 둔 채 CSS 변수(--intro-dx·dy·scale)만큼 옮겨 보여 주므로, 다시 잴 때는 변수를 0으로
+   * 되돌린 뒤 재서 제자리 좌표를 얻는다(소개 중 MAU 자리가 사라져 제자리가 바뀌면 다시 잰다).
+   */
+  const placeIntro = useCallback(() => {
     const cx = window.innerWidth / 2;
     const cy = (window.innerHeight + HEADER_PX) / 2;
-    const targets = [];
     const title = titleWrapRef.current?.querySelector("h1");
     const room = roomRef.current;
     if (title && room) {
+      [title, room].forEach((el) => {
+        el.style.setProperty("--intro-dx", "0px");
+        el.style.setProperty("--intro-dy", "0px");
+      });
+      title.style.setProperty("--intro-scale", "1");
       // 제목 칸은 폭을 꽉 채우고 넓은 화면에서는 글자가 왼쪽 정렬이다. 글자가 실제로 차지하는 영역을 기준으로
       // 옮기고, 그 영역의 가운데를 축으로 키운다.
       const box = title.getBoundingClientRect();
@@ -556,7 +562,6 @@ export default function StartPage() {
       const moveTo = (el, from, x, y) => {
         el.style.setProperty("--intro-dx", `${Math.round(x - (from.left + from.width / 2))}px`);
         el.style.setProperty("--intro-dy", `${Math.round(y - (from.top + from.height / 2))}px`);
-        targets.push(el);
       };
       title.style.setProperty("--intro-scale", scale.toFixed(3));
       title.style.setProperty(
@@ -566,6 +571,14 @@ export default function StartPage() {
       moveTo(title, t, cx, top + (t.height * scale) / 2);
       moveTo(room, r, cx, top + t.height * scale + INTRO_GAP + r.height / 2);
     }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isIntroPlaying) return undefined;
+    window.scrollTo(0, 0);
+    // 소개가 옮기는 두 요소. 정리할 때 변수를 떼려고 지금 잡아 둔다.
+    const lifted = [titleWrapRef.current?.querySelector("h1"), roomRef.current].filter(Boolean);
+    placeIntro();
 
     // 소개 동안 스크롤 막기(휠·터치·키보드). 입력칸 안의 키 입력은 막지 않는다.
     const html = document.documentElement;
@@ -594,11 +607,16 @@ export default function StartPage() {
       window.removeEventListener("keydown", blockKeys);
       window.removeEventListener("scroll", keepTop);
       [html.style.overflow, document.body.style.overflow] = prevOverflow;
-      targets.forEach((el) =>
+      lifted.forEach((el) =>
         ["--intro-dx", "--intro-dy", "--intro-scale", "--intro-origin"].forEach((v) => el.style.removeProperty(v))
       );
     };
-  }, [isIntroPlaying]);
+  }, [isIntroPlaying, placeIntro]);
+
+  // 소개 중에 제목 위 MAU 자리 높이가 바뀌면(응답이 와서 숨김) 가운데를 다시 잰다.
+  useLayoutEffect(() => {
+    if (isIntroPlaying) placeIntro();
+  }, [isIntroPlaying, mauSpan, placeIntro]);
 
   /** 문구를 누르면 입력칸으로 간다. 기본 제목이 들어 있으므로 전부 골라 두어 바로 새로 쓰게 한다. */
   const focusTitle = () => {

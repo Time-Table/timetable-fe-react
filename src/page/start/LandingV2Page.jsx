@@ -545,19 +545,28 @@ export default function LandingV2Page({ preview = false }) {
     };
   }, []);
 
-  // 휴대폰 첫 화면 소개(위 isIntroPlaying). 헤더 아래 보이는 영역의 가운데에 [제목 + 간격 + 단톡방] 묶음을 놓았다가
-  // introLift가 제자리로 올린다. 둘은 같은 거리만큼 내려가 사이 간격이 그대로다.
+  /**
+   * 휴대폰 첫 화면 소개의 자리 계산. 헤더 아래 보이는 영역의 가운데에 [제목 + 간격 + 단톡방] 묶음을 놓았다가
+   * introLift가 제자리로 올린다. 둘은 같은 거리(--intro-dy)만큼 내려가 사이 간격이 그대로다.
+   * 다시 잴 때는 변수를 0으로 되돌린 뒤 재서 제자리 좌표를 얻는다(소개 중 MAU 자리가 사라져 제자리가 바뀌면 다시 잰다).
+   */
+  const placeIntro = useCallback(() => {
+    const targets = [titleWrapRef.current, roomRef.current].filter(Boolean);
+    if (targets.length !== 2) return;
+    targets.forEach((el) => el.style.setProperty("--intro-dy", "0px"));
+    // 제목 칸 맨 위의 MAU 표시는 소개가 끝난 뒤에 나타나 소개 동안 비어 있으니 제목(h1) 윗변부터 잰다.
+    const top = (targets[0].querySelector("h1") || targets[0]).getBoundingClientRect().top;
+    const bottom = targets[1].getBoundingClientRect().bottom;
+    const dy = Math.max(0, Math.round((window.innerHeight + HEADER_PX) / 2 - (top + bottom) / 2));
+    targets.forEach((el) => el.style.setProperty("--intro-dy", `${dy}px`));
+  }, []);
+
   useLayoutEffect(() => {
     if (!isIntroPlaying) return undefined;
     window.scrollTo(0, 0);
-    const targets = [titleWrapRef.current, roomRef.current].filter(Boolean);
-    if (targets.length === 2) {
-      // 제목 칸 맨 위의 MAU 시안은 소개가 끝난 뒤에 나타나 소개 동안 비어 있으니 제목(h1) 윗변부터 잰다.
-      const top = (targets[0].querySelector("h1") || targets[0]).getBoundingClientRect().top;
-      const bottom = targets[1].getBoundingClientRect().bottom;
-      const dy = Math.max(0, Math.round((window.innerHeight + HEADER_PX) / 2 - (top + bottom) / 2));
-      targets.forEach((el) => el.style.setProperty("--intro-dy", `${dy}px`));
-    }
+    // 소개가 옮기는 두 요소. 정리할 때 변수를 떼려고 지금 잡아 둔다.
+    const lifted = [titleWrapRef.current, roomRef.current].filter(Boolean);
+    placeIntro();
 
     // 소개 동안 스크롤 막기(휠·터치·키보드). 입력칸 안의 키 입력은 막지 않는다.
     const html = document.documentElement;
@@ -586,9 +595,10 @@ export default function LandingV2Page({ preview = false }) {
       window.removeEventListener("keydown", blockKeys);
       window.removeEventListener("scroll", keepTop);
       [html.style.overflow, document.body.style.overflow] = prevOverflow;
-      targets.forEach((el) => el.style.removeProperty("--intro-dy"));
+      lifted.forEach((el) => el.style.removeProperty("--intro-dy"));
     };
-  }, [isIntroPlaying]);
+  }, [isIntroPlaying, placeIntro]);
+
 
   /**
    * 넓은 화면 스크롤 이야기. 이야기 구간(Story) 안에서 무대(StoryStage)가 헤더 아래에 붙어 있는 동안
@@ -687,6 +697,10 @@ export default function LandingV2Page({ preview = false }) {
     observer?.observe(slot);
     return () => observer?.disconnect();
   }, [isStacked]);
+  // 소개 중에 제목 위 MAU 자리 높이가 바뀌면(응답이 와서 숨김) 가운데를 다시 잰다.
+  useLayoutEffect(() => {
+    if (isIntroPlaying) placeIntro();
+  }, [isIntroPlaying, mauSpan, placeIntro]);
   const { scrollYProgress: headerOut } = useScroll({
     target: isStacked ? titleWrapRef : undefined,
     offset: [`end ${HEADER_PX * 2 + mauSpan}px`, `end ${HEADER_PX + mauSpan}px`],
