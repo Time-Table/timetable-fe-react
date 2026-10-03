@@ -74,14 +74,14 @@ const cellAt = (key) => document.body.querySelector(`[data-key="${key}"]`);
 const placeCells = () =>
   jest.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ top: 300, bottom: 322, left: 100, right: 150, width: 50, height: 22, x: 100, y: 300 });
 
-const renderB = async ({ users = USERS, me = null, shared = null } = {}) => {
+const renderB = async ({ users = USERS, me = null, shared = null, table = TABLE } = {}) => {
   mockTableId = TABLE_B;
   if (me) {
     localStorage.setItem("tableId", TABLE_B);
     localStorage.setItem("name", me);
   }
   if (shared) sessionStorage.setItem(KEY, JSON.stringify({ v: 1, ...shared }));
-  getTableInfo.mockResolvedValue({ success: true, data: TABLE });
+  getTableInfo.mockResolvedValue({ success: true, data: table });
   getAllSchedule.mockResolvedValue({ success: true, code: 200, data: users });
   const view = render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -207,7 +207,7 @@ describe("참여", () => {
     fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "1234" } });
     fireEvent.click(screen.getByRole("button", { name: "시간 고르기" }));
 
-    expect(await screen.findByText("지우 님의 시간")).toBeInTheDocument();
+    expect(await screen.findByText("지우 님의")).toBeInTheDocument();
     expect(joinUser).toHaveBeenCalledWith(TABLE_B, "지우", "1234");
     expect(sent("join_submit")).toEqual([expect.objectContaining({ uiVersion: "B" })]);
     expect(sent("join_success")).toEqual([expect.objectContaining({ uiVersion: "B" })]);
@@ -324,7 +324,7 @@ describe("내 시간 저장", () => {
     addSchedule.mockRejectedValue(new Error("offline"));
     fireEvent.click(screen.getByRole("button", { name: /^저장하기/ }));
     expect(await screen.findByText("인터넷 연결을 확인하고 다시 해 주세요.")).toHaveClass("pop");
-    expect(screen.getByText("민준 님의 시간")).toBeInTheDocument();
+    expect(screen.getByText("민준 님의")).toBeInTheDocument();
     expect(sent("schedule_save")).toHaveLength(0);
     expect(readTableState(TABLE_B).draft).toEqual(expect.arrayContaining(["2026-09-29-10:00", "2026-09-29-11:30"]));
   });
@@ -340,7 +340,7 @@ describe("내 시간 저장", () => {
 
   test("기존 화면에서 칠하던 칸이 있으면 입력 모드로 이어서 연다", async () => {
     await renderB({ me: "민준", shared: { name: "민준", editing: true, draft: ["2026-09-29-11:00"] } });
-    expect(await screen.findByText("민준 님의 시간")).toBeInTheDocument();
+    expect(await screen.findByText("민준 님의")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장하기, 30분" })).toBeInTheDocument();
     // 자동으로 이어 연 것은 사람이 누른 입력 시작으로 세지 않는다.
     expect(clarityEvents()).not.toContain("tt_b_edit_start");
@@ -353,9 +353,43 @@ describe("내 시간 저장", () => {
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     const confirm = screen.getByRole("dialog", { name: "저장하지 않고 나갈까요?" });
     fireEvent.click(within(confirm).getByRole("button", { name: "나가기" }));
-    expect(screen.queryByText("민준 님의 시간")).not.toBeInTheDocument();
+    expect(screen.queryByText("민준 님의")).not.toBeInTheDocument();
     expect(clarityEvents()).toContain("tt_b_edit_cancel");
     expect(readTableState(TABLE_B)).toEqual(expect.objectContaining({ editing: false, draft: null }));
+  });
+
+  // 2026-10-04 사람 결정: 입력 중 문구는 주 넘기기 가운데에 "ㅇㅇ 님의 가능한 시간"(연필·날짜 없음) / 주 위치 / 이번주 시간, 칠하기 안내는 그 아래.
+  test("입력 중에는 주 넘기기 가운데에 '이름 님의 가능한 시간'·주 위치·이번주 시간이 크게 보이고, 칠하기 안내는 그 아래다", async () => {
+    await renderB({ me: "민준" });
+    fireEvent.click(screen.getByRole("button", { name: /^내 시간 고치기/ }));
+    // eslint-disable-next-line testing-library/no-node-access
+    const label = screen.getByText("민준 님의").closest(".tb-weeklabel");
+    expect(label).toHaveAttribute("data-clarity-mask", "true");
+    expect(within(label).getByText("가능한 시간")).toHaveClass("tb-mewhat");
+    expect(within(label).getByText("1 / 2주")).toBeInTheDocument();
+    expect(within(label).getByText("이번주 1시간")).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(label.querySelector("svg")).toBeNull();
+    expect(screen.queryByText("민준 님의 시간")).not.toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access
+    const hint = screen.getByText(/길게 눌러 끌기/).closest(".tb-hint");
+    expect(label.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "다음 주" }));
+    expect(within(label).getByText("2 / 2주")).toBeInTheDocument();
+    expect(within(label).getByText("이번주 시간 없음")).toBeInTheDocument();
+  });
+
+  test("1주짜리 표는 입력 중에도 화살표·주 수 없이 문구와 이번주 시간만 보인다", async () => {
+    await renderB({ me: "민준", table: { ...TABLE, dates: ["2026-09-28", "2026-09-29"] } });
+    expect(screen.queryByRole("button", { name: "다음 주" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^내 시간 고치기/ }));
+    // eslint-disable-next-line testing-library/no-node-access
+    const label = screen.getByText("민준 님의").closest(".tb-weeklabel");
+    expect(within(label).getByText("가능한 시간")).toBeInTheDocument();
+    expect(within(label).getByText("이번주 1시간")).toBeInTheDocument();
+    expect(within(label).queryByText(/주$/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "이전 주" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 주" })).not.toBeInTheDocument();
   });
 });
 

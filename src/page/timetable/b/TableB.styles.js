@@ -119,8 +119,6 @@ export const BPage = styled.div`
   .tb-title { flex: 1; min-width: 0; margin: 0; font-size: 22px; ${w7} line-height: 1.35; color: var(--g100); overflow-wrap: anywhere; }
   .tb-goldbtn { flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #fff; color: var(--primary-text);
     box-shadow: inset 0 0 0 1.5px #ffc2c2; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .tb-editing { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 0; padding: 5px 12px; border-radius: 999px;
-    background: var(--primary-surface); color: var(--primary-text); font-size: 13px; ${w7} }
   .tb-empty { margin: 0; font-size: 14px; color: var(--g400); }
 
   /* ---------- 참여자 칩(여러 명 고르기) ---------- */
@@ -160,6 +158,14 @@ export const BPage = styled.div`
   .tb-weeklabel { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .tb-weeklabel b { display: inline-flex; align-items: center; gap: 5px; font-size: 16px; ${w7} color: var(--g100); font-variant-numeric: tabular-nums; }
   .tb-weeklabel span { font-size: 12px; ${w5} color: var(--g400); }
+  /* 입력 중: 가운데에 "ㅇㅇ 님의 가능한 시간"(2026-10-04 사람 결정). '가능한 시간'만 주 색으로. 위 b·span 규칙보다 앞서게 .tb-weeklabel .로 쓴다. */
+  .tb-weekbar.solo { justify-content: center; }
+  .tb-weeklabel.me { gap: 2px; }
+  .tb-weeklabel .tb-melabel { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 6px; font-size: 20px; ${w7} line-height: 1.25; letter-spacing: -0.2px; color: var(--g300); }
+  /* 이름은 15자까지라 휴대폰 화살표 사이(약 270px)를 넘칠 수 있다. 이름 쪽만 줄바꿈하고 '가능한 시간'은 한 덩어리로 둔다. */
+  .tb-weeklabel .tb-mewho { min-width: 0; font-size: inherit; color: inherit; text-align: center; overflow-wrap: anywhere; }
+  .tb-weeklabel .tb-mewhat { font-size: inherit; ${w8} color: var(--primary); white-space: nowrap; }
+  .tb-weeklabel .tb-mesub { font-size: 13px; ${w6} line-height: 1.3; color: var(--g400); font-variant-numeric: tabular-nums; }
 
   /* ---------- 격자(랜딩 시간표 모양, 30분 22px·입력 중 26px) ---------- */
   .tb-grid { position: relative; display: grid; grid-template-columns: 30px repeat(7, minmax(30px, 1fr)); width: 100%; max-width: 496px; margin: 0 auto; }
@@ -396,6 +402,8 @@ export const BPage = styled.div`
     .tb-col { max-width: 880px; }
     .tb-body { gap: 24px; padding: 24px 24px 0; }
     .tb-title { font-size: 26px; }
+    .tb-weeklabel .tb-melabel { font-size: 24px; }
+    .tb-weeklabel .tb-mesub { font-size: 14px; }
     .tb-chips { flex-wrap: wrap; gap: 8px 6px; overflow: visible; padding: 2px 0 4px; }
     .tb-chips.fade-l, .tb-chips.fade-r { -webkit-mask-image: none; mask-image: none; }
     .tb-grid { max-width: none; grid-template-columns: 40px repeat(7, minmax(30px, 1fr)); }
