@@ -64,6 +64,7 @@ import StatTile, { formatStat } from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
 import InquiryFeed from "./manager/InquiryFeed";
+import LandingStatsCard from "./manager/LandingStatsCard";
 import ExperimentsTab from "./manager/ExperimentsTab";
 import Explain from "./manager/Explain";
 import Pagination, { usePaged, Anchor } from "./manager/Pagination";
@@ -592,6 +593,9 @@ const ManagerPage = () => {
                       />
                     ))}
                   </Grid>
+
+                  {/* 랜딩 첫 화면의 신뢰 표시가 지금 보여 주는 값과 상태(2026-10-04). 기간 선택과 무관하게 랜딩과 같은 집계를 읽는다. */}
+                  <LandingStatsCard />
 
                   {/* 오늘 네 수치는 한 줄 띠로 둔다. 타일 네 장이면 일별 추이가 첫 화면 밖으로 밀린다(2026-09-28). */}
                   <TodayStrip as="section" aria-label="오늘 통계">

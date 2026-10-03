@@ -1,4 +1,4 @@
-import { getLandingStats } from "./stats";
+import { getLandingStats, fetchLandingStats } from "./stats";
 import { instance as axios } from "./interceptors";
 
 // setupTests가 전체 테스트용으로 바꿔 둔 이 모듈을 여기서는 진짜로 쓴다.
@@ -43,6 +43,19 @@ describe("getLandingStats (랜딩 신뢰 표시 집계)", () => {
   ])("모양이 다르면 null: %s", async (_, body) => {
     axios.get.mockResolvedValue(body);
     await expect(getLandingStats()).resolves.toBeNull();
+  });
+
+  test("fetchLandingStats는 실패 이유를 구분해 돌려준다(매니저 페이지용)", async () => {
+    axios.get.mockResolvedValue(GOOD);
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: true, count: 223, asOf: "2026-10-03", startDate: "2026-09-04", days: 30 });
+    axios.get.mockResolvedValue(withData({ days: 29 }));
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "invalid" });
+    axios.get.mockRejectedValue({ response: { status: 404 } });
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "missing" });
+    axios.get.mockRejectedValue({ code: "ECONNABORTED", message: "timeout of 2500ms exceeded" });
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "timeout" });
+    axios.get.mockRejectedValue({ response: { status: 500 } });
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "error" });
   });
 
   test("실패(404·시간 초과·네트워크)는 null이다", async () => {

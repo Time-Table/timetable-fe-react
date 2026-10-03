@@ -15,4 +15,5 @@ jest.mock("./api/experiment", () => ({
 // jest.fn은 CRA 설정(resetMocks)으로 테스트마다 구현이 지워지므로 평범한 함수로 둔다.
 jest.mock("./api/stats", () => ({
   getLandingStats: () => Promise.resolve(null),
+  fetchLandingStats: () => Promise.resolve({ ok: false, reason: "error" }),
 }));
