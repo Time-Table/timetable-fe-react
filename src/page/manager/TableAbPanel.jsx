@@ -8,13 +8,14 @@ import { Card, CardTitle, CardSubtitle, DataTable, Empty, Loading, Spinner, Tag,
 
 /**
  * 매니저 "A/B 테스트" 탭의 표 화면 2회차(2026-10-01). 설계·계산: 하네스 specs/table-ab-2.md.
- * 상태 + [시작]·[중단](각각 한 번뿐) + 결과. 수는 모두 브라우저(visitorId) 수다.
+ * 상태 + [시작]·[중단](각각 한 번뿐) + 결과. 수는 브라우저(visitorId) 수가 기본이고, "실패율"의 분자·분모만 시도 수다.
+ * 설명문은 2026-10-04 사람 지시("더 이해하기 쉽게, 내용은 유지")로 풀어 썼다. 뜻은 specs/table-ab-2.md 그대로다.
  */
 const STATES = { off: "꺼짐", running: "진행 중", stopped: "중단됨" };
 const VERDICTS = {
-  srm_alert: "판정 보류 · 배정 비율 이상",
+  srm_alert: "판정 보류 · 배정이 반반이 아님",
   rule_pending: "판정 기준(최소 인원·기간)을 정하기 전",
-  insufficient: "판정 보류 · 표본 부족",
+  insufficient: "판정 보류 · 브라우저 수 부족",
   no_difference: "차이 없음",
   b_preferred: "B(새 화면) 선호",
   a_preferred: "A(기존 화면) 선호",
@@ -138,7 +139,8 @@ export default function TableAbPanel() {
             표 화면 A/B 2회차 <Tag>{STATES[status] || status}</Tag>
           </CardTitle>
           <CardSubtitle>
-            A 기존 화면 · B 새 화면 · 브라우저(방문자 ID)마다 반반, 누구나 맨 위 띠로 바꿈 · 판정은 화면을 교체한 브라우저가 마감 때 유지한 화면
+            A는 기존 화면, B는 새 화면입니다. 브라우저(방문자 ID)마다 반반으로 나누고, 누구나 맨 위 띠에서 화면을 바꿀 수 있습니다. 판정은
+            "두 화면을 다 써 본 브라우저가 표 마감 때 어느 화면을 쓰고 있었나"로 합니다.
           </CardSubtitle>
         </div>
         {status === "off" && (
@@ -175,8 +177,8 @@ export default function TableAbPanel() {
       {actionError && <Alert role="alert">{actionError}</Alert>}
       <Note>
         {status === "off"
-          ? "꺼져 있어 모두 기존 화면(A)을 보고 띠도 없습니다. 시작 전에 판정 기준(배정별 최소 '교체한 브라우저' 수와 기간)을 정하세요."
-          : `유지한 화면 = 그 브라우저가 본 대상 표 중 가장 늦은 마감 때의 선택(어느 표에서든 마지막으로 보거나 바꾼 화면). 교체한 브라우저 = 그때까지 A·B를 모두 본 브라우저. 대상 표 = 마감이 지났고 마감까지 3명 이상 참여 등록, 마감이 시작 뒤 ${experiment.maxDeadlineDays}일 안.`}
+          ? "지금은 꺼져 있어 모두 기존 화면(A)을 보고 띠도 없습니다. 시작 전에 판정 기준을 정하세요. 기준은 두 가지입니다. 배정(A·B)마다 '교체한 브라우저'가 최소 몇 곳이어야 하는지, 그리고 얼마나 오래 돌릴지."
+          : `용어 세 가지. ① 유지한 화면: 그 브라우저가 본 대상 표 가운데 가장 늦게 마감된 표의 마감 시각에 쓰고 있던 화면입니다(어느 표에서든 마지막으로 보거나 바꾼 화면). ② 교체한 브라우저: 그때까지 A와 B를 둘 다 본 적 있는 브라우저입니다. ③ 대상 표: 마감이 지났고, 마감까지 3명 이상 참여 등록했고, 마감이 실험 시작 뒤 ${experiment.maxDeadlineDays}일 안에 있는 표입니다.`}
       </Note>
     </Card>
   );
@@ -190,8 +192,9 @@ export default function TableAbPanel() {
       <Card>
         <CardTitle>주 지표 · 교체한 브라우저가 마감 때 유지한 화면(조건부 선호)</CardTitle>
         <CardSubtitle>
-          대상 표 {num(tables.qualifying)}개(마감된 표 {num(tables.closed)}개 중, 만든 뒤 날짜·시간을 바꾼 표 {num(tables.changed)}개 포함). 배정별 B 유지 비율의 평균이
-          50%보다 높으면 B 선호. 무작위 전체의 화면 효과가 아니라 화면을 교체해 본 사람의 선호입니다.
+          대상 표는 {num(tables.qualifying)}개입니다(마감된 표 {num(tables.closed)}개 가운데 조건에 맞는 표. 만든 뒤 날짜·시간을 바꾼 표 {num(tables.changed)}개 포함).
+          읽는 법: A 배정과 B 배정 각각 "B를 유지한 비율"을 구해 둘의 평균을 냅니다. 50%보다 높으면 B 선호, 낮으면 A 선호입니다. 이 수치는 두 화면을
+          다 써 본 사람의 선호이지, 무작위로 나뉜 전체에 대한 화면 효과가 아닙니다.
         </CardSubtitle>
         <Verdict data-verdict={verdict}>
           {status === "running" && <small>중간 수치 · </small>}
@@ -208,9 +211,9 @@ export default function TableAbPanel() {
         </Big>
         <PreferenceTable pref={pref} caption="대상 표 기준 조건부 선호" />
         <Note>
-          모든 표 기준 평균 {pct(preference.allTables.mean)}({range(preference.allTables.ci95)}) · 교체한 비율 A 배정 {pct(preference.triedShare.A)} · B 배정{" "}
-          {pct(preference.triedShare.B)} · 실험 전 기록이 관측된 브라우저 평균 {pct(preference.byHistory.observed.mean)}, 안 된 브라우저{" "}
-          {pct(preference.byHistory.notObserved.mean)}
+          참고 수치. 대상 표 조건 없이 모든 표로 계산한 평균 {pct(preference.allTables.mean)}({range(preference.allTables.ci95)}). 화면을 바꿔 본 브라우저의 비율은 A 배정{" "}
+          {pct(preference.triedShare.A)}, B 배정 {pct(preference.triedShare.B)}. 실험 전부터 기록이 있던 브라우저의 평균 {pct(preference.byHistory.observed.mean)}, 실험 뒤 처음 온 브라우저의
+          평균 {pct(preference.byHistory.notObserved.mean)}.
         </Note>
       </Card>
 
@@ -222,7 +225,7 @@ export default function TableAbPanel() {
             <tr>
               <th scope="col">배정</th>
               <th scope="col">화면이 보인 브라우저</th>
-              <th scope="col">상태를 못 받아 A로 본 브라우저</th>
+              <th scope="col">실험 상태를 못 받아 A로 본 브라우저</th>
             </tr>
           </thead>
           <tbody>
@@ -235,12 +238,16 @@ export default function TableAbPanel() {
             ))}
           </tbody>
         </DataTable>
-        <Note>50:50 검사 p = {assignment.srmPValue ?? "-"} (0.01보다 작으면 판정 보류)</Note>
+        <Note>50:50 검사 p = {assignment.srmPValue ?? "-"} (0.01보다 작으면 배정이 반반이 아니라고 보고 판정을 보류합니다)</Note>
       </Card>
 
       <Card>
         <CardTitle>실패</CardTitle>
-        <CardSubtitle>요청 기준 실패율과, 시도한 브라우저 중 한 번이라도 실패를 겪은 비율을 따로 봅니다. 화면은 그 기록 때의 화면입니다.</CardSubtitle>
+        <CardSubtitle>
+          두 가지로 봅니다. "실패율"은 시도 횟수 기준이라 한 사람이 여러 번 실패하면 그만큼 셉니다. "실패를 겪은 브라우저"는 시도한 브라우저 가운데 한 번이라도
+          실패한 곳의 비율입니다. 괄호 안은 (실패 수/전체 수). 화면(A·B)은 그 기록이 남을 때 쓰던 화면입니다. "참여 입력 오류"는 빈칸이거나 쓸 수 없는 글자라서
+          서버에 보내기 전에 막힌 시도이고, "참여 실패 이유"는 입력 오류와 서버 실패를 합쳐 이유별 시도 수를 셉니다.
+        </CardSubtitle>
         <DataTable $compact>
           <caption className="sr-only">화면별 실패</caption>
           <thead>
@@ -315,7 +322,7 @@ export default function TableAbPanel() {
       {votes && (
         <Card>
           <CardTitle>하트 투표</CardTitle>
-          <CardSubtitle>띠의 하트로 고른 화면. 브라우저마다 마지막 표 하나(취소하면 빠짐). 판정에는 쓰지 않습니다.</CardSubtitle>
+          <CardSubtitle>맨 위 띠의 하트로 고른 화면입니다. 브라우저마다 마지막에 누른 한 표만 세고, 취소하면 빠집니다. 참고용이고 판정에는 쓰지 않습니다.</CardSubtitle>
           <Big>
             기존 화면 {num(votes.A)}표 · 새 화면 {num(votes.B)}표
           </Big>
@@ -328,9 +335,10 @@ export default function TableAbPanel() {
       <Card>
         <CardTitle>참고</CardTitle>
         <Note>
-          참여 성공: A 새 참여 {num(joins.A.new)} · 다시 들어옴 {num(joins.A.returning)} / B 새 참여 {num(joins.B.new)} · 다시 들어옴 {num(joins.B.returning)}.
-          배정은 브라우저마다 정해진 값이라, 다른 표에서 이미 화면을 바꾼 브라우저는 배정과 다른 화면으로 열립니다.
-          새 화면은 입력 중에 공유·순위 단추가 숨어 누를 기회가 기존 화면과 다릅니다. 같은 사람이 다른 기기를 쓰면 다른 브라우저로 셉니다.
+          참여 성공 수: A는 새 참여 {num(joins.A.new)} · 다시 들어옴 {num(joins.A.returning)}, B는 새 참여 {num(joins.B.new)} · 다시 들어옴 {num(joins.B.returning)}.
+          읽을 때 주의할 점 세 가지. ① 배정은 브라우저마다 고정이지만, 다른 표에서 이미 화면을 바꾼 브라우저는 배정과 다른 화면으로 열립니다.
+          ② 새 화면은 시간을 입력하는 동안 공유·순위 단추가 숨어 있어, 그 단추를 누를 기회가 기존 화면과 다릅니다. ③ 같은 사람이라도 다른 기기를 쓰면 다른
+          브라우저로 셉니다.
         </Note>
       </Card>
     </Stack>
