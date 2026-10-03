@@ -32,7 +32,7 @@ const canonicalFor = (pathname) => {
 const Seo = ({
   title = "타임테이블 - 쉽고 빠른 모임 일정 조율 서비스",
   description = "팀 일정 조율이 더 쉬워집니다. 최적의 시간을 찾아보세요.",
-  image = `${SITE_URL}/og-image.png`,
+  image = `${SITE_URL}/og-image-v2.png`,
   noindex,
 }) => {
   const { pathname } = useLocation();

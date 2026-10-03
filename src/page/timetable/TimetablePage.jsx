@@ -17,10 +17,18 @@ import { trackVisit } from "../../api/visit";
 import {
   trackEvent, trackEventKeepalive, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi, getActiveTableUi,
 } from "../../utils/analytics";
-import { experimentVisitorId, resolveTableUi, switchTableUi, tagTableUi } from "../../utils/tableExperiment";
+import {
+  experimentVisitorId,
+  readTableUiVote,
+  resolveTableUi,
+  switchTableUi,
+  tagTableUi,
+  voteTableUi,
+} from "../../utils/tableExperiment";
 import { getTableAbState } from "../../api/experiment";
 import useUiSegment from "./useUiSegment";
 import { clearTableScopedStorage, readStorage, writeStorage } from "../../utils/storage";
+import { setShellWidth } from "../../utils/siteShell";
 import { readTableState, writeTableState, timeInfoOf, validCellsOf } from "../../utils/tableSession";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,6 +53,11 @@ const TableB = lazyPage(() => import("./b/TableB"), {
   onRetry: () => reportBLoadFail("chunk_retry"),
   onFail: () => reportBLoadFail("chunk_failed"),
 });
+
+// 새 화면(B) 본문 폭(b/TableB.styles.js .tb-col max-width). 머리말·띠도 같은 폭으로 줄인다(2026-10-02 사람 지시).
+// 휴대폰·태블릿은 480px 한 줄, PC(1024px 이상)는 880px로 넓힌다(2026-10-02 사람 결정 "1번 - 넓힌 열").
+const B_COLUMN_WIDTH = 480;
+const B_COLUMN_WIDTH_PC = 880;
 
 // component/Header.jsx 의 sticky 헤더 높이. 내 일정 요일·날짜 줄이 그 밑에 붙는다.
 const SITE_HEADER_HEIGHT = "72px";
@@ -335,6 +348,8 @@ function TimetablePageView() {
   const [abState, setAbState] = useState(null);
   const [visitorId] = useState(experimentVisitorId);
   const [uiChoice, setUiChoice] = useState(null);
+  // 띠 하트 투표(2026-10-02): 이 브라우저가 투표한 화면. 사람당 한 표라 표를 옮겨도 남는다.
+  const [uiVote, setUiVote] = useState(readTableUiVote);
   const [bRendered, setBRendered] = useState(false);
   useEffect(() => {
     let alive = true;
@@ -378,6 +393,13 @@ function TimetablePageView() {
     uiVersion,
     active: abOn && (uiVersion === "A" ? scheduleStatus === "ready" : bRendered),
   });
+
+  // 새 화면이 떠 있는 동안 사이트 머리말을 새 화면 폭으로 줄인다(바닥글은 그대로).
+  const bShown = isValidTableId === true && uiVersion === "B";
+  const bColumnWidth = isDesktop ? B_COLUMN_WIDTH_PC : B_COLUMN_WIDTH;
+  useEffect(() => (bShown ? setShellWidth(bColumnWidth) : undefined), [bShown, bColumnWidth]);
+  // 기록·저장은 상태 갱신 함수 밖에서 한 번만 한다(갱신 함수는 개발 모드에서 두 번 돌 수 있다).
+  const handleVoteUi = () => setUiVote(voteTableUi(tableId, uiVersion, uiVote));
 
   const handleSwitchUi = (next) => {
     switchTableUi(tableId, next, { viewId: currentViewId() });
@@ -724,8 +746,14 @@ function TimetablePageView() {
   if (isValidTableId && uiVersion === "B") {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
-      <>
-        <TableUiBand version="B" onSwitch={handleSwitchUi} />
+      <BShell>
+        <TableUiBand
+          version="B"
+          onSwitch={handleSwitchUi}
+          vote={uiVote}
+          onVote={handleVoteUi}
+          narrowWidth={bColumnWidth}
+        />
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
@@ -756,13 +784,13 @@ function TimetablePageView() {
             onRendered={() => setBRendered(true)}
           />
         </Suspense>
-      </>
+      </BShell>
     );
   }
 
   return isValidTableId ? (
     <>
-      {abOn && <TableUiBand version="A" onSwitch={handleSwitchUi} />}
+      {abOn && <TableUiBand version="A" onSwitch={handleSwitchUi} vote={uiVote} onVote={handleVoteUi} />}
       <PageWrapper>
         <Seo
           title={`${title || "테이블"}`}
@@ -1411,6 +1439,15 @@ const RetryButton = styled.button`
 
 const ContentPanel = styled.main`
   width: 100%;
+`;
+
+// 새 화면(B): 띠와 표 화면을 첫 화면(머리말 아래 남은 높이)에 딱 맞춘다. 내용이 짧아도 아래 막대가 화면 맨 아래에 오고
+// 바닥글은 그 아래부터 보인다(2026-10-02 사람 지시 "첫 화면 딱 맞게 최소크기"). dvh는 휴대폰 주소창 높이를 뺀 값이다.
+const BShell = styled.div`
+     display: flex;
+     flex-direction: column;
+     min-height: calc(100vh - ${SITE_HEADER_HEIGHT});
+     min-height: calc(100dvh - ${SITE_HEADER_HEIGHT});
 `;
 
 const LoaderLayout = styled.div`

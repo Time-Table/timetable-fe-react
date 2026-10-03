@@ -171,6 +171,7 @@ describe("이벤트 이름", () => {
         "join_fail",
         "save_fail",
         "ui_load_fail",
+        "ui_vote",
       ].sort(),
     );
   });

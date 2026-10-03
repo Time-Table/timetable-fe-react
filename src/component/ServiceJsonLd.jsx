@@ -22,7 +22,7 @@ const jsonLd = {
   operatingSystem: "All",
   browserRequirements: "최신 웹 브라우저",
   inLanguage: "ko-KR",
-  image: `${SITE_URL}/og-image.png`,
+  image: `${SITE_URL}/og-image-v2.png`,
   // 무료라는 사실은 경쟁 도구와 갈리는 지점이라 명시한다.
   offers: {
     "@type": "Offer",

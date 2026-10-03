@@ -1,7 +1,7 @@
-import { TABLE_AB, assignedTableUi, resolveTableUi, switchTableUi, experimentVisitorId } from "./tableExperiment";
+import { TABLE_AB, assignedTableUi, resolveTableUi, switchTableUi, experimentVisitorId, readTableUiVote, voteTableUi } from "./tableExperiment";
 import { setActiveTableUi } from "./analytics";
 import { grantAdmin } from "./admin";
-import { TABLE_UI_KEY, VISITOR_KEY, clearTableScopedStorage } from "./storage";
+import { TABLE_UI_KEY, TABLE_UI_VOTE_KEY, VISITOR_KEY, clearTableScopedStorage } from "./storage";
 import { sendEvent } from "../api/event";
 
 jest.mock("../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
@@ -78,4 +78,22 @@ describe("고른 화면", () => {
     expect(sendEvent).not.toHaveBeenCalled();
     expect(window.clarity).not.toHaveBeenCalled();
   });
+});
+
+test("띠 하트 투표: 지금 화면에 한 표, 다른 화면 표는 옮겨 오고, 같은 화면을 다시 누르면 취소", () => {
+  localStorage.clear();
+  sendEvent.mockClear();
+  expect(readTableUiVote()).toBeNull();
+  expect(voteTableUi("t1", "A", null)).toBe("A");
+  expect(readTableUiVote()).toBe("A");
+  expect(voteTableUi("t1", "B", "A")).toBe("B");
+  expect(readTableUiVote()).toBe("B");
+  expect(voteTableUi("t1", "B", "B")).toBeNull();
+  expect(readTableUiVote()).toBeNull();
+  const votes = sendEvent.mock.calls.map(([p]) => p).filter((p) => p.name === "ui_vote");
+  expect(votes.map((p) => [p.uiVersion, p.reason])).toEqual([["A", "vote"], ["B", "vote"], ["B", "cancel"]]);
+  expect(votes[0]).not.toHaveProperty("source");
+  // 다른 회차 key의 표는 읽지 않는다.
+  localStorage.setItem(TABLE_UI_VOTE_KEY, JSON.stringify({ key: "table-ab-1", ui: "A" }));
+  expect(readTableUiVote()).toBeNull();
 });

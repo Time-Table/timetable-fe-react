@@ -1,6 +1,6 @@
 import { isAdmin } from "./admin";
 import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi, getVisitorId } from "./analytics";
-import { TABLE_UI_KEY } from "./storage";
+import { TABLE_UI_KEY, TABLE_UI_VOTE_KEY } from "./storage";
 
 /**
  * 표 화면 A/B 2회차(2026-10-01, 하네스 specs/table-ab-2.md). A = 기존 표 화면, B = 새 화면.
@@ -78,4 +78,31 @@ export const switchTableUi = (tableId, version, { viewId } = {}) => {
   setActiveTableUi(tableId, version);
   trackEvent(EVENTS.UI_SWITCH, tableId, undefined, { viewId });
   trackClarityEvent(version === "B" ? CLARITY_EVENTS.UI_SWITCH_B : CLARITY_EVENTS.UI_SWITCH_A);
+};
+
+/** 띠 하트로 투표한 화면("A"·"B"). 이번 회차 key가 아니거나 없으면 null. */
+export const readTableUiVote = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TABLE_UI_VOTE_KEY) || "null");
+    return parsed && parsed.key === TABLE_AB.key && (parsed.ui === "A" || parsed.ui === "B") ? parsed.ui : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * 띠 하트 투표(2026-10-02 사람 결정 2안). 지금 보는 화면(version)에 한 표, 이미 그 화면에 투표했으면 취소.
+ * 다른 화면 표는 옮겨 온다(사람당 한 표). 이 브라우저에 남기고 서버에 ui_vote(reason vote|cancel)를 보낸다.
+ * 돌려주는 값: 투표 뒤의 표("A"·"B"·null).
+ */
+export const voteTableUi = (tableId, version, current) => {
+  const cancel = current === version;
+  try {
+    if (cancel) localStorage.removeItem(TABLE_UI_VOTE_KEY);
+    else localStorage.setItem(TABLE_UI_VOTE_KEY, JSON.stringify({ key: TABLE_AB.key, ui: version }));
+  } catch (error) {
+    // 저장소가 막혀 있으면 이번 화면에서만 기억한다.
+  }
+  trackEvent(EVENTS.UI_VOTE, tableId, undefined, { uiVersion: version, reason: cancel ? "cancel" : "vote" });
+  return cancel ? null : version;
 };

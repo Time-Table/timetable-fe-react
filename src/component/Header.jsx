@@ -8,6 +8,7 @@ import { trackEvent, EVENTS } from "../utils/analytics";
 import InquiryModal from "./InquiryModal";
 import { readFromPath } from "../page/contact/inquiry";
 import { getPageHelp, subscribePageHelp } from "../utils/pageHelp";
+import { getShellWidth, subscribeShellWidth } from "../utils/siteShell";
 
 export default function Header() {
      const email = "timetable2official@gmail.com";
@@ -22,6 +23,8 @@ export default function Header() {
      const [inquiryOpen, setInquiryOpen] = useState(false);
      // 새 표 화면(B)처럼 "?"를 자기 사용법으로 쓰는 화면이 있으면 그 창을 연다(utils/pageHelp.js).
      const pageHelp = useSyncExternalStore(subscribePageHelp, getPageHelp, getPageHelp);
+     // 새 표 화면(B)처럼 PC에서도 휴대폰 폭으로 그리는 화면이면 머리말도 그 폭·휴대폰 크기로 줄인다(utils/siteShell.js).
+     const shellWidth = useSyncExternalStore(subscribeShellWidth, getShellWidth, getShellWidth);
 
      useEffect(() => {
           const handleScroll = () => {
@@ -68,10 +71,12 @@ export default function Header() {
      return (
           <HeaderWrapper
                $scrolled={isScrolled}
+               $narrowWidth={shellWidth}
                // 랜딩(`/`) 휴대폰 화면이 스크롤에 맞춰 헤더를 밀어 올릴 때 찾는 표시(StartPage).
                data-site-header
+               data-narrow={shellWidth ? "true" : undefined}
           >
-               <HeaderContainer>
+               <HeaderContainer $narrowWidth={shellWidth} $scrolled={isScrolled}>
                     <Logo onClick={handleLogoClick}>
                          <span className="logo-time">Time</span>
                          <span className="logo-table">Table</span>
@@ -117,7 +122,22 @@ const HeaderWrapper = styled.header`
      backdrop-filter: blur(8px);
      -webkit-backdrop-filter: blur(8px);
      box-shadow: ${(props) => (props.$scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none")};
+     // 좁힐 때는 양옆을 새 화면 바탕(회색)으로 채워 머리말·띠·본문이 한 줄 기둥처럼 이어진다.
+     // 화면이 그 폭보다 넓을 때(PC·태블릿)만 바꾸고 휴대폰은 지금 그대로 둔다.
+     ${({ $narrowWidth }) =>
+          $narrowWidth &&
+          `
+          @media (min-width: ${$narrowWidth + 1}px) {
+               background-color: ${theme.color.appSurface};
+               backdrop-filter: none;
+               -webkit-backdrop-filter: none;
+               box-shadow: none;
+          }
+     `}
 `;
+
+// 좁힌 머리말(data-narrow)에서는 화면 폭과 상관없이 휴대폰(480px 이하) 크기를 쓴다.
+const NARROW = `[data-narrow="true"] &`;
 
 const HeaderContainer = styled.div`
      max-width: 1400px;
@@ -128,6 +148,16 @@ const HeaderContainer = styled.div`
      align-items: center;
      justify-content: space-between;
      box-sizing: border-box;
+     ${({ $narrowWidth, $scrolled }) =>
+          $narrowWidth &&
+          `
+          @media (min-width: ${$narrowWidth + 1}px) {
+               max-width: ${$narrowWidth}px;
+               background-color: ${theme.color.surface};
+               box-shadow: ${$scrolled ? "0 2px 12px rgba(0, 0, 0, 0.08)" : "none"};
+               transition: box-shadow 0.3s ease;
+          }
+     `}
 `;
 
 const Logo = styled.button`
@@ -154,6 +184,9 @@ const Logo = styled.button`
           opacity: 0.8;
      }
      @media (max-width: 480px) {
+          font-size: 24px;
+     }
+     ${NARROW} {
           font-size: 24px;
      }
 `;
@@ -192,6 +225,11 @@ const PrimaryButton = styled(BaseButton)`
      }
 
      @media (max-width: 480px) {
+          height: 38px;
+          padding: 0 16px;
+          font-size: 14px;
+     }
+     ${NARROW} {
           height: 38px;
           padding: 0 16px;
           font-size: 14px;
@@ -236,6 +274,14 @@ const IconButton = styled(BaseButton)`
                height: 22px;
           }
      }
+     ${NARROW} {
+          width: 38px;
+          height: 38px;
+          svg {
+               width: 22px;
+               height: 22px;
+          }
+     }
 `;
 
 const ResponsiveButton = styled(BaseButton)`
@@ -260,5 +306,11 @@ const ResponsiveButton = styled(BaseButton)`
      @media (max-width: 480px) {
           width: 38px;
           height: 38px;
+     }
+     ${NARROW} {
+          width: 38px;
+          height: 38px;
+          padding: 0;
+          border-radius: 50%;
      }
 `;

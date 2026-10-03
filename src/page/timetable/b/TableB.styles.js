@@ -89,6 +89,10 @@ export const BPage = styled.div`
   background: ${theme.color.appSurface};
   color: var(--g100);
   font-family: ${F.regular};
+  /* 표 화면이 띠 아래 남은 높이를 채운다(TimetablePage BShell). 첫 화면을 딱 채우고 바닥글은 그 아래에 둔다. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   /* 앱 전체의 -0.8px 자간 대신 확정 시안과 같은 기본 자간 */
   letter-spacing: normal;
   word-break: keep-all;
@@ -101,8 +105,9 @@ export const BPage = styled.div`
   .tb-ic { display: inline-flex; flex-shrink: 0; }
 
   /* ---------- 열·카드 ---------- */
-  .tb-col { position: relative; max-width: 480px; min-height: calc(100vh - var(--header-h)); margin: 0 auto; background: #fff; }
-  .tb-body { display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 0; }
+  /* 기둥은 첫 화면(머리말·띠 아래)을 딱 채우고, 내용(.tb-body)이 그 높이를 채운다. 아래 막대는 맨 아래(2026-10-02 사람 지시). */
+  .tb-col { position: relative; flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 480px; margin: 0 auto; }
+  .tb-body { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 0; background: #fff; }
   .tb-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 6px 0 0; }
 
   /* ---------- 머리 ---------- */
@@ -225,7 +230,7 @@ export const BPage = styled.div`
   .tb-legend-name { font-size: 13px; ${w6} color: var(--g300); }
 
   /* ---------- 아래 막대: 보기 [공유 · 내 시간 · 대화], 입력 중 [더보기 · 취소 · 저장] ---------- */
-  .tb-bar { position: sticky; bottom: 0; z-index: 40; margin: 0 -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  .tb-bar { position: sticky; bottom: 0; z-index: 40; margin: auto -16px 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.94); box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
   .tb-bar-in { display: flex; gap: 6px; }
   .tb-dock { position: relative; flex: 1; min-height: 58px; border: 0; border-radius: 18px; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -374,6 +379,46 @@ export const BPage = styled.div`
   .tb-toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: ${Z.toast}; width: max-content; max-width: calc(100% - 32px);
     padding: 12px 16px; border-radius: 12px; background: var(--g100); color: #fff; font-size: 14px; line-height: 1.4; text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); }
   .tb-toast.pop { transform-origin: 50% 100%; animation: ${toastPop} 0.46s ease-out both; }
+
+  /* 칠하기 안내는 손가락이면 "길게 눌러 끌기", 마우스면 "누른 채 끌기"다. 마우스는 누르면 바로 칠한다(BGrid usePaint, 2026-10-02 사람 지시 "안내 문구도 PC용으로"). */
+  .tb-hint-touch, .tb-hint-mouse { display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; }
+  .tb-hint-mouse { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .tb-hint-touch { display: none; }
+    .tb-hint-mouse { display: inline-flex; }
+  }
+
+  /* ---------- PC(1024px 이상): 넓힌 한 열(2026-10-02 사람 결정 "1번 - 넓힌 열", 시안 하네스 output/table-ab-sian/pc) ----------
+     순서·부품은 휴대폰과 같고 폭만 880px로 넓힌다. 머리말·띠도 같은 폭이다(TimetablePage B_COLUMN_WIDTH_PC).
+     아래 막대는 가운데에 떠 있고, 아래에서 올라오던 창은 화면 가운데에 뜬다. 칸·날짜 글자는 조금 키운다.
+     안쪽 여백 24px은 머리말 로고 자리(Header 안쪽 여백)와 맞춘 값이다. */
+  @media (min-width: 1024px) {
+    .tb-col { max-width: 880px; }
+    .tb-body { gap: 24px; padding: 24px 24px 0; }
+    .tb-title { font-size: 26px; }
+    .tb-chips { flex-wrap: wrap; gap: 8px 6px; overflow: visible; padding: 2px 0 4px; }
+    .tb-chips.fade-l, .tb-chips.fade-r { -webkit-mask-image: none; mask-image: none; }
+    .tb-grid { max-width: none; grid-template-columns: 40px repeat(7, minmax(30px, 1fr)); }
+    .tb-day em { font-size: 20px; }
+    .tb-cell { height: 24px; }
+    .tb-grid.edit .tb-cell { height: 28px; }
+    .tb-bar { bottom: 16px; width: 100%; max-width: 560px; margin: auto auto 24px; padding: 8px; border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04); }
+    .tb-toast { bottom: calc(112px + env(safe-area-inset-bottom)); }
+    .tb-sheet-back { align-items: center; padding: 24px; }
+    .tb-sheet:not(.center) { max-width: 440px; border-radius: 20px; padding: 16px 24px 24px; animation: ${centerIn} 0.22s ease-out both; }
+    .tb-sheet-handle { display: none; }
+  }
+  /* 마우스를 올리면: 누를 수 있는 칸은 테두리, 칠할 칸은 회색 테두리, 칩·막대·창 줄은 옅은 바탕. */
+  @media (min-width: 1024px) and (hover: hover) {
+    .tb-chip:not([aria-pressed="true"]):hover { background: #e8e9ec; }
+    .tb-cell.tap:hover { z-index: 3; box-shadow: inset 0 0 0 2px var(--primary-text); }
+    .tb-grid.edit .tb-cell:not(.off):not(.lock):hover { z-index: 3; box-shadow: inset 0 0 0 2px var(--g500); }
+    button.tb-day:hover em, button.tb-hour:hover { color: var(--primary-text); }
+    .tb-dock:not(.main):hover { background: var(--soft); }
+    .tb-goldrow:hover { box-shadow: inset 0 0 0 1.5px var(--g800); }
+    .tb-morerow:hover { background: var(--soft); }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .tb-shine::before, .tb-pop, .tb-sheet, .tb-sheet.center, .tb-grid.slide-left, .tb-grid.slide-right, .tb-coach, .tb-coach-hand, .tb-coach-dot,
