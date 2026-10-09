@@ -2463,7 +2463,7 @@ export default function LandingV2Page({ preview = false }) {
                 </DoneMark>
                 <DoneTitle id="start-done-title">링크가 만들어졌습니다</DoneTitle>
                 <DoneDesc id="start-done-desc">
-                  단톡방에 보내면 각자 가능한 시간을 표시합니다.
+                  {`단톡방에 보내면 각자 가능한 ${created?.dateOnly ? "날짜를" : "시간을"} 표시합니다.`}
                 </DoneDesc>
 
                 <LinkField>

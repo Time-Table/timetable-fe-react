@@ -326,9 +326,17 @@ describe("완료 창", () => {
     navigator.share = jest.fn().mockResolvedValue();
     mount();
     fireEvent.click(screen.getByRole("switch", { name: "시간 범위 정하기" }));
-    await createAndOpenDone();
+    const done = await createAndOpenDone();
+    expect(done).toHaveTextContent("단톡방에 보내면 각자 가능한 날짜를 표시합니다.");
     fireEvent.click(screen.getByRole("button", { name: "링크 공유하기" }));
     expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ text: "팀 프로젝트 회의 — 가능한 날짜를 표시해 주세요." }));
+  });
+
+  test("시간 표 완료 창 안내는 '시간을'로 쓴다", async () => {
+    mount();
+    const done = await createAndOpenDone();
+    expect(done).toHaveTextContent("단톡방에 보내면 각자 가능한 시간을 표시합니다.");
+    expect(done).not.toHaveTextContent("날짜");
   });
 
   test("Esc나 '테이블로 이동'은 만든 테이블로 가고 스크롤 잠금을 푼다", async () => {

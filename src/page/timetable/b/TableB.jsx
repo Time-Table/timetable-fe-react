@@ -215,7 +215,7 @@ export default function TableB({
       const url = inviteUrl(tableId);
       if (canNativeShare()) {
         try {
-          await navigator.share({ title: table?.title || "타임테이블", text: "가능한 시간을 표시해 주세요.", url });
+          await navigator.share({ title: table?.title || "타임테이블", text: `가능한 ${dateMode ? "날짜를" : "시간을"} 표시해 주세요.`, url });
           return "shared";
         } catch (error) {
           // 공유 창을 닫으면 아무것도 하지 않는다.
@@ -231,7 +231,7 @@ export default function TableB({
         return null;
       }
     },
-    [tableId, table, showToast],
+    [tableId, table, showToast, dateMode],
   );
 
   // ---------- 입력 모드 ----------
@@ -497,7 +497,8 @@ export default function TableB({
     setMode("view");
     setCoach(false);
     onPicksChange([]);
-    openJoin("누구 시간을 넣을까요?");
+    // 참여 창 제목은 처음 참여와 같은 "참여하기"로 통일(2026-10-10 사람 지시, 시간 표·날짜 표 공통).
+    openJoin();
   };
 
   const submitLeave = async (password) => {

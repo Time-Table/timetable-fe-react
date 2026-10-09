@@ -411,3 +411,32 @@ describe("끌어서 여러 날 고르기(2026-10-10)", () => {
     expect(readTableState(TABLE_ID).draft ?? null).toBeNull();
   });
 });
+
+describe("날짜 표 문구(2026-10-10)", () => {
+  test("로그아웃하면 참여 창 제목은 처음 참여와 같은 '참여하기'", async () => {
+    await renderDate({ me: "민준" });
+    fireEvent.click(screen.getByRole("button", { name: "내 날짜 고치기, 지금 2일" }));
+    fireEvent.click(screen.getByRole("button", { name: "더보기: 로그아웃, 참여 취소" }));
+    fireEvent.click(screen.getByRole("button", { name: /^로그아웃 내 날짜는 그대로예요/ }));
+    expect(screen.getByRole("dialog", { name: "참여하기" })).toBeInTheDocument();
+    expect(screen.queryByText(/누구 (시간|날짜)/)).not.toBeInTheDocument();
+  });
+
+  test("표 화면 공유 단추의 휴대폰 공유 문구는 '날짜를'로 쓴다", async () => {
+    const originalMatchMedia = window.matchMedia;
+    const hadShare = "share" in navigator;
+    const originalShare = navigator.share;
+    window.matchMedia = (query) => ({ matches: query === "(pointer: coarse)", media: query, addEventListener: () => {}, removeEventListener: () => {} });
+    navigator.share = jest.fn().mockResolvedValue();
+    try {
+      await renderDate();
+      fireEvent.click(screen.getByRole("button", { name: "초대 링크 공유하기" }));
+      await waitFor(() => expect(navigator.share).toHaveBeenCalledTimes(1));
+      expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ title: "동아리 회식", text: "가능한 날짜를 표시해 주세요." }));
+    } finally {
+      window.matchMedia = originalMatchMedia;
+      if (hadShare) navigator.share = originalShare;
+      else delete navigator.share;
+    }
+  });
+});

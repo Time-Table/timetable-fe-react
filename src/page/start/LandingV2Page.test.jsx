@@ -369,6 +369,7 @@ describe("날짜 투표(2026-10-09, v1과 같다)", () => {
       const dialog = screen.getByRole("dialog", { name: "이대로 만들까요?" });
       fireEvent.click(within(dialog).getByRole("button", { name: "링크 만들기" }));
       fireEvent.click(await screen.findByRole("button", { name: "링크 공유하기" }));
+      expect(screen.getByRole("dialog", { name: "링크가 만들어졌습니다" })).toHaveTextContent("단톡방에 보내면 각자 가능한 날짜를 표시합니다.");
       expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringMatching(/ — 가능한 날짜를 표시해 주세요\.$/) }));
     } finally {
       if (hadShare) navigator.share = originalShare;

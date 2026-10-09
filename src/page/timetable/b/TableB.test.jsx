@@ -409,7 +409,8 @@ describe("전환·더보기·대화", () => {
     fireEvent.click(screen.getByRole("button", { name: /^내 시간 고치기/ }));
     fireEvent.click(screen.getByRole("button", { name: "더보기: 로그아웃, 참여 취소" }));
     fireEvent.click(screen.getByRole("button", { name: /^로그아웃 내 시간은 그대로예요/ }));
-    expect(screen.getByRole("dialog", { name: "누구 시간을 넣을까요?" })).toBeInTheDocument();
+    // 로그아웃 뒤 참여 창 제목도 처음 참여와 같은 "참여하기"(2026-10-10 사람 지시).
+    expect(screen.getByRole("dialog", { name: "참여하기" })).toBeInTheDocument();
     expect(localStorage.getItem("name")).toBeNull();
     // 앞사람의 저장 안 한 칸·입력 여부는 지운다(보던 주·고른 사람만 다시 남는다).
     expect(readTableState(TABLE_B)).toEqual(expect.objectContaining({ name: null, editing: false, draft: null, picks: [] }));
