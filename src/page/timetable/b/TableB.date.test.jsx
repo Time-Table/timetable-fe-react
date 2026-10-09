@@ -8,7 +8,7 @@ import { getChating } from "../../../api/chat";
 import { sendEvent } from "../../../api/event";
 import { getTableAbState } from "../../../api/experiment";
 import { getActiveTableType } from "../../../utils/analytics";
-import { TABLE_STATE_PREFIX } from "../../../utils/tableSession";
+import { TABLE_STATE_PREFIX, readTableState } from "../../../utils/tableSession";
 import { fireConfetti } from "./confetti";
 
 // 날짜 투표 표(2026-10-09 사람 결정): 시작·끝 시각이 없는 표는 실험과 관계없이 늘 새 화면이고 달력을 그린다.
@@ -266,4 +266,148 @@ test("날짜 투표 표에 남은 시간 칸·후보 밖 값은 내 날짜로 �
   addSchedule.mockResolvedValue({ success: true, data: { userAvailableTimes: ["2026-10-20", "2026-10-21"] } });
   fireEvent.click(screen.getByRole("button", { name: "저장하기, 2일" }));
   await waitFor(() => expect(addSchedule).toHaveBeenCalledWith(TABLE_ID, "민준", ["2026-10-20", "2026-10-21"]));
+});
+
+describe("끌어서 여러 날 고르기(2026-10-10)", () => {
+  // jsdom에는 좌표로 칸을 찾는 elementFromPoint가 없다. 손가락·마우스가 지금 올라가 있는 칸을 직접 정한다.
+  let over = null;
+  const originalFromPoint = document.elementFromPoint;
+  beforeEach(() => {
+    over = null;
+    document.elementFromPoint = () => over;
+  });
+  afterEach(() => {
+    document.elementFromPoint = originalFromPoint;
+  });
+  const pressed = (key) => cellAt(key).getAttribute("aria-pressed");
+  const nextTick = () => act(() => new Promise((done) => setTimeout(done, 0)));
+  const touch = (el, type, x, y) => {
+    const ev = new Event(type, { bubbles: true, cancelable: true });
+    const list = type === "touchend" || type === "touchcancel" ? [] : [{ clientX: x, clientY: y }];
+    Object.defineProperty(ev, "touches", { value: list });
+    Object.defineProperty(ev, "changedTouches", { value: [{ clientX: x, clientY: y }] });
+    act(() => {
+      el.dispatchEvent(ev);
+    });
+    return ev;
+  };
+  const startEdit = async (me) => {
+    await renderDate({ me });
+    fireEvent.click(screen.getByRole("button", { name: me === "지호" ? "내 날짜 넣기" : /^내 날짜 고치기/ }));
+  };
+
+  test("마우스: 빈 날에서 누른 채 끌면 지나간 후보 날을 모두 고르고, 후보 아닌 날은 건너뛰며, 끌기 뒤 click은 두 번 바꾸지 않는다", async () => {
+    await startEdit("지호");
+    fireEvent.pointerDown(cellAt("2026-10-20"));
+    over = screen.getByLabelText("10월 22일, 후보 아님");
+    fireEvent.pointerMove(cellAt("2026-10-20"));
+    over = cellAt("2026-10-23");
+    fireEvent.pointerMove(cellAt("2026-10-20"));
+    fireEvent.pointerUp(cellAt("2026-10-23"));
+    // 손을 뗀 칸에 브라우저가 click을 보낸다. 끌기로 이미 골랐으니 지우면 안 된다.
+    fireEvent.click(cellAt("2026-10-23"), { detail: 1 });
+    expect(pressed("2026-10-20")).toBe("true");
+    expect(pressed("2026-10-21")).toBe("false");
+    expect(pressed("2026-10-23")).toBe("true");
+    expect(screen.getByRole("button", { name: "저장하기, 2일" })).toBeInTheDocument();
+    expect(readTableState(TABLE_ID).draft).toEqual(["2026-10-20", "2026-10-23"]);
+    // 그 뒤 키보드(Enter·Space) click은 그대로 한 칸을 바꾼다.
+    await nextTick();
+    fireEvent.click(cellAt("2026-10-21"));
+    expect(pressed("2026-10-21")).toBe("true");
+    expect(screen.getByRole("button", { name: "저장하기, 3일" })).toBeInTheDocument();
+  });
+
+  test("마우스: 고른 날에서 시작하면 끄는 동안 지우기만 한다(안 고른 날은 그대로)", async () => {
+    await startEdit("민준");
+    expect(pressed("2026-10-21")).toBe("true");
+    fireEvent.pointerDown(cellAt("2026-10-21"));
+    over = cellAt("2026-10-20");
+    fireEvent.pointerMove(cellAt("2026-10-21"));
+    over = cellAt("2026-10-23");
+    fireEvent.pointerMove(cellAt("2026-10-21"));
+    fireEvent.pointerUp(cellAt("2026-10-23"));
+    expect(pressed("2026-10-20")).toBe("false");
+    expect(pressed("2026-10-21")).toBe("false");
+    expect(pressed("2026-10-23")).toBe("false");
+  });
+
+  test("손가락 탭 뒤 iOS가 늦게 보내는 click은 막아 고른 날을 지운 대로 둔다(키보드 click·요일 글자는 그대로)", async () => {
+    await startEdit("민준");
+    expect(pressed("2026-10-21")).toBe("true");
+    touch(cellAt("2026-10-21"), "touchstart", 200, 300);
+    touch(cellAt("2026-10-21"), "touchend", 200, 300);
+    expect(pressed("2026-10-21")).toBe("false");
+    // touchend를 막았는데도 사파리가 조금 뒤 click(detail 1)을 보낸 경우.
+    await act(() => new Promise((done) => setTimeout(done, 120)));
+    fireEvent.click(cellAt("2026-10-21"), { detail: 1 });
+    expect(pressed("2026-10-21")).toBe("false");
+    // 바로 뒤 요일 글자 click은 막지 않는다(금요일 23일 지우기).
+    fireEvent.click(screen.getByRole("button", { name: "2026년 10월 금요일 전부 고르기·지우기" }), { detail: 1 });
+    expect(pressed("2026-10-23")).toBe("false");
+    // 키보드 click(detail 0)은 바로 받는다.
+    fireEvent.click(cellAt("2026-10-21"));
+    expect(pressed("2026-10-21")).toBe("true");
+  });
+
+  test("마우스 오른쪽 단추는 칠하지 않는다", async () => {
+    await startEdit("지호");
+    // jsdom에는 PointerEvent가 없어 단추 값이 실리는 MouseEvent로 보낸다.
+    fireEvent(cellAt("2026-10-20"), new MouseEvent("pointerdown", { bubbles: true, cancelable: true, button: 2 }));
+    fireEvent(cellAt("2026-10-20"), new MouseEvent("pointerup", { bubbles: true, cancelable: true, button: 2 }));
+    expect(pressed("2026-10-20")).toBe("false");
+  });
+
+  test("손가락: 누르고 떼면 한 칸, 옆으로 밀면 지나간 날을 칠한다", async () => {
+    await startEdit("지호");
+    const tap = touch(cellAt("2026-10-23"), "touchstart", 300, 400);
+    expect(tap.defaultPrevented).toBe(false);
+    const end = touch(cellAt("2026-10-23"), "touchend", 300, 400);
+    // 흉내 click을 막아 두 번 바뀌지 않게 한다.
+    expect(end.defaultPrevented).toBe(true);
+    expect(pressed("2026-10-23")).toBe("true");
+
+    touch(cellAt("2026-10-20"), "touchstart", 100, 300);
+    over = cellAt("2026-10-21");
+    const move = touch(cellAt("2026-10-20"), "touchmove", 140, 302);
+    expect(move.defaultPrevented).toBe(true);
+    touch(cellAt("2026-10-20"), "touchend", 140, 302);
+    expect(pressed("2026-10-20")).toBe("true");
+    expect(pressed("2026-10-21")).toBe("true");
+    expect(screen.getByRole("button", { name: "저장하기, 3일" })).toBeInTheDocument();
+  });
+
+  test("손가락: 세로로 밀면 화면 스크롤이라 고르지 않는다", async () => {
+    await startEdit("지호");
+    touch(cellAt("2026-10-20"), "touchstart", 100, 300);
+    over = cellAt("2026-10-21");
+    const move = touch(cellAt("2026-10-20"), "touchmove", 104, 360);
+    expect(move.defaultPrevented).toBe(false);
+    touch(cellAt("2026-10-20"), "touchend", 104, 360);
+    expect(pressed("2026-10-20")).toBe("false");
+    expect(pressed("2026-10-21")).toBe("false");
+  });
+
+  test("손가락: 길게 누른 뒤 끌면 어느 방향이든 칠한다", async () => {
+    await startEdit("지호");
+    touch(cellAt("2026-10-20"), "touchstart", 100, 300);
+    await act(() => new Promise((done) => setTimeout(done, 320)));
+    expect(pressed("2026-10-20")).toBe("true");
+    over = cellAt("2026-10-23");
+    const move = touch(cellAt("2026-10-20"), "touchmove", 100, 380);
+    expect(move.defaultPrevented).toBe(true);
+    touch(cellAt("2026-10-20"), "touchend", 100, 380);
+    expect(pressed("2026-10-23")).toBe("true");
+    expect(pressed("2026-10-21")).toBe("false");
+  });
+
+  test("보는 모드에서는 끌어도 고르지 않는다", async () => {
+    await renderDate({ me: "지호" });
+    fireEvent.pointerDown(cellAt("2026-10-20"));
+    over = cellAt("2026-10-23");
+    fireEvent.pointerMove(cellAt("2026-10-20"));
+    fireEvent.pointerUp(cellAt("2026-10-23"));
+    expect(cellAt("2026-10-20")).not.toHaveAttribute("aria-pressed");
+    expect(readTableState(TABLE_ID).draft ?? null).toBeNull();
+  });
 });

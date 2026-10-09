@@ -239,8 +239,8 @@ export const EditGrid = forwardRef(function EditGrid(
   );
 });
 
-const LONG_PRESS_MS = 280;
-const MOVE_SLOP = 8;
+export const LONG_PRESS_MS = 280;
+export const MOVE_SLOP = 8;
 
 /**
  * 칠하기 손동작(시안 kit.js attachPaint). 칸은 .tb-cell[data-key].

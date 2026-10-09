@@ -21,7 +21,7 @@ import Loader from "../components/Loading";
 import BIcon from "./BIcon";
 import BSheet from "./BSheet";
 import { ViewGrid, EditGrid, CellPopup, usePaint } from "./BGrid";
-import { DateViewCalendar, DateEditCalendar, DatePopup, OK_EMOJI } from "./BCalendar";
+import { DateViewCalendar, DateEditCalendar, DatePopup, OK_EMOJI, useDatePaint } from "./BCalendar";
 import { JoinBody, LeaveBody, MoreBody, GoldBody, DayGoldBody, HelpBody, ChatBody, ConfirmBody, PromptBody } from "./BSheets";
 import { BPage } from "./TableB.styles";
 import { fireConfetti } from "./confetti";
@@ -341,7 +341,7 @@ export default function TableB({
     bumpSel();
   };
 
-  /** 날짜 투표 표: 날 하나를 고르거나 지운다(끌어 칠하기 없음). */
+  /** 날짜 투표 표: 날 하나를 고르거나 지운다(키보드·보조기기의 click. 마우스·손가락은 useDatePaint가 맡는다). */
   const toggleDate = (key) => {
     if (!validCells.has(key)) return;
     const selected = selectedRef.current;
@@ -359,6 +359,17 @@ export default function TableB({
     const keys = month.weeks.map((w) => w[col]).filter((c) => c.inMonth && c.on).map((c) => c.key);
     toggleKeys(keys, "day");
   };
+
+  // 날짜 투표 표: 끌어서 여러 날 고르기(2026-10-10 사람 지시). 칸이 바뀔 때마다 다시 그려 고른 색·🙆‍♂️를 바로 보인다.
+  useDatePaint(gridRef, mode === "edit" && dateMode, {
+    selectedRef,
+    paintable: (key) => validCells.has(key),
+    onPaint: (added) => {
+      if (added) trackSelectOnce();
+      persistDraft();
+      bumpSel();
+    },
+  });
 
   usePaint(gridRef, mode === "edit" && !dateMode, `${mode}:${weekIndex}`, {
     selectedRef,

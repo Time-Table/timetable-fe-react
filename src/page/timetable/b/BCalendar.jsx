@@ -1,7 +1,7 @@
-import { forwardRef, useRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import BIcon from "./BIcon";
 import { DAY_SHORT, dayFill, dayUnder, fmtDay, isGolden } from "./bModel";
-import { usePopPlacement } from "./BGrid";
+import { LONG_PRESS_MS, MOVE_SLOP, usePopPlacement } from "./BGrid";
 
 /**
  * 날짜 투표 표의 달력(2026-10-09 사람 확정, 시안 하네스 캔버스 Final1~5·FinalSpec·FinalMonths·FinalPC).
@@ -13,6 +13,7 @@ import { usePopPlacement } from "./BGrid";
  * - 내가 저장한 날에는 칸 아래 가운데 🙆‍♂️(날짜를 조금 올린다). 참여한 사람의 저장한 날짜에만.
  * - 칸을 누르면 명단 창. 그 칸은 2px 검은 테두리, 그 달 요일 글자는 빨강.
  * 입력 모드: 누르면 고르기·다시 누르면 지움, 요일 글자는 그 달의 그 요일 전부. 고른 칸은 코랄 꽉 + 🙆‍♂️, 안 고른 칸은 다른 사람 비율로 옅게.
+ * 끌어서 여러 날 고르기(2026-10-10 사람 지시 "pc 드래그해서 날짜 선택, 모바일 드래그해서 날짜 선택 전부 지원"): useDatePaint.
  */
 
 export const OK_EMOJI = "\u{1F646}‍♂️"; // 🙆‍♂️ 내가 되는 날(2026-10-09 사람 결정)
@@ -126,6 +127,163 @@ export const DateViewCalendar = forwardRef(function DateViewCalendar(
     </div>
   );
 });
+
+/**
+ * 날짜 칸 끌어 칠하기. 손동작은 시간표 칠하기(BGrid usePaint)와 같다.
+ * - 마우스·펜: 누른 채 끌면 지나간 날을 칠한다. 처음 누른 날이 비어 있었으면 고르기, 골라져 있었으면 지우기.
+ * - 손가락: 누르면 한 칸, 길게 누른 뒤 끌면 여러 칸, 옆으로 밀면 바로 칠하기. 세로로 밀면 화면이 내려간다(칸은 touch-action: pan-y).
+ * 날짜 칸은 단추라 키보드(Enter·Space)로도 고른다. 끌기로 이미 바꾼 뒤 브라우저가 따라 보내는 click(마우스·손가락, detail ≥ 1)은
+ * 손을 뗀 뒤 CLICK_GRACE_MS 동안 막아 두 번 바뀌지 않게 한다. iOS 사파리는 손을 뗀 뒤 click을 늦게 보내고, touchend를 막아도
+ * 보낼 때가 있다(2026-10-10 iPhone 17e에서 고른 날을 탭하면 지웠다가 다시 고르던 문제). 키보드 click(detail 0)은 늘 받는다.
+ * paintable(key)가 거짓인 날(후보 아님)은 건너뛴다. onPaint(added)는 칸이 바뀔 때마다 불린다(손을 떼기 전에도).
+ */
+const CLICK_GRACE_MS = 700;
+
+export function useDatePaint(calRef, enabled, { selectedRef, paintable, onPaint, onEnd }) {
+  const optsRef = useRef({ paintable, onPaint, onEnd });
+  optsRef.current = { paintable, onPaint, onEnd };
+
+  useEffect(() => {
+    const container = calRef.current;
+    if (!enabled || !container) return undefined;
+    let mode = null;
+    let start = null;
+    let timer = 0;
+    let lastEnd = -Infinity;
+    const cellOf = (el) => el?.closest?.(".tb-dc.tap[data-key]");
+    const ok = (cell) => !!cell && container.contains(cell) && optsRef.current.paintable(cell.dataset.key);
+    const at = (x, y) => cellOf(document.elementFromPoint?.(x, y));
+    const paint = (cell) => {
+      if (!ok(cell)) return;
+      const key = cell.dataset.key;
+      const selected = selectedRef.current;
+      const want = mode === "add";
+      if (selected.has(key) === want) return;
+      if (want) selected.add(key);
+      else selected.delete(key);
+      optsRef.current.onPaint(want);
+    };
+    const begin = (cell) => {
+      mode = selectedRef.current.has(cell.dataset.key) ? "remove" : "add";
+      paint(cell);
+    };
+    const finish = () => {
+      clearTimeout(timer);
+      timer = 0;
+      start = null;
+      if (!mode) return;
+      mode = null;
+      lastEnd = Date.now();
+      optsRef.current.onEnd?.();
+    };
+
+    const onTouchStart = (e) => {
+      if (e.touches.length !== 1) {
+        finish();
+        return;
+      }
+      const cell = cellOf(e.target);
+      if (!ok(cell)) return;
+      const t = e.touches[0];
+      start = { x: t.clientX, y: t.clientY, cell };
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (start && !mode) begin(start.cell);
+      }, LONG_PRESS_MS);
+    };
+    const onTouchMove = (e) => {
+      if (!start) return;
+      const t = e.touches[0];
+      if (mode) {
+        if (e.cancelable) e.preventDefault();
+        paint(at(t.clientX, t.clientY));
+        return;
+      }
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) > MOVE_SLOP && Math.abs(dx) > Math.abs(dy)) {
+        if (e.cancelable) e.preventDefault();
+        clearTimeout(timer);
+        begin(start.cell);
+        paint(at(t.clientX, t.clientY));
+      } else if (Math.abs(dy) > MOVE_SLOP) {
+        // 스크롤이다. 이 손길에서는 칠하지 않는다.
+        clearTimeout(timer);
+        start = null;
+      }
+    };
+    const onTouchEnd = (e) => {
+      if (mode) {
+        if (e.cancelable) e.preventDefault();
+        finish();
+        return;
+      }
+      if (start) {
+        // 누르고 뗌 = 한 칸. 흉내 click은 막는다(두 번 바뀌지 않게).
+        if (e.cancelable) e.preventDefault();
+        begin(start.cell);
+        finish();
+        return;
+      }
+      clearTimeout(timer);
+    };
+    const onPointerDown = (e) => {
+      if (e.pointerType === "touch" || (e.button !== undefined && e.button !== 0)) return;
+      const cell = cellOf(e.target);
+      if (!ok(cell)) return;
+      begin(cell);
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch (error) {
+        // 끌기 붙잡기를 못 해도 칠하기는 된다.
+      }
+    };
+    const onPointerMove = (e) => {
+      if (e.pointerType === "touch" || !mode) return;
+      paint(at(e.clientX, e.clientY));
+    };
+    const onPointerEnd = (e) => {
+      if (e.pointerType !== "touch") finish();
+    };
+    const onClickCapture = (e) => {
+      // 키보드·보조기기 click(detail 0)은 그대로. 끄는 중이거나 막 손을 뗀 뒤의 마우스·손가락 click만 막는다.
+      if (!e.detail || (!mode && Date.now() - lastEnd > CLICK_GRACE_MS)) return;
+      // 날짜 칸, 또는 끌기 붙잡기로 달력 자체에 온 click만. 요일 글자 단추는 그대로 받는다.
+      if (e.target !== container && !cellOf(e.target)) return;
+      e.stopPropagation();
+      e.preventDefault();
+    };
+    const onContextMenu = (e) => {
+      if (cellOf(e.target)) e.preventDefault();
+    };
+
+    container.addEventListener("touchstart", onTouchStart, { passive: true });
+    container.addEventListener("touchmove", onTouchMove, { passive: false });
+    container.addEventListener("touchend", onTouchEnd);
+    container.addEventListener("touchcancel", finish);
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", onPointerEnd);
+    container.addEventListener("pointercancel", onPointerEnd);
+    container.addEventListener("click", onClickCapture, true);
+    container.addEventListener("contextmenu", onContextMenu);
+    return () => {
+      clearTimeout(timer);
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchmove", onTouchMove);
+      container.removeEventListener("touchend", onTouchEnd);
+      container.removeEventListener("touchcancel", finish);
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerEnd);
+      container.removeEventListener("pointercancel", onPointerEnd);
+      container.removeEventListener("click", onClickCapture, true);
+      container.removeEventListener("contextmenu", onContextMenu);
+    };
+    // 입력 모드에 들어갈 때 달력에 붙인다(달력 DOM은 입력 중에 바뀌지 않는다).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+}
 
 /** 내 날짜 고르기. 누르면 고르기·다시 누르면 지움, 요일 글자는 그 달의 그 요일 전부. */
 export const DateEditCalendar = forwardRef(function DateEditCalendar(

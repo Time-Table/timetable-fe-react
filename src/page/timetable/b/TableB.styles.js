@@ -378,8 +378,6 @@ export const BPage = styled.div`
   .tb-sp-desc { margin: 0 0 6px; font-size: 15px; line-height: 1.55; color: var(--g300); }
   .tb-sp .tb-cta, .tb-sp .tb-sub { min-height: 52px; font-size: 16px; ${w7} }
   .tb-sp .tb-sub { color: var(--g300); }
-  .tb-sp-row { display: flex; gap: 8px; }
-  .tb-sp-row > button { flex: 1; min-width: 0; }
 
   /* ---------- 안내 문구. 저장 버튼 뒤 안내는 아래에서 톡 튀어 오른다(2026-10-01 사람 지시) ---------- */
   .tb-toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: ${Z.toast}; width: max-content; max-width: calc(100% - 32px);
@@ -428,6 +426,7 @@ export const BPage = styled.div`
   .tb-dc-one { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; color: var(--primary-text);
     display: flex; align-items: center; justify-content: center; pointer-events: none; }
   .tb-cals.edit { -webkit-user-select: none; user-select: none; }
+  .tb-cals.edit .tb-dc.tap { touch-action: pan-y; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   /* 1위 카드(가장 많이 모이는 날) */
   .tb-best { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 0 14px; border: 0; border-radius: 14px;
     background: var(--primary-surface); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }

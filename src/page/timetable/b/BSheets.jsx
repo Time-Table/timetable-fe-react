@@ -407,7 +407,8 @@ export function ConfirmBody({ text, goLabel, onStay, onGo }) {
 
 /**
  * 표에서 처음으로 시간을 넣은 사람에게 링크 공유를 권하는 가운데 창(2026-10-01 사람 확정: 체크 카드).
- * 버튼은 취소·공유하기(주 색)·확인. 뜰 때 동그라미가 통통 튀며 자리 잡고 체크가 뒤따른다(체크 움직임 3).
+ * 버튼은 공유하기(주 색)·확인. 취소와 확인이 같은 일(창 닫기)이라 확인 하나로 합쳤다(2026-10-10 사람 지시).
+ * 뜰 때 동그라미가 통통 튀며 자리 잡고 체크가 뒤따른다(체크 움직임 3).
  */
 export function PromptBody({ onShare, onClose, dateMode = false }) {
   const [sharing, setSharing] = useState(false);
@@ -433,14 +434,9 @@ export function PromptBody({ onShare, onClose, dateMode = false }) {
         <BIcon name="share" size={20} />
         <span>공유하기</span>
       </button>
-      <div className="tb-sp-row">
-        <button className="tb-sub" type="button" onClick={onClose}>
-          취소
-        </button>
-        <button className="tb-sub" type="button" onClick={onClose}>
-          확인
-        </button>
-      </div>
+      <button className="tb-sub" type="button" onClick={onClose}>
+        확인
+      </button>
     </div>
   );
 }

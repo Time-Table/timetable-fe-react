@@ -285,6 +285,8 @@ describe("내 시간 저장", () => {
     expect(sent("invite_share")).toEqual([expect.objectContaining({ uiVersion: "B" })]);
     expect(await screen.findByText("링크를 복사했어요. 단톡방에 붙여 넣으세요.")).toBeInTheDocument();
     expect(clarityEvents()).toEqual(expect.arrayContaining(["tt_invite_share_table", "tt_b_prompt_share"]));
+    // 취소와 확인이 같은 일이라 확인 하나만 둔다(2026-10-10 사람 지시).
+    expect(within(prompt).queryByRole("button", { name: "취소" })).not.toBeInTheDocument();
     fireEvent.click(within(prompt).getByRole("button", { name: "확인" }));
     expect(screen.queryByRole("dialog", { name: "첫 번째로 시간을 넣었어요" })).not.toBeInTheDocument();
   });
