@@ -189,6 +189,17 @@ describe("내 날짜 고르기", () => {
     expect(saves[0]).not.toHaveProperty("uiVersion");
   });
 
+  test("처음 저장하면 '날짜를 저장했어요'로 알린다(조사 '을' 아님)", async () => {
+    await renderDate({ me: "지호" });
+    fireEvent.click(screen.getByRole("button", { name: "내 날짜 넣기" }));
+    fireEvent.click(cellAt("2026-10-20"));
+    addSchedule.mockResolvedValue({ success: true, data: { userAvailableTimes: ["2026-10-20"] } });
+    getAllSchedule.mockResolvedValue({ success: true, code: 200, data: [USERS[0], USERS[1], { ...USERS[2], availableTimes: ["2026-10-20"] }] });
+    fireEvent.click(screen.getByRole("button", { name: "저장하기, 1일" }));
+    expect(await screen.findByText("참여 가능한 날짜를 저장했어요. 이제 모두가 볼 수 있어요.")).toHaveClass("pop");
+    expect(screen.queryByText(/날짜을/)).not.toBeInTheDocument();
+  });
+
   test("저장이 실패하면 실험 밖이어도 실패 기록을 남긴다", async () => {
     await renderDate({ me: "민준" });
     fireEvent.click(screen.getByRole("button", { name: "내 날짜 고치기, 지금 2일" }));

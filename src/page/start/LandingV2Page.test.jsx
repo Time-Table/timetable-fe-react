@@ -356,6 +356,26 @@ describe("날짜 투표(2026-10-09, v1과 같다)", () => {
     delete window.clarity;
   });
 
+  test("휴대폰 공유 문구는 날짜만이면 '날짜를'로 쓴다(조사 '을' 아님)", async () => {
+    const hadShare = "share" in navigator;
+    const originalShare = navigator.share;
+    mockMatchMedia(true);
+    navigator.share = jest.fn().mockResolvedValue();
+    createTable.mockResolvedValue({ success: true, data: { tableId: "date-table" } });
+    try {
+      mount({ preview: false });
+      fireEvent.click(toggle());
+      fireEvent.click(screen.getAllByRole("button", { name: "이대로 만들기" })[0]);
+      const dialog = screen.getByRole("dialog", { name: "이대로 만들까요?" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "링크 만들기" }));
+      fireEvent.click(await screen.findByRole("button", { name: "링크 공유하기" }));
+      expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringMatching(/ — 가능한 날짜를 표시해 주세요\.$/) }));
+    } finally {
+      if (hadShare) navigator.share = originalShare;
+      else delete navigator.share;
+    }
+  });
+
   test("미리보기 주소는 스위치를 꺼도 기록하지 않는다", () => {
     window.clarity = jest.fn();
     mount();

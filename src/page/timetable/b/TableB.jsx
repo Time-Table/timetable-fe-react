@@ -431,7 +431,7 @@ export default function TableB({
       if (burst) promptTimerRef.current = setTimeout(open, SAVE_PROMPT_DELAY_MS);
       else open();
     } else if (after.firstSave) {
-      showToast(`참여 가능한 ${dateMode ? "날짜" : "시간"}을 저장했어요. 이제 모두가 볼 수 있어요.`, { pop: true });
+      showToast(`참여 가능한 ${dateMode ? "날짜를" : "시간을"} 저장했어요. 이제 모두가 볼 수 있어요.`, { pop: true });
     } else if (dateMode) showToast(after.hasTimes ? "고친 날짜를 저장했어요!" : "내 날짜를 모두 지웠어요.", { pop: true });
     else showToast(after.hasTimes ? "고친 시간을 저장했어요!" : "내 시간을 모두 지웠어요.", { pop: true });
   }, [mode, showToast, dateMode]);

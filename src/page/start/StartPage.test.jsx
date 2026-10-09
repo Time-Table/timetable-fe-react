@@ -291,7 +291,9 @@ describe("완료 창", () => {
     expect(share).toHaveFocus();
 
     fireEvent.click(share);
-    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ url: TABLE_URL, title: "팀 프로젝트 회의" }));
+    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({
+      url: TABLE_URL, title: "팀 프로젝트 회의", text: "팀 프로젝트 회의 — 가능한 시간을 표시해 주세요.",
+    }));
     expect(inviteShares()).toHaveLength(1);
     expect(clarityEvents()).toEqual(expect.arrayContaining(["tt_invite_share_native"]));
     expect(clarityEvents()).not.toContain("tt_invite_share_copy");
@@ -317,6 +319,16 @@ describe("완료 창", () => {
     expect(inviteShares()).toHaveLength(1);
     expect(clarityEvents().filter((n) => n.startsWith("tt_invite_share"))).toEqual(["tt_invite_share_native"]);
     delete window.clarity;
+  });
+
+  test("날짜만 표는 공유 문구도 '날짜를'로 쓴다(조사 '을' 아님)", async () => {
+    mockMatchMedia(true);
+    navigator.share = jest.fn().mockResolvedValue();
+    mount();
+    fireEvent.click(screen.getByRole("switch", { name: "시간 범위 정하기" }));
+    await createAndOpenDone();
+    fireEvent.click(screen.getByRole("button", { name: "링크 공유하기" }));
+    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ text: "팀 프로젝트 회의 — 가능한 날짜를 표시해 주세요." }));
   });
 
   test("Esc나 '테이블로 이동'은 만든 테이블로 가고 스크롤 잠금을 푼다", async () => {

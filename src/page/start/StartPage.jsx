@@ -1287,7 +1287,7 @@ export default function StartPage() {
     if (!done) return;
     recordShareAttempt(done.tableId, CLARITY_EVENTS.INVITE_SHARE_NATIVE);
     navigator
-      .share({ title: done.title, text: `${done.title} — 가능한 ${done.dateOnly ? "날짜" : "시간"}을 표시해 주세요.`, url: done.url })
+      .share({ title: done.title, text: `${done.title} — 가능한 ${done.dateOnly ? "날짜를" : "시간을"} 표시해 주세요.`, url: done.url })
       .catch((err) => {
         if (err?.name === "AbortError" || !isMounted.current) return;
         copyLink(e, { track: false });
