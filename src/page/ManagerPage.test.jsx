@@ -2,7 +2,7 @@ import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import ManagerPage from "./ManagerPage";
 import Swal from "sweetalert2";
-import { getAllTables, deleteTable } from "../api/table";
+import { getAllTables, deleteTable, updateTable } from "../api/table";
 import { getFunnels } from "../api/event";
 import { adminVerify, getTrends, getBlogStats } from "../api/admin";
 import { TrendChart } from "./manager/charts";
@@ -17,7 +17,11 @@ jest.mock("./manager/charts", () => ({
   BarList: () => null,
 }));
 jest.mock("../api/event", () => ({ getFunnels: jest.fn() }));
-jest.mock("../api/admin", () => ({ adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn(), getLandingAb: jest.fn(), stopLandingAb: jest.fn() }));
+// 핵심 유저 지표 카드(2026-10-09)는 이 파일에서 다루지 않는다(manager/MetricsCards.test.jsx). BE 배포 전 응답으로 둔다.
+jest.mock("../api/admin", () => ({
+  adminVerify: jest.fn(), getTrends: jest.fn(), getBlogStats: jest.fn(), getLandingAb: jest.fn(), stopLandingAb: jest.fn(),
+  getMetricsOverview: jest.fn(async () => ({ error: "notDeployed" })),
+}));
 jest.mock("../api/visit", () => ({ getTrackVisit: jest.fn() }));
 jest.mock("../api/table", () => ({ getAllTables: jest.fn(), updateTable: jest.fn(), deleteTable: jest.fn() }));
 jest.mock("../utils/admin", () => ({ isAdmin: () => true }));
@@ -302,4 +306,19 @@ test("삭제 실패 시 표를 목록에 유지한다", async () => {
   deleteTable.mockResolvedValue({ success: false });
   await openTableDeletion();
   expect(screen.getByText(localTable.title)).toBeTruthy();
+});
+
+test("날짜 투표 표는 목록에 '날짜만'으로 보이고, 수정 창에서 시간 범위를 받지 않는다(2026-10-09)", async () => {
+  const dateTable = { tableId: "date-vote-target", title: "날짜 투표 검증 표", participantCount: 2,
+    dates: ["2099-01-01", "2099-01-02"], createdAt: "2026-10-09T00:00:00Z" };
+  getAllTables.mockResolvedValue({ data: [dateTable, localTable] });
+  updateTable.mockResolvedValue({ success: false, data: { message: "시간 표와 날짜 투표 표는 서로 바꿀 수 없습니다." } });
+  render(<ManagerPage />); await flushUpdates();
+  await click(screen.getByText("테이블 관리", { selector: "button" }));
+  await screen.findByText(dateTable.title);
+  expect(screen.getByText("2일 · 날짜만")).toBeTruthy();
+  expect(screen.getByText("1일 · 09:00~18:00")).toBeTruthy();
+  await click(screen.getAllByRole("button", { name: "수정" })[0]);
+  expect(screen.getByText(/날짜만 고르는 표예요/)).toBeTruthy();
+  expect(screen.queryByLabelText("시작")).toBeNull();
 });

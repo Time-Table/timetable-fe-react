@@ -30,3 +30,18 @@ describe("미리보기 골든타임은 고른 날이 가장 많은 주에 둔다
     expect(goldenDay(daysFrom("2026-10-02", 6))).toBe("2026-10-02");
   });
 });
+
+describe("날짜 투표 미리보기(2026-10-09)", () => {
+  const { buildDateMock } = require("./mockPreview");
+  test("시간 미리보기와 같은 날이 1위이고, 하루 멀어질 때마다 한 명씩 빠지되 적어도 한 명은 된다", () => {
+    const days = daysFrom("2026-10-04");
+    const mock = buildDateMock(days);
+    expect(mock.hero.key).toBe(goldenDay(days));
+    expect(mock.total).toBe(6);
+    expect(mock.maxCount).toBe(5);
+    const counts = days.map((d) => mock.counts[d.key].length);
+    // 10/4(일)~10/10(토), 1위 10/9(금): 거리 5·4는 한 명, 그 뒤로 한 명씩 늘어 5명.
+    expect(counts).toEqual([1, 1, 2, 3, 4, 5, 4]);
+    expect(buildDateMock([])).toBeNull();
+  });
+});

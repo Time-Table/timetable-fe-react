@@ -9,6 +9,7 @@ import {
   clearTableState,
   draftFor,
   validCellsOf,
+  isDateOnlyTable,
   chatSeenAt,
   markChatsSeen,
   pickLabel,
@@ -20,7 +21,8 @@ import Loader from "../components/Loading";
 import BIcon from "./BIcon";
 import BSheet from "./BSheet";
 import { ViewGrid, EditGrid, CellPopup, usePaint } from "./BGrid";
-import { JoinBody, LeaveBody, MoreBody, GoldBody, HelpBody, ChatBody, ConfirmBody, PromptBody } from "./BSheets";
+import { DateViewCalendar, DateEditCalendar, DatePopup, OK_EMOJI } from "./BCalendar";
+import { JoinBody, LeaveBody, MoreBody, GoldBody, DayGoldBody, HelpBody, ChatBody, ConfirmBody, PromptBody } from "./BSheets";
 import { BPage } from "./TableB.styles";
 import { fireConfetti } from "./confetti";
 import * as M from "./bModel";
@@ -30,6 +32,9 @@ import { removeStorage, writeStorage } from "../../../utils/storage";
  * 새 화면(표 화면 B). 확정 시안(하네스 output/table-ab-sian/full, 2026-10-01 사람 확정)을 옮겼다.
  * 자료(표·참여자)와 공유 상태(고른 사람·보던 주)는 TimetablePage가 들고 A와 함께 쓴다. 여기서는 화면·흐름만 맡는다.
  * 계측은 A와 같은 서버 이벤트(uiVersion B가 붙는다)와 계약서 "새 화면(B) 계측"의 Clarity 이벤트다.
+ *
+ * 날짜 투표 표(2026-10-09, 시작·끝 시각 없음)는 실험과 관계없이 늘 이 화면이다(TimetablePage). 시간표 대신 달마다 달력을 그리고
+ * (BCalendar), 칸은 날짜 "YYYY-MM-DD"다. 주 넘기기·칠하기 끌기·시간 잠금이 없고, 문구는 "시간" 대신 "날짜"다.
  */
 
 const SAVE_PROMPT_DELAY_MS = 650;
@@ -106,20 +111,27 @@ export default function TableB({
   const promptTimerRef = useRef(0);
 
   // ---------- 자료 ----------
+  const dateMode = isDateOnlyTable(table);
   const dates = useMemo(() => M.datesOf(table), [table]);
-  const times = useMemo(() => M.timesOf(table), [table]);
+  const times = useMemo(() => (dateMode ? [] : M.timesOf(table)), [table, dateMode]);
   const locked = useMemo(() => new Set(table?.banedCells || []), [table]);
   const validCells = useMemo(
     () => validCellsOf({ dates: table?.dates, startHour: table?.startHour, endHour: table?.endHour, banedCells: table?.banedCells }),
     [table],
   );
-  const info = useMemo(() => M.infoOf(users, table), [users, table]);
+  const info = useMemo(() => (dateMode ? M.dateInfoOf(users, table) : M.infoOf(users, table)), [users, table, dateMode]);
   const max = useMemo(() => M.maxOf(info), [info]);
-  const weeks = useMemo(() => M.calWeeks(dates), [dates]);
-  const blocks = useMemo(() => M.blocksOf({ dates, times, locked, info }), [dates, times, locked, info]);
+  // 날짜 투표 표는 주 넘기기·시간 덩어리 대신 달력과 날짜 순위를 쓴다.
+  const weeks = useMemo(() => (dateMode ? [] : M.calWeeks(dates)), [dates, dateMode]);
+  const blocks = useMemo(() => (dateMode ? [] : M.blocksOf({ dates, times, locked, info })), [dates, times, locked, info, dateMode]);
+  const months = useMemo(() => (dateMode ? M.monthsOf(dates) : []), [dates, dateMode]);
+  const rankedDays = useMemo(() => (dateMode ? M.rankDays(info, dates) : []), [info, dates, dateMode]);
   const names = useMemo(() => users.map((u) => u.name), [users]);
   const joined = !!me && names.includes(me);
-  const mine = joined ? (users.find((u) => u.name === me)?.availableTimes || []).length : 0;
+  const myTimes = useMemo(() => (joined ? users.find((u) => u.name === me)?.availableTimes || [] : []), [joined, users, me]);
+  // 내가 저장한 날(날짜 투표 표의 🙆‍♂️). 참여한 사람의 저장한 날짜에만. 날짜 투표 표는 후보 날짜만 센다(옛 값·시간 칸은 빼고).
+  const mineSet = useMemo(() => new Set(dateMode ? myTimes.filter((d) => validCells.has(d)) : []), [dateMode, myTimes, validCells]);
+  const mine = dateMode ? mineSet.size : myTimes.length;
   const total = users.length;
 
   const sharedIndex = weekKey ? weeks.findIndex((w) => w[0].key === weekKey) : -1;
@@ -252,7 +264,9 @@ export default function TableB({
         openJoin();
         return;
       }
-      const saved = [...(list.find((u) => u.name === name)?.availableTimes || [])];
+      const raw = [...(list.find((u) => u.name === name)?.availableTimes || [])];
+      // 날짜 투표 표는 후보 날짜만 내 선택으로 연다(후보 밖·시간 칸 값은 저장하면 빠진다, BE도 같은 규칙).
+      const saved = dateMode ? raw.filter((cell) => validCells.has(cell)) : raw;
       // 표 화면 A/B 공유 상태: 기존 화면에서 칠하던 칸(같은 이름)이 있으면 그것으로 시작한다.
       const draft = draftFor(readTableState(tableId), name, validCells, saved);
       savedRef.current = new Set(saved);
@@ -269,7 +283,7 @@ export default function TableB({
       }
       scrollToCard();
     },
-    [tableId, validCells, onMeChange, openJoin, scrollToCard],
+    [tableId, validCells, dateMode, onMeChange, openJoin, scrollToCard],
   );
 
   const exitEdit = useCallback(() => {
@@ -289,8 +303,8 @@ export default function TableB({
     }
     setSheet({
       type: "confirm",
-      title: "저장하지 않은 시간이 있어요",
-      text: "지금 고른 시간은 저장되지 않아요. 그래도 할까요?",
+      title: dateMode ? "저장하지 않은 날짜가 있어요" : "저장하지 않은 시간이 있어요",
+      text: dateMode ? "지금 고른 날짜는 저장되지 않아요. 그래도 할까요?" : "지금 고른 시간은 저장되지 않아요. 그래도 할까요?",
       goLabel: "그래도 하기",
       onGo: fn,
     });
@@ -305,7 +319,13 @@ export default function TableB({
       leave();
       return;
     }
-    setSheet({ type: "confirm", title: "저장하지 않고 나갈까요?", text: "지금 고른 시간은 저장되지 않아요.", goLabel: "나가기", onGo: leave });
+    setSheet({
+      type: "confirm",
+      title: "저장하지 않고 나갈까요?",
+      text: dateMode ? "지금 고른 날짜는 저장되지 않아요." : "지금 고른 시간은 저장되지 않아요.",
+      goLabel: "나가기",
+      onGo: leave,
+    });
   };
 
   const toggleKeys = (keys, kind) => {
@@ -321,7 +341,26 @@ export default function TableB({
     bumpSel();
   };
 
-  usePaint(gridRef, mode === "edit", `${mode}:${weekIndex}`, {
+  /** 날짜 투표 표: 날 하나를 고르거나 지운다(끌어 칠하기 없음). */
+  const toggleDate = (key) => {
+    if (!validCells.has(key)) return;
+    const selected = selectedRef.current;
+    if (selected.has(key)) selected.delete(key);
+    else {
+      selected.add(key);
+      trackSelectOnce();
+    }
+    persistDraft();
+    bumpSel();
+  };
+
+  /** 날짜 투표 표: 그 달의 그 요일 전부를 고르거나(하나라도 안 골랐으면) 지운다. */
+  const toggleWeekday = (month, col) => {
+    const keys = month.weeks.map((w) => w[col]).filter((c) => c.inMonth && c.on).map((c) => c.key);
+    toggleKeys(keys, "day");
+  };
+
+  usePaint(gridRef, mode === "edit" && !dateMode, `${mode}:${weekIndex}`, {
     selectedRef,
     onPaint: (added) => {
       if (added) trackSelectOnce();
@@ -336,7 +375,7 @@ export default function TableB({
     const saved = savedRef.current;
     if (M.sameSet(selected, saved)) {
       trackClarityEvent(CLARITY_EVENTS.B_SAVE_NOCHANGE);
-      showToast("바뀐 시간이 없어요.", { pop: true });
+      showToast(dateMode ? "바뀐 날짜가 없어요." : "바뀐 시간이 없어요.", { pop: true });
       exitEdit();
       return;
     }
@@ -391,9 +430,11 @@ export default function TableB({
       };
       if (burst) promptTimerRef.current = setTimeout(open, SAVE_PROMPT_DELAY_MS);
       else open();
-    } else if (after.firstSave) showToast("참여 가능한 시간을 저장했어요. 이제 모두가 볼 수 있어요.", { pop: true });
+    } else if (after.firstSave) {
+      showToast(`참여 가능한 ${dateMode ? "날짜" : "시간"}을 저장했어요. 이제 모두가 볼 수 있어요.`, { pop: true });
+    } else if (dateMode) showToast(after.hasTimes ? "고친 날짜를 저장했어요!" : "내 날짜를 모두 지웠어요.", { pop: true });
     else showToast(after.hasTimes ? "고친 시간을 저장했어요!" : "내 시간을 모두 지웠어요.", { pop: true });
-  }, [mode, showToast]);
+  }, [mode, showToast, dateMode]);
   useEffect(() => () => clearTimeout(promptTimerRef.current), []);
 
   // ---------- 참여·나가기 ----------
@@ -428,7 +469,9 @@ export default function TableB({
     const list = add(fresh.ok ? fresh.users : users);
     setSheet(null);
     if (!listed) showToast(`${saved} 님으로 들어왔어요. 참여자 목록은 잠시 뒤 다시 맞춰져요.`);
-    else showToast(res.code === 201 ? `${saved} 님, 환영해요. 되는 시간을 칠해 주세요.` : `${saved} 님으로 들어왔어요. 시간을 고칠 수 있어요.`);
+    else if (dateMode) {
+      showToast(res.code === 201 ? `${saved} 님, 환영해요. 되는 날을 골라 주세요.` : `${saved} 님으로 들어왔어요. 날짜를 고칠 수 있어요.`);
+    } else showToast(res.code === 201 ? `${saved} 님, 환영해요. 되는 시간을 칠해 주세요.` : `${saved} 님으로 들어왔어요. 시간을 고칠 수 있어요.`);
     // 참여 뒤 저절로 여는 입력은 사람이 누른 입력 시작(tt_b_edit_start)으로 세지 않는다(Codex 교차 검증 2026-10-01).
     startEdit(saved, list, { byUser: false });
     return "";
@@ -460,7 +503,7 @@ export default function TableB({
     setSheet(null);
     setMode("view");
     setCoach(false);
-    showToast("참여를 취소했어요. 내 시간이 지워졌어요.");
+    showToast(dateMode ? "참여를 취소했어요. 내 날짜가 지워졌어요." : "참여를 취소했어요. 내 시간이 지워졌어요.");
     onReload();
     return "";
   };
@@ -497,6 +540,12 @@ export default function TableB({
     if (wi >= 0) onWeekKeyChange(weeks[wi][0].key);
     setPopKey(null);
     setRevealKey(`${b.date}-${b.start}`);
+  };
+  /** 날짜 투표 표: 달력의 그 날로 가서 명단을 연다. keepPicks면 고른 사람을 그대로 둔다. */
+  const jumpDate = (date, keepPicks) => {
+    if (!keepPicks) onPicksChange([]);
+    setPopKey(null);
+    setRevealKey(date);
   };
   useEffect(() => {
     if (!revealKey) return;
@@ -638,8 +687,12 @@ export default function TableB({
   const nWeeks = weeks.length;
   const top = blocks[0];
   const tipKey = picks.length || hintOff ? null : M.goldenKeyOf(blocks, max);
-  const common = !edit && picks.length >= 2 ? M.commonBlocksOf(picks, { dates, times, locked, info }) : null;
-  const dur = selected.size ? M.duration(selected.size) : "없음";
+  const common = !dateMode && !edit && picks.length >= 2 ? M.commonBlocksOf(picks, { dates, times, locked, info }) : null;
+  const dur = selected.size ? (dateMode ? M.dayCount(selected.size) : M.duration(selected.size)) : "없음";
+  // 날짜 투표 표: 1위 날(동점이면 이른 날), 고른 사람들끼리 모두 되는 날.
+  const topDay = dateMode ? rankedDays[0]?.d || null : null;
+  const commonDays = dateMode && !edit && picks.length >= 2 ? M.commonDaysOf(picks, info, dates) : null;
+  const unit = dateMode ? "날짜" : "시간";
   const weekSub = edit
     ? (() => {
         const m = M.myInWeek(week, times, selected);
@@ -650,19 +703,116 @@ export default function TableB({
         return mx ? `최대 ${mx}명` : "아직 없음";
       })();
 
+  const legendBox = (
+    <div className="tb-legend" aria-hidden="true">
+      {edit ? (
+        <>
+          <BIcon name="pen" size={14} />
+          <span className="tb-sw" />
+          <span className="tb-gap" />
+          <BIcon name="users" size={14} />
+          <span className="tb-sw light" />
+        </>
+      ) : picks.length === 1 ? (
+        <>
+          <BIcon name="user" size={14} />
+          <span className="tb-sw" />
+          <span className="tb-legend-name" data-clarity-mask="true">
+            {picks[0]}
+          </span>
+        </>
+      ) : picks.length > 1 ? (
+        <>
+          <BIcon name="users" size={14} />
+          <span className="tb-sw" />
+          <span className="tb-legend-name">모두</span>
+          <span className="tb-gap" />
+          <span className="tb-sw light" />
+          <span className="tb-legend-name">일부</span>
+        </>
+      ) : (
+        <>
+          <BIcon name="user" size={14} />
+          <span className="tb-scale" />
+          <BIcon name="users" size={14} />
+        </>
+      )}
+    </div>
+  );
+
+  // 날짜 투표 표 범례(시안 Final1~3·FinalSpec). 게이지 양끝은 사람 한 명 ↔ 여러 명 아이콘, 옆에 🙆‍♂️ 내가 되는 날.
+  // 사람을 골라 보는 중에는 시간표와 같은 범례(모두·일부)다.
+  const dateLegend = !dateMode ? null : edit ? (
+    <>
+      <div className="tb-legend tb-legend-date" aria-hidden="true">
+        <span className="tb-lg-item">
+          <span className="tb-sw-day pick">
+            <span className="tb-sw-emo">{OK_EMOJI}</span>
+          </span>
+          내가 고른 날
+        </span>
+        <span className="tb-lg-item">
+          <span className="tb-sw-day light" />
+          다른 사람이 되는 날
+        </span>
+      </div>
+      <p className="tb-legend-note">요일 글자를 누르면 그 요일을 한꺼번에 고르거나 지워요.</p>
+    </>
+  ) : picks.length ? (
+    legendBox
+  ) : (
+    <div className="tb-legend tb-legend-date" aria-hidden="true">
+      <span className="tb-lg-item">
+        <BIcon name="user" size={14} />
+        <span className="tb-grad" />
+        <BIcon name="users" size={14} />
+      </span>
+      {mineSet.size > 0 && (
+        <span className="tb-lg-item">
+          <span className="tb-lg-emo">{OK_EMOJI}</span>
+          내가 되는 날
+        </span>
+      )}
+    </div>
+  );
+  const dateCalendar = !dateMode ? null : edit ? (
+    <DateEditCalendar
+      ref={gridRef}
+      months={months}
+      info={info}
+      total={total}
+      me={me}
+      selected={selected}
+      onDay={toggleDate}
+      onWeekday={toggleWeekday}
+    />
+  ) : (
+    <DateViewCalendar
+      ref={gridRef}
+      months={months}
+      info={info}
+      total={total}
+      max={max}
+      mine={mineSet}
+      picks={picks}
+      popKey={popKey}
+      onCell={onCell}
+    />
+  );
+
   const renderSheet = () => {
     if (!sheet) return null;
     switch (sheet.type) {
       case "join":
         return (
           <BSheet title={sheet.title} onClose={closeSheet} initialFocus="#tb-join-name">
-            <JoinBody onSubmit={submitJoin} />
+            <JoinBody onSubmit={submitJoin} dateMode={dateMode} />
           </BSheet>
         );
       case "leave":
         return (
           <BSheet title="참여를 취소할까요?" onClose={closeSheet}>
-            <LeaveBody onSubmit={submitLeave} onClose={closeSheet} />
+            <LeaveBody onSubmit={submitLeave} onClose={closeSheet} dateMode={dateMode} />
           </BSheet>
         );
       case "more":
@@ -670,6 +820,7 @@ export default function TableB({
           <BSheet title="더보기" onClose={closeSheet}>
             <MoreBody
               me={me}
+              dateMode={dateMode}
               onLogout={() => {
                 setSheet(null);
                 guardDirty(logout);
@@ -682,6 +833,23 @@ export default function TableB({
           </BSheet>
         );
       case "gold":
+        if (dateMode) {
+          return (
+            <BSheet title="가장 많이 모이는 날" onClose={closeSheet}>
+              <DayGoldBody
+                ranked={rankedDays}
+                total={total}
+                mine={mineSet}
+                onJump={(d) => {
+                  trackClarityEvent(CLARITY_EVENTS.B_RANK_JUMP);
+                  setSheet(null);
+                  jumpDate(d.date, false);
+                }}
+                onMore={() => trackClarityEvent(CLARITY_EVENTS.B_RANK_MORE)}
+              />
+            </BSheet>
+          );
+        }
         return (
           <BSheet title="가장 많이 모이는 시간" onClose={closeSheet}>
             <GoldBody
@@ -699,7 +867,7 @@ export default function TableB({
       case "help":
         return (
           <BSheet title="사용법" onClose={closeSheet}>
-            <HelpBody multiWeek={nWeeks > 1} />
+            <HelpBody multiWeek={nWeeks > 1} dateMode={dateMode} />
           </BSheet>
         );
       case "chat":
@@ -740,8 +908,8 @@ export default function TableB({
         );
       case "prompt":
         return (
-          <BSheet title={null} label="첫 번째로 시간을 넣었어요" center onClose={closeSheet}>
-            <PromptBody onShare={() => share({ fromPrompt: true })} onClose={closeSheet} />
+          <BSheet title={null} label={dateMode ? "첫 번째로 날짜를 넣었어요" : "첫 번째로 시간을 넣었어요"} center onClose={closeSheet}>
+            <PromptBody onShare={() => share({ fromPrompt: true })} onClose={closeSheet} dateMode={dateMode} />
           </BSheet>
         );
       default:
@@ -770,9 +938,13 @@ export default function TableB({
                   className="tb-goldbtn"
                   type="button"
                   aria-label={
-                    top
-                      ? `가장 많이 모이는 시간 ${M.fmtDay(top.date)} ${M.fmtRange(top)}, ${total}명 중 ${top.count}명. 순위 보기`
-                      : "가장 많이 모이는 시간 보기"
+                    dateMode
+                      ? topDay
+                        ? `가장 많이 모이는 날 ${M.fmtDay(topDay.date)}, ${total}명 중 ${topDay.count}명. 순위 보기`
+                        : "가장 많이 모이는 날 보기"
+                      : top
+                        ? `가장 많이 모이는 시간 ${M.fmtDay(top.date)} ${M.fmtRange(top)}, ${total}명 중 ${top.count}명. 순위 보기`
+                        : "가장 많이 모이는 시간 보기"
                   }
                   onClick={() => {
                     trackEvent(EVENTS.RANKING_OPEN, tableId);
@@ -816,7 +988,7 @@ export default function TableB({
                       className={`tb-chip${has ? "" : " todo"}`}
                       type="button"
                       aria-pressed={on}
-                      aria-label={`${u.name}${u.name === me ? "(나)" : ""}${has ? "" : ", 아직 시간을 안 넣음"}. ${on ? "빼기" : "고르기"}`}
+                      aria-label={`${u.name}${u.name === me ? "(나)" : ""}${has ? "" : `, 아직 ${unit}${dateMode ? "를" : "을"} 안 넣음`}. ${on ? "빼기" : "고르기"}`}
                       onClick={() => togglePick(u.name)}
                     >
                       <BIcon name={on ? "check" : "user"} size={15} />
@@ -825,6 +997,58 @@ export default function TableB({
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* 날짜 투표 표의 1위 카드(시안 Final1·2): 불꽃 + 날짜만, 내 날이면 날짜 뒤 🙆‍♂️. 누르면 그 날 명단 창. */}
+            {dateMode && !edit && !picks.length && topDay && (
+              <button
+                className="tb-best"
+                type="button"
+                aria-label={`가장 많이 모이는 날 ${M.fmtDay(topDay.date)}, ${topDay.count}명 가능${mineSet.has(topDay.date) ? ", 나도 돼요" : ""}. 명단 보기`}
+                onClick={() => {
+                  trackClarityEvent(CLARITY_EVENTS.B_BEST_OPEN);
+                  jumpDate(topDay.date, true);
+                }}
+              >
+                <span className="tb-best-icon" aria-hidden="true">
+                  <BIcon name="gold" size={18} />
+                </span>
+                <b>
+                  {M.fmtDay(topDay.date)}
+                  {mineSet.has(topDay.date) && (
+                    <span className="tb-me-emo" aria-hidden="true">
+                      {OK_EMOJI}
+                    </span>
+                  )}
+                </b>
+                <BIcon name="right" size={16} className="tb-chev" />
+              </button>
+            )}
+
+            {commonDays && (
+              <div className="tb-common" role="status" data-clarity-mask="true">
+                <span className="tb-common-who">
+                  <BIcon name="users" size={15} />
+                  {`${pickLabel(picks)} 모두`}
+                </span>
+                {commonDays.length ? (
+                  <button
+                    className="tb-common-best"
+                    type="button"
+                    aria-label={`${pickLabel(picks)} 모두 되는 날 ${M.fmtDay(commonDays[0])}, 모두 ${commonDays.length}일. 달력에서 보기`}
+                    onClick={() => {
+                      trackClarityEvent(CLARITY_EVENTS.B_COMMON_JUMP);
+                      jumpDate(commonDays[0], true);
+                    }}
+                  >
+                    {M.shortDay(commonDays[0])}
+                    {commonDays.length > 1 && <small>{`외 ${commonDays.length - 1}일`}</small>}
+                    <BIcon name="right" size={14} className="tb-chev" />
+                  </button>
+                ) : (
+                  <span className="tb-common-none">모두 되는 날이 아직 없어요</span>
+                )}
               </div>
             )}
 
@@ -856,7 +1080,25 @@ export default function TableB({
 
             {/* 입력 중에는 제목 아래 알약 대신 주 넘기기 가운데에 "ㅇㅇ 님의 가능한 시간"을 크게 두고, 칠하기 안내는 그 아래에 둔다
                 (2026-10-04 사람 결정: 시안 1·안내 띠 아래·primary 색, output/table-ab-sian/edit-label). 1주짜리 표는 화살표 없이 문구만. */}
-            {(edit || nWeeks > 1) && (
+            {/* 날짜 투표 표 입력 중(시안 Final3): "ㅇㅇ 님의 날짜" 알약과 고르는 법 한 줄. */}
+            {dateMode && edit && (
+              <>
+                <p className="tb-editing" data-clarity-mask="true">
+                  <BIcon name="pen" size={14} />
+                  {`${me} 님의 날짜`}
+                </p>
+                <p className="tb-hint">
+                  <BIcon name="cal" size={16} />
+                  되는 날을 누르면 고르기
+                  <span className="tb-dotsep" aria-hidden="true">
+                    ·
+                  </span>
+                  다시 누르면 지움
+                </p>
+              </>
+            )}
+
+            {!dateMode && (edit || nWeeks > 1) && (
               <div className={`tb-weekbar${nWeeks > 1 ? "" : " solo"}`}>
                 {nWeeks > 1 && (
                   <button className="tb-navbtn" type="button" aria-label="이전 주" disabled={weekIndex === 0} onClick={() => go(weekIndex - 1)}>
@@ -892,7 +1134,7 @@ export default function TableB({
               </div>
             )}
 
-            {edit && (
+            {!dateMode && edit && (
               <p className="tb-hint">
                 {/* 손가락용·마우스용 중 하나만 보인다(TableB.styles.js .tb-hint-touch·.tb-hint-mouse). */}
                 <span className="tb-hint-touch">
@@ -916,73 +1158,57 @@ export default function TableB({
               </p>
             )}
 
-            {edit ? (
-              <EditGrid
-                key={`e${weekIndex}`}
-                ref={gridRef}
-                week={week}
-                times={times}
-                locked={locked}
-                info={info}
-                max={max}
-                me={me}
-                selected={selected}
-                slide={slide}
-                coach={coach}
-                onToggle={toggleKeys}
-              />
-            ) : (
-              <ViewGrid
-                key={`v${weekIndex}`}
-                ref={gridRef}
-                week={week}
-                times={times}
-                locked={locked}
-                info={info}
-                max={max}
-                picks={picks}
-                tipKey={tipKey}
-                popKey={popKey}
-                slide={slide}
-                onCell={onCell}
-              />
-            )}
+            {!dateMode && (
+              <>
+                {edit ? (
+                  <EditGrid
+                    key={`e${weekIndex}`}
+                    ref={gridRef}
+                    week={week}
+                    times={times}
+                    locked={locked}
+                    info={info}
+                    max={max}
+                    me={me}
+                    selected={selected}
+                    slide={slide}
+                    coach={coach}
+                    onToggle={toggleKeys}
+                  />
+                ) : (
+                  <ViewGrid
+                    key={`v${weekIndex}`}
+                    ref={gridRef}
+                    week={week}
+                    times={times}
+                    locked={locked}
+                    info={info}
+                    max={max}
+                    picks={picks}
+                    tipKey={tipKey}
+                    popKey={popKey}
+                    slide={slide}
+                    onCell={onCell}
+                  />
+                )}
 
-            <div className="tb-legend" aria-hidden="true">
-              {edit ? (
+                {legendBox}
+              </>
+            )}
+            {/* 한 달이면 달력 아래, 여러 달이면 달력 위에 범례(시안 Final1·FinalMonths). */}
+            {dateMode &&
+              (months.length > 1 ? (
                 <>
-                  <BIcon name="pen" size={14} />
-                  <span className="tb-sw" />
-                  <span className="tb-gap" />
-                  <BIcon name="users" size={14} />
-                  <span className="tb-sw light" />
-                </>
-              ) : picks.length === 1 ? (
-                <>
-                  <BIcon name="user" size={14} />
-                  <span className="tb-sw" />
-                  <span className="tb-legend-name" data-clarity-mask="true">
-                    {picks[0]}
-                  </span>
-                </>
-              ) : picks.length > 1 ? (
-                <>
-                  <BIcon name="users" size={14} />
-                  <span className="tb-sw" />
-                  <span className="tb-legend-name">모두</span>
-                  <span className="tb-gap" />
-                  <span className="tb-sw light" />
-                  <span className="tb-legend-name">일부</span>
+                  {dateLegend}
+                  {dateCalendar}
                 </>
               ) : (
                 <>
-                  <BIcon name="user" size={14} />
-                  <span className="tb-scale" />
-                  <BIcon name="users" size={14} />
+                  {dateCalendar}
+                  {dateLegend}
                 </>
-              )}
-            </div>
-            {!edit && <p className="tb-sr">{M.summaryOf(blocks, total)}</p>}
+              ))}
+            {!edit && <p className="tb-sr">{dateMode ? M.daySummaryOf(rankedDays, total) : M.summaryOf(blocks, total)}</p>}
           </section>
 
           <AdSense slot="7512892307" layout="in-article" format="fluid" isReady={isAdReady} />
@@ -1038,15 +1264,19 @@ export default function TableB({
                     ref={mainDockRef}
                     className={`tb-dock main${joined ? "" : " nudge"}`}
                     type="button"
-                    aria-label={joined && mine ? `내 시간 고치기, 지금 ${M.duration(mine)}` : "내 시간 넣기"}
+                    aria-label={
+                      joined && mine
+                        ? `내 ${unit} 고치기, 지금 ${dateMode ? M.dayCount(mineSet.size) : M.duration(mine)}`
+                        : `내 ${unit} 넣기`
+                    }
                     // 참여 전이면 참여 창을 연다. 서버에서 지워진 이름이 이 기기에 남아 있으면 이름·공유 상태를 먼저 지운다(startEdit).
                     onClick={() => startEdit(me, users)}
                   >
                     <BIcon name="pen" size={22} />
-                    <span className="tb-lbl">{joined && mine ? "내 시간 고치기" : "내 시간 넣기"}</span>
+                    <span className="tb-lbl">{joined && mine ? `내 ${unit} 고치기` : `내 ${unit} 넣기`}</span>
                     {!joined && (
                       <span className="tb-nudge-tip" aria-hidden="true">
-                        여기서 내 시간을 넣어요
+                        {dateMode ? "여기서 되는 날을 골라요" : "여기서 내 시간을 넣어요"}
                       </span>
                     )}
                   </button>
@@ -1068,8 +1298,19 @@ export default function TableB({
         </div>
       </div>
 
-      {popKey && !edit && (
+      {popKey && !edit && !dateMode && (
         <CellPopup cellKey={popKey} gridRef={gridRef} info={info} names={names} max={max} onClose={() => setPopKey(null)} />
+      )}
+      {popKey && !edit && dateMode && (
+        <DatePopup
+          cellKey={popKey}
+          gridRef={gridRef}
+          info={info}
+          users={users}
+          me={joined ? me : null}
+          max={max}
+          onClose={() => setPopKey(null)}
+        />
       )}
       {renderSheet()}
       {/* 참여 안내에 이름이 들어가므로 화면 녹화에서 가린다(Codex 교차 검증 2026-10-01). */}

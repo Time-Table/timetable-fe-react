@@ -394,6 +394,65 @@ export const BPage = styled.div`
     .tb-hint-mouse { display: inline-flex; }
   }
 
+  /* ---------- 날짜 투표 표(2026-10-09 사람 확정, 시안 하네스 캔버스 Final1~5·FinalSpec·FinalMonths·FinalPC) ----------
+     달마다 달력 한 장. 칸 54px(PC 72px, 여러 달 PC 56px), 구분선 1px, 날짜 15px 굵게. 다른 달 칸은 #F7F7F7로 비우고,
+     후보 아닌 날은 #F2F2F2 바탕·#B6B6B6 날짜로 비활성. 1위 날은 흰 동그라미 불꽃 + 반짝임(.tb-shine), 내 날은 🙆‍♂️.
+     달 이름·요일 줄은 스크롤하면 위(사이트 머리말 아래)에 붙는다. */
+  .tb-cals { display: flex; flex-direction: column; gap: 18px; }
+  .tb-cal { display: flex; flex-direction: column; min-width: 0; }
+  .tb-cal-head { position: sticky; top: var(--header-h); z-index: 6; background: #fff; }
+  .tb-cal-mon { margin: 0; padding: 4px 2px 8px; font-size: 16px; ${w8} color: var(--g100); }
+  .tb-cal-week, .tb-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .tb-cal-wd { display: block; width: 100%; margin: 0; padding: 4px 0 6px; border: 0; border-bottom: 1px solid var(--g900); background: none;
+    text-align: center; font-size: 13px; ${w5} color: var(--g400); }
+  .tb-cal-wd.sat { color: var(--sat); }
+  .tb-cal-wd.sun { color: var(--primary-text); }
+  .tb-cal-wd.hl { color: var(--primary-text); ${w7} }
+  button.tb-cal-wd { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button.tb-cal-wd:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  .tb-dc { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 54px; margin: 0; padding: 0;
+    border: 0; border-right: 1px solid var(--g900); border-bottom: 1px solid var(--g900); background: #fff;
+    -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
+  .tb-dc.tap { cursor: pointer; }
+  .tb-dc.tap:focus-visible { outline: 2px solid var(--primary-text); outline-offset: -2px; z-index: 5; }
+  .tb-dc.off { background: var(--g900); cursor: default; }
+  .tb-dc.off .tb-dc-num { color: var(--g700); ${w5} }
+  .tb-dc.out { background: #f7f7f7; }
+  .tb-dc.open { z-index: 7; box-shadow: inset 0 0 0 2px var(--g100); }
+  .tb-dc.pick { background: var(--primary); }
+  .tb-dc-fill, .tb-dc-under { position: absolute; inset: 0; background: var(--primary); pointer-events: none; transition: opacity 200ms var(--ease); }
+  .tb-dc-num { position: relative; font-size: 15px; ${w7} color: var(--g100); font-variant-numeric: tabular-nums; }
+  .tb-dc.has-emo .tb-dc-num { transform: translateY(-9px); }
+  .tb-dc-emo, .tb-sw-emo, .tb-lg-emo, .tb-me-emo, .tb-pop-emo { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; line-height: 1; }
+  .tb-dc-emo { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-size: 17px; filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9)); pointer-events: none; }
+  .tb-dc-one { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; color: var(--primary-text);
+    display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .tb-cals.edit { -webkit-user-select: none; user-select: none; }
+  /* 1위 카드(가장 많이 모이는 날) */
+  .tb-best { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 0 14px; border: 0; border-radius: 14px;
+    background: var(--primary-surface); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .tb-best-icon { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: #fff; color: var(--primary-text);
+    display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1.5px #ffc2c2; }
+  .tb-best b { flex: 1; min-width: 0; font-size: 16px; ${w8} color: var(--g100); }
+  .tb-me-emo { display: inline-block; margin-left: 6px; font-size: 18px; vertical-align: -2px; }
+  /* 입력 중 "ㅇㅇ 님의 날짜" */
+  .tb-editing { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; max-width: 100%; margin: 0; padding: 5px 12px; border-radius: 999px;
+    background: var(--primary-surface); color: var(--primary-text); font-size: 13px; ${w7} overflow-wrap: anywhere; }
+  /* 범례 */
+  .tb-legend-date { gap: 10px 18px; font-size: 12px; ${w6} color: var(--g200); }
+  .tb-lg-item { display: inline-flex; align-items: center; gap: 8px; }
+  .tb-lg-item .tb-ic { color: var(--g500); }
+  .tb-grad { width: 84px; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #fff, var(--primary)); box-shadow: inset 0 0 0 1px #e4e4e4; }
+  .tb-lg-emo { font-size: 17px; }
+  .tb-sw-day { position: relative; display: inline-block; width: 28px; height: 22px; border-radius: 4px; background: var(--primary); overflow: hidden; }
+  .tb-sw-day.light { opacity: 0.22; }
+  .tb-sw-emo { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-size: 12px; }
+  .tb-legend-note { margin: 0; text-align: center; font-size: 13px; color: var(--g400); }
+  /* 날짜 명단 창: 나는 맨 앞에 🙆‍♂️와 "나", 아직 안 넣은 사람은 작은 글 */
+  .tb-pop-name { display: inline-flex; align-items: center; gap: 5px; }
+  .tb-pop-name.me { background: var(--primary-surface); color: var(--g100); }
+  .tb-pop-name small { font-size: 11px; ${w5} color: var(--g400); }
+  .tb-pop-emo { font-size: 14px; }
   /* ---------- PC(1024px 이상): 넓힌 한 열(2026-10-02 사람 결정 "1번 - 넓힌 열", 시안 하네스 output/table-ab-sian/pc) ----------
      순서·부품은 휴대폰과 같고 폭만 880px로 넓힌다. 머리말·띠도 같은 폭이다(TimetablePage B_COLUMN_WIDTH_PC).
      아래 막대는 가운데에 떠 있고, 아래에서 올라오던 창은 화면 가운데에 뜬다. 칸·날짜 글자는 조금 키운다.
@@ -416,11 +475,26 @@ export const BPage = styled.div`
     .tb-sheet-back { align-items: center; padding: 24px; }
     .tb-sheet:not(.center) { max-width: 440px; border-radius: 20px; padding: 16px 24px 24px; animation: ${centerIn} 0.22s ease-out both; }
     .tb-sheet-handle { display: none; }
+    /* 날짜 투표 표 PC(시안 FinalPC·FinalMonthsPC): 한 달이면 칸 72px, 여러 달이면 달력 두 장을 나란히 두고 칸 56px. */
+    .tb-cal-wd { font-size: 14px; padding: 6px 0 8px; }
+    .tb-dc { height: 72px; }
+    .tb-dc-num { font-size: 18px; }
+    .tb-dc-emo { font-size: 20px; bottom: 7px; }
+    .tb-dc.has-emo .tb-dc-num { transform: translateY(-11px); }
+    .tb-dc-one { width: 20px; height: 20px; top: 5px; right: 5px; }
+    .tb-cals.multi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+    .tb-cals.multi .tb-dc { height: 56px; }
+    .tb-cals.multi .tb-dc-num { font-size: 16px; }
+    .tb-cals.multi .tb-dc-emo { font-size: 19px; bottom: 5px; }
+    .tb-cals.multi .tb-dc.has-emo .tb-dc-num { transform: translateY(-10px); }
   }
   /* 마우스를 올리면: 누를 수 있는 칸은 테두리, 칠할 칸은 회색 테두리, 칩·막대·창 줄은 옅은 바탕. */
   @media (min-width: 1024px) and (hover: hover) {
     .tb-chip:not([aria-pressed="true"]):hover { background: #e8e9ec; }
     .tb-cell.tap:hover { z-index: 3; box-shadow: inset 0 0 0 2px var(--primary-text); }
+    .tb-dc.tap:not(.open):hover { z-index: 3; box-shadow: inset 0 0 0 2px var(--g500); }
+    button.tb-cal-wd:hover { color: var(--primary-text); }
+    .tb-best:hover { box-shadow: inset 0 0 0 1.5px #ffc2c2; }
     .tb-grid.edit .tb-cell:not(.off):not(.lock):hover { z-index: 3; box-shadow: inset 0 0 0 2px var(--g500); }
     button.tb-day:hover em, button.tb-hour:hover { color: var(--primary-text); }
     .tb-dock:not(.main):hover { background: var(--soft); }
@@ -431,7 +505,7 @@ export const BPage = styled.div`
   @media (prefers-reduced-motion: reduce) {
     .tb-shine::before, .tb-pop, .tb-sheet, .tb-sheet.center, .tb-grid.slide-left, .tb-grid.slide-right, .tb-coach, .tb-coach-hand, .tb-coach-dot,
     .tb-sp-badge, .tb-sp-badge .tb-ic, .tb-toast.pop { animation: none; }
-    .tb-fill, .tb-under, .tb-cta { transition: none; }
+    .tb-fill, .tb-under, .tb-cta, .tb-dc-fill, .tb-dc-under { transition: none; }
     .tb-dock.main.nudge .tb-ic { animation: none; }
     .tb-nudge-tip { display: none; }
     .tb-dock.main.nudge::before { content: ""; position: absolute; inset: -4px; z-index: -1; border-radius: 22px; pointer-events: none; box-shadow: 0 0 0 1.5px rgba(255, 107, 107, 0.26); }

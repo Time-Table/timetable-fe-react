@@ -52,6 +52,8 @@ import {
 } from "./presets";
 import { getLastSelectableDate, monthIndex } from "../../utils/dateLimit";
 import { buildTidyMockTimetable, buildMemberBlocks, MOCK_MEMBERS, MOCK_TABLE_ID } from "./mockPreview";
+import DatePreview from "./DatePreview";
+import TimeRangeSwitch from "../../component/TimeRangeSwitch";
 import useLandingFormTracking from "./useLandingFormTracking";
 import MauHero from "./MauHero";
 
@@ -325,6 +327,10 @@ export default function StartPage() {
   const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [startHour, setStartHour] = useState(PRESETS[0].startHour);
   const [endHour, setEndHour] = useState(PRESETS[0].endHour);
+  // 시간 범위 스위치(2026-10-09 날짜 투표). 켬 = 시간 범위까지 고름(기본), 끔 = 날짜만 고르는 날짜 투표 표.
+  const [isTimeOn, setTimeOn] = useState(true);
+  const isDateOnly = !isTimeOn;
+  const switchOffTracked = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   // 키워드를 누르면 세 필드가 한꺼번에 바뀐다. 화면을 못 보는 사람에게는 그 사실을 알려야 한다.
   const [presetAnnounce, setPresetAnnounce] = useState("");
@@ -717,9 +723,19 @@ export default function StartPage() {
   // 폼 보조 계측(Clarity). v2와 같은 기준으로 잰다.
   const { markPreset, markPreviewOpen } = useLandingFormTracking({
     builderRef,
-    formState: `${title}|${selectedKeys.join(",")}|${startHour}|${endHour}`,
+    formState: `${title}|${selectedKeys.join(",")}|${startHour}|${endHour}|${isTimeOn ? "time" : "date"}`,
     track: trackClarityEvent,
   });
+
+  /** 시간 범위 스위치. 끔(날짜만)으로 처음 바꿀 때 한 번 Clarity에 남긴다. */
+  const changeTimeOn = (next) => {
+    setTimeOn(next);
+    setOpenCell(null);
+    if (!next && !switchOffTracked.current) {
+      switchOffTracked.current = true;
+      trackClarityEvent(CLARITY_EVENTS.TIME_SWITCH_OFF);
+    }
+  };
 
   const applyPreset = (key) => {
     const found = PRESETS.find((p) => p.key === key);
@@ -731,7 +747,9 @@ export default function StartPage() {
     setEndHour(found.endHour);
     setPreviewName(null);
     setPresetAnnounce(
-      `'${found.title}'로 채웠습니다. 시간 ${found.startHour}–${found.endHour}. 날짜는 그대로입니다.`
+      isTimeOn
+        ? `'${found.title}'로 채웠습니다. 시간 ${found.startHour}–${found.endHour}. 날짜는 그대로입니다.`
+        : `'${found.title}'로 채웠습니다. 날짜는 그대로입니다.`
     );
   };
 
@@ -1153,7 +1171,8 @@ export default function StartPage() {
     else if (isRankingOpen) setRankingOpen(false);
   };
 
-  const isValid = title.trim().length > 0 && selectedDates.length > 0 && startHour < endHour;
+  // 날짜 투표 표(시간 범위 끔)는 시간을 검사하지 않는다.
+  const isValid = title.trim().length > 0 && selectedDates.length > 0 && (isDateOnly || startHour < endHour);
 
   // 버튼이 왜 비활성인지 글로 알린다. opacity만으로는 이유가 전달되지 않는다.
   // 문제가 없을 때는 아무 글도 두지 않는다(사람 지시로 "회원가입 없이 · 링크 공유 · 무료" 삭제).
@@ -1161,7 +1180,7 @@ export default function StartPage() {
     ? "모임 이름을 입력해 주세요."
     : selectedDates.length === 0
       ? "후보 날짜를 하루 이상 선택해 주세요."
-      : startHour >= endHour
+      : !isDateOnly && startHour >= endHour
         ? "종료 시간이 시작 시간보다 늦어야 합니다."
         : isLoading
           ? "링크를 만드는 중입니다."
@@ -1268,7 +1287,7 @@ export default function StartPage() {
     if (!done) return;
     recordShareAttempt(done.tableId, CLARITY_EVENTS.INVITE_SHARE_NATIVE);
     navigator
-      .share({ title: done.title, text: `${done.title} — 가능한 시간을 표시해 주세요.`, url: done.url })
+      .share({ title: done.title, text: `${done.title} — 가능한 ${done.dateOnly ? "날짜" : "시간"}을 표시해 주세요.`, url: done.url })
       .catch((err) => {
         if (err?.name === "AbortError" || !isMounted.current) return;
         copyLink(e, { track: false });
@@ -1286,13 +1305,17 @@ export default function StartPage() {
 
   const handleCreate = async () => {
     if (!isValid || isLoading) return;
-    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing");
+    const tableType = isDateOnly ? "date" : "time";
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing", { tableType });
     setIsLoading(true);
-    const res = await createTable(title.trim(), selectedDates, startHour, endHour, banedCells);
+    // 날짜 투표 표는 시작·끝 시각과 잠근 칸을 보내지 않는다(api/table.js).
+    const res = isDateOnly
+      ? await createTable(title.trim(), selectedDates, null, null)
+      : await createTable(title.trim(), selectedDates, startHour, endHour, banedCells);
     // 화면을 떠났더라도 성공 응답은 기록한다. 화면 갱신은 아래에서 중단한다.
     const tableId = res?.data?.tableId;
     if (res?.success && tableId) {
-      trackEvent(EVENTS.CREATE_SUCCESS, tableId, "landing");
+      trackEvent(EVENTS.CREATE_SUCCESS, tableId, "landing", { tableType });
     }
     // 응답을 기다리는 사이에 사용자가 페이지를 떠났으면 여기서 끝낸다.
     // 아니면 다른 화면 위에 성공 모달이 뜨고, 확인을 누르면 엉뚱한 곳으로 이동한다.
@@ -1315,7 +1338,7 @@ export default function StartPage() {
 
     // 예전에는 기본 알림창에 주소 글자와 '링크 복사'뿐이었다. 휴대폰 공유 창을 주 버튼으로 둔 완료 창으로 바꾼다.
     setCopyState("idle");
-    setCreated({ tableId, url, title: title.trim() });
+    setCreated({ tableId, url, title: title.trim(), dateOnly: isDateOnly });
   };
 
   /**
@@ -1430,7 +1453,16 @@ export default function StartPage() {
                 <FiEye size={12} aria-hidden="true" />
                 미리보기
               </MockTag>
-              {mock ? (
+              {isDateOnly ? (
+                // 날짜 투표 표(시간 범위 끔): 시간표 대신 달력 미리보기(2026-10-09).
+                <DatePreview
+                  days={selectedDays}
+                  title={previewTitle}
+                  headingId="start-preview-heading"
+                  summaryId="start-preview-summary"
+                  onOpen={markPreviewOpen}
+                />
+              ) : mock ? (
                 <PreviewLayout>
                   {/* 왼쪽: 전체 시간표 (table 페이지의 LeftPanel) */}
                   <PreviewPane>
@@ -1963,63 +1995,69 @@ export default function StartPage() {
           </DateFieldset>
 
           <TimeBlock>
-            <FieldLabel as="span" data-step="3">시간 범위</FieldLabel>
-            {/* 휴대폰은 기본 선택 목록 대신 아래에서 올라오는 시간 격자 창을 쓴다(2026-09-28 사람 지시).
+            {/* 2026-10-09 날짜 투표: 라벨 오른쪽에 시간 범위 스위치. 끄면(날짜만) 시간 고르기를 감춘다.
+                넓은 화면은 라벨·시간 고르기·스위치를 한 줄에, 휴대폰은 라벨·스위치 아래에 시간 고르기를 둔다.
+                휴대폰은 기본 선택 목록 대신 아래에서 올라오는 시간 격자 창을 쓴다(2026-09-28 사람 지시).
                 기본 목록은 25줄이라 작은 화면을 넘고, 스크롤하면 손가락에서 멀어져 누르기 어려웠다. */}
-            <TimeRow>
-              {isStacked ? (
-                <>
-                  <TimeField
-                    type="button"
-                    aria-haspopup="dialog"
-                    aria-expanded={timeSheet === "start"}
-                    aria-label={`시작 시간 ${startHour}`}
-                    onClick={() => setTimeSheet("start")}
-                  >
-                    {startHour}
-                    <FiChevronDown size={18} aria-hidden="true" />
-                  </TimeField>
-                  <span aria-hidden="true">~</span>
-                  <TimeField
-                    type="button"
-                    aria-haspopup="dialog"
-                    aria-expanded={timeSheet === "end"}
-                    aria-label={`종료 시간 ${endHour}`}
-                    onClick={() => setTimeSheet("end")}
-                  >
-                    {endHour}
-                    <FiChevronDown size={18} aria-hidden="true" />
-                  </TimeField>
-                </>
-              ) : (
-                <>
-                  <TimeSelect
-                    aria-label="시작 시간"
-                    value={startHour}
-                    onChange={(e) => setStartHour(e.target.value)}
-                  >
-                    {HOURS.slice(0, -1).map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </TimeSelect>
-                  <span aria-hidden="true">~</span>
-                  <TimeSelect
-                    aria-label="종료 시간"
-                    value={endHour}
-                    onChange={(e) => setEndHour(e.target.value)}
-                  >
-                    {HOURS.slice(1).map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </TimeSelect>
-                </>
-              )}
-            </TimeRow>
-            {startHour >= endHour && (
+            <TimeHead>
+              <FieldLabel as="span" data-step="3">시간 범위</FieldLabel>
+              <TimeControls>
+                {!isStacked && isTimeOn && (
+                  <TimeRow>
+                    <TimeSelect
+                      aria-label="시작 시간"
+                      value={startHour}
+                      onChange={(e) => setStartHour(e.target.value)}
+                    >
+                      {HOURS.slice(0, -1).map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </TimeSelect>
+                    <span aria-hidden="true">~</span>
+                    <TimeSelect
+                      aria-label="종료 시간"
+                      value={endHour}
+                      onChange={(e) => setEndHour(e.target.value)}
+                    >
+                      {HOURS.slice(1).map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </TimeSelect>
+                  </TimeRow>
+                )}
+                <TimeRangeSwitch on={isTimeOn} onChange={changeTimeOn} disabled={isLoading} />
+              </TimeControls>
+            </TimeHead>
+            {isStacked && isTimeOn && (
+              <TimeRow>
+                <TimeField
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={timeSheet === "start"}
+                  aria-label={`시작 시간 ${startHour}`}
+                  onClick={() => setTimeSheet("start")}
+                >
+                  {startHour}
+                  <FiChevronDown size={18} aria-hidden="true" />
+                </TimeField>
+                <span aria-hidden="true">~</span>
+                <TimeField
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={timeSheet === "end"}
+                  aria-label={`종료 시간 ${endHour}`}
+                  onClick={() => setTimeSheet("end")}
+                >
+                  {endHour}
+                  <FiChevronDown size={18} aria-hidden="true" />
+                </TimeField>
+              </TimeRow>
+            )}
+            {isTimeOn && startHour >= endHour && (
               <Warning role="alert">
                 <FiAlertCircle size={14} aria-hidden="true" />
                 종료 시간이 시작 시간보다 늦어야 합니다.
@@ -2055,6 +2093,7 @@ export default function StartPage() {
             포털로 body 에 붙여야 미리보기 카드의 overflow 에 잘리지 않는다. */}
         {/* 잠금 팝업이 떠 있는 동안에는 감춘다. 포털이라 모달 위로 뜬다. */}
         {openCellInfo &&
+          !isDateOnly &&
           !isLockOpen &&
           !created &&
           popupPos.visible &&
@@ -2174,13 +2213,24 @@ export default function StartPage() {
                     </div>
                     <div>
                       <dt>시간 범위</dt>
-                      <dd>
-                        {startHour} ~ {endHour}
-                      </dd>
+                      {isDateOnly ? (
+                        <dd>
+                          정하지 않음
+                          <DateOnlyPill>
+                            <FiCalendar size={12} aria-hidden="true" />
+                            날짜만 투표
+                          </DateOnlyPill>
+                        </dd>
+                      ) : (
+                        <dd>
+                          {startHour} ~ {endHour}
+                        </dd>
+                      )}
                     </div>
                   </LockSummary>
 
-                  {/* 시간 잠금(선택). 제목·설명 왼쪽, 펼침 화살표 오른쪽. 펼쳐야 격자가 나온다. */}
+                  {/* 시간 잠금(선택). 제목·설명 왼쪽, 펼침 화살표 오른쪽. 펼쳐야 격자가 나온다. 날짜 투표 표에는 없다. */}
+                  {!isDateOnly && (
                   <LockSection>
                     <LockAccordion
                       type="button"
@@ -2229,6 +2279,7 @@ export default function StartPage() {
                       )}
                     </AnimatePresence>
                   </LockSection>
+                  )}
                 </LockBody>
 
                 <LockActions>
@@ -2875,26 +2926,52 @@ const FieldBlock = styled.div`
 `;
 
 /* 넓은 화면은 "시간 범위"를 선택 상자와 한 줄에 두어 폼 상자 높이를 줄인다. */
-const TimeBlock = styled(FieldBlock)`
-  @media (min-width: ${theme.breakpoint.lg}) {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    column-gap: ${theme.space[4]};
+const TimeBlock = styled(FieldBlock)``;
 
-    & > * {
-      grid-column: 1 / -1;
-    }
+/* 라벨과 스위치 줄(2026-10-09 날짜 투표). 넓은 화면은 시간 고르기도 이 줄에 들어간다. */
+const TimeHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${theme.space[3]};
+  margin-bottom: 10px;
 
-    & > :first-child {
-      grid-column: 1;
-      margin-bottom: 0;
-    }
-
-    & > :nth-child(2) {
-      grid-column: 2;
-    }
+  & > :first-child {
+    margin-bottom: 0;
   }
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    min-height: 48px;
+    margin-bottom: 0;
+    gap: ${theme.space[4]};
+  }
+`;
+
+const TimeControls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+
+  @media (min-width: ${theme.breakpoint.lg}) {
+    flex: 1;
+  }
+`;
+
+/* 확인 창의 "날짜만 투표" 표시(시안 V1Confirm). */
+const DateOnlyPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: ${theme.space[2]};
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: ${theme.color.primarySurface};
+  color: ${theme.color.primaryText};
+  font-family: ${theme.font.family.bold};
+  font-size: 12px;
+  vertical-align: 1px;
 `;
 
 /* 모임 이름·후보 날짜·시간 범위 앞 번호(2026-09-29 사람 지시). 숫자는 CSS가 그려 라벨 이름("모임 이름")에 섞이지 않고,

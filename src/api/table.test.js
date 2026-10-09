@@ -51,3 +51,14 @@ test("이벤트는 공통 인터셉터의 조용한 요청으로 보내고 실�
   await expect(sendEvent(payload)).resolves.toBeNull();
   expect(instance.post).toHaveBeenCalledWith("/api/events", payload, { silent: true });
 });
+
+test("날짜 투표 표(시각 없음)는 시작·끝 시각과 잠근 칸을 보내지 않는다(2026-10-09)", async () => {
+  await createTable("동아리 회식", ["2026-10-20", "2026-10-21"], null, null);
+  const body = instance.post.mock.calls[0][1];
+  expect(body).toEqual(expect.objectContaining({ title: "동아리 회식", dates: ["2026-10-20", "2026-10-21"] }));
+  expect(body).not.toHaveProperty("startHour");
+  expect(body).not.toHaveProperty("endHour");
+  expect(body).not.toHaveProperty("banedCells");
+  await create();
+  expect(instance.post.mock.calls[1][1]).toEqual(expect.objectContaining({ startHour: "09:00", endHour: "18:00", banedCells: [] }));
+});

@@ -1,9 +1,10 @@
 import { StrictMode } from "react";
-import { act, render, screen, fireEvent, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import LandingV2Page from "./LandingV2Page";
 import { sendEvent } from "../../api/event";
 import { trackVisit } from "../../api/visit";
+import { createTable } from "../../api/table";
 
 jest.mock("../../api/table", () => ({ createTable: jest.fn() }));
 jest.mock("../../api/event", () => ({ sendEvent: jest.fn() }));
@@ -325,5 +326,43 @@ describe("랜딩 실험 v2", () => {
     mount();
     expect(screen.getByRole("combobox", { name: "시작 시간" })).toHaveValue("10:00");
     expect(screen.getByRole("combobox", { name: "종료 시간" })).toHaveValue("20:00");
+  });
+});
+
+describe("날짜 투표(2026-10-09, v1과 같다)", () => {
+  const toggle = () => screen.getByRole("switch", { name: "시간 범위 정하기" });
+
+  test("`/`에서 끄면 날짜만으로 만들고 표 유형 date와 스위치 끔을 남긴다", async () => {
+    window.clarity = jest.fn();
+    createTable.mockResolvedValue({ success: true, data: { tableId: "date-table" } });
+    mount({ preview: false });
+    expect(toggle()).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(toggle());
+    expect(screen.getByText("날짜만")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "시작 시간" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "이대로 만들기" })[0]);
+    const dialog = screen.getByRole("dialog", { name: "이대로 만들까요?" });
+    expect(dialog).toHaveTextContent("날짜만 투표");
+    expect(dialog).not.toHaveTextContent("시간 잠금");
+    fireEvent.click(within(dialog).getByRole("button", { name: "링크 만들기" }));
+    await waitFor(() => expect(createTable).toHaveBeenCalledTimes(1));
+    expect(createTable.mock.calls[0].slice(2)).toEqual([null, null]);
+    await waitFor(() => expect(sendEvent.mock.calls.some(([e]) => e.name === "create_success")).toBe(true));
+    expect(sendEvent.mock.calls.filter(([e]) => e.name.startsWith("create_s")).map(([e]) => [e.name, e.tableType])).toEqual([
+      ["create_submit", "date"],
+      ["create_success", "date"],
+    ]);
+    expect(window.clarity).toHaveBeenCalledWith("event", "tt_time_switch_off");
+    delete window.clarity;
+  });
+
+  test("미리보기 주소는 스위치를 꺼도 기록하지 않는다", () => {
+    window.clarity = jest.fn();
+    mount();
+    fireEvent.click(toggle());
+    expect(screen.getByText(/날짜만 고르는 표예요/)).toBeInTheDocument();
+    expect(window.clarity).not.toHaveBeenCalled();
+    expect(sendEvent).not.toHaveBeenCalled();
+    delete window.clarity;
   });
 });

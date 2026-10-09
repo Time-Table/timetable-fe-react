@@ -37,6 +37,21 @@ export const getChatFeed = (limit) => get("/api/admin/chats", { limit });
 export const getTableDetail = (tableId) => get(`/api/admin/tables/${tableId}`);
 
 /**
+ * 핵심 유저 지표(2026-10-09, 하네스 specs/metrics.md). 실패와 BE 미배포(404)를 구분한다.
+ * days: 7·30·90, 0이면 전체 기간.
+ */
+export const getMetricsOverview = async (days) => {
+  try {
+    const res = await axios.get("/api/admin/metrics/overview", { params: { days } });
+    return res?.data || { error: "failed" };
+  } catch (error) {
+    if (error.response?.status === 404) return { error: "notDeployed" };
+    console.error("/api/admin/metrics/overview error: ", error.response);
+    return { error: "failed" };
+  }
+};
+
+/**
  * 블로그 조회 통계. 다른 조회와 달리 실패를 null로 뭉개지 않는다.
  * 404는 재시도로 안 풀리는 "BE 미배포"라서, 화면이 "백엔드부터 배포하라"고 말할 수 있게 구분한다.
  */

@@ -37,7 +37,8 @@ export const readTableState = (tableId) => {
       v: 1,
       name: typeof parsed.name === "string" && parsed.name ? parsed.name : null,
       editing: parsed.editing === true,
-      draft: Array.isArray(parsed.draft) ? uniqueStrings(parsed.draft, (cell) => CELL_RE.test(cell)) : null,
+      // 날짜 투표 표(2026-10-09)의 칸은 날짜 "YYYY-MM-DD" 그대로다.
+      draft: Array.isArray(parsed.draft) ? uniqueStrings(parsed.draft, (cell) => CELL_RE.test(cell) || DATE_RE.test(cell)) : null,
       weekKey: typeof parsed.weekKey === "string" && DATE_RE.test(parsed.weekKey) ? parsed.weekKey : null,
       picks: Array.isArray(parsed.picks) ? uniqueStrings(parsed.picks) : [],
     };
@@ -93,10 +94,19 @@ export const slotTimesOf = (startHour, endHour) => {
   return times;
 };
 
-/** 표의 칸 목록(날짜 × slotTimesOf 시각, 막힌 칸 제외). */
-export const validCellsOf = ({ dates = [], startHour = "00:00", endHour = "00:00", banedCells = [] }) => {
+const isBlankHour = (value) => value === undefined || value === null || value === "";
+
+/**
+ * 날짜 투표 표(2026-10-09): 시작·끝 시각이 둘 다 없는 표. 시간 없이 날짜만 고르고, 칸은 날짜 "YYYY-MM-DD"다.
+ * 이런 표는 실험 배정과 관계없이 늘 새 화면(B)으로 그린다(사람 결정). BE utils/tableType.js와 같은 규칙이다.
+ */
+export const isDateOnlyTable = (table) => Boolean(table) && isBlankHour(table.startHour) && isBlankHour(table.endHour);
+
+/** 표의 칸 목록(날짜 × slotTimesOf 시각, 막힌 칸 제외). 날짜 투표 표는 후보 날짜 그대로다. */
+export const validCellsOf = ({ dates = [], startHour, endHour, banedCells = [] }) => {
+  if (isBlankHour(startHour) && isBlankHour(endHour)) return new Set((dates || []).filter((date) => DATE_RE.test(date)));
   const cells = new Set();
-  const times = slotTimesOf(startHour, endHour);
+  const times = slotTimesOf(startHour ?? "00:00", endHour ?? "00:00");
   const banned = new Set(banedCells || []);
   (dates || []).forEach((date) => {
     times.forEach((time) => {

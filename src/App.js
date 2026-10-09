@@ -1,5 +1,5 @@
 import "./App.css";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Route, BrowserRouter as Router, Routes, Navigate, useLocation } from "react-router-dom";
 import TimetablePage from "./page/timetable/TimetablePage";
 import Header from "./component/Header";
@@ -19,6 +19,7 @@ import ScrollToTop from "./component/ScrollToTop";
 import Seo from "./Seo";
 import ServiceJsonLd from "./component/ServiceJsonLd";
 import { lazyPage, LazyPageBoundary } from "./utils/lazyPage";
+import { setGaPage, trackPageView } from "./utils/analytics";
 
 // 방문이 드물고 무거운 화면은 첫 로딩 번들에서 빼고 들어갈 때 받는다.
 // AboutPage는 큰 SVG 그림 4개(원본 약 1MB)를 품고 있어 모든 페이지의 첫 로딩을 늦추고 있었다.
@@ -42,6 +43,23 @@ function ConditionalHeader() {
      return useHidesSiteChrome() ? null : <Header />;
 }
 
+/**
+ * GA4 화면 기록(2026-10-09, 하네스 specs/metrics.md). 주소가 바뀔 때마다 한 번 보낸다. 표 ID·표 제목은 빼고 보낸다
+ * (utils/analytics.js trackPageView). 화면이 제목을 바꿀 시간을 잠깐 두고, 그사이 또 바뀌면(바로 넘기는 옛 주소) 마지막 것만 보낸다.
+ * 랜딩 실험 미리보기(/landing-v2)는 기록하지 않는 주소라 뺀다.
+ */
+function GaPageView() {
+     const { pathname, search } = useLocation();
+     useEffect(() => {
+          if (pathname.toLowerCase() === "/landing-v2") return undefined;
+          // 주소·제목은 바로 맞추고(그사이 나가는 기록에 표 ID가 붙지 않게), 화면 기록은 제목이 바뀐 뒤 보낸다.
+          setGaPage(window.location);
+          const timer = setTimeout(() => trackPageView(window.location), 300);
+          return () => clearTimeout(timer);
+     }, [pathname, search]);
+     return null;
+}
+
 function PageBoundary({ children }) {
      return <LazyPageBoundary resetKey={useLocation().pathname}>{children}</LazyPageBoundary>;
 }
@@ -58,6 +76,7 @@ function App() {
           <HelmetProvider>
                <Router>
                     <ScrollToTop />
+                    <GaPageView />
                     <Seo />
                     {/* 서비스 스키마. 컴포넌트가 스스로 정본 랜딩("/")에서만 렌더한다. */}
                     <ServiceJsonLd />

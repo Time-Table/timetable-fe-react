@@ -18,6 +18,10 @@ jest.mock("../../api/schedule", () => ({ getSchedule: jest.fn() }));
 jest.mock("../../api/visit", () => ({ trackVisit: jest.fn() }));
 jest.mock("../../utils/analytics", () => ({
   trackEvent: jest.fn(),
+  // 표 유형 계측(2026-10-09)
+  setActiveTableType: jest.fn(),
+  getActiveTableType: jest.fn(),
+  tagTableType: jest.fn(),
   EVENTS: { TABLE_VIEW: "table_view", RANKING_OPEN: "ranking_open", INVITE_SHARE: "invite_share" },
 }));
 jest.mock("../../hooks/useMediaQuery", () => ({ useMediaQuery: () => mockIsDesktop }));

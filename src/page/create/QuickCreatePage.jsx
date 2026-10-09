@@ -9,7 +9,8 @@ import TimeGrid from "../../component/TimeGrid";
 import Arrow from "../../assets/svg/Arrow";
 import { createTable } from "../../api/table";
 import { trackVisit } from "../../api/visit";
-import { trackEvent, EVENTS } from "../../utils/analytics";
+import { trackEvent, EVENTS, trackClarityEvent, CLARITY_EVENTS } from "../../utils/analytics";
+import TimeRangeSwitch from "../../component/TimeRangeSwitch";
 import Swal from "sweetalert2";
 import { FaLock } from "react-icons/fa";
 import { BsLightningChargeFill } from "react-icons/bs";
@@ -20,6 +21,9 @@ export default function QuickCreatePage() {
   const [selectedDates, setSelectedDates] = useState([]);
   const [startHour, setStartHour] = useState("09:00");
   const [endHour, setEndHour] = useState("22:00");
+  // 시간 범위 스위치(2026-10-09 날짜 투표). 켬 = 시간 범위까지 고름(기본), 끔 = 날짜만 고르는 날짜 투표 표.
+  const [isTimeOn, setTimeOn] = useState(true);
+  const switchOffTracked = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [banedCells, setBanedCells] = useState([]);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -57,13 +61,17 @@ export default function QuickCreatePage() {
       return;
     }
     if (isLoading) return;
-    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "quick_create");
+    const tableType = isTimeOn ? "time" : "date";
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "quick_create", { tableType });
     setIsLoading(true);
-    const res = await createTable(title, selectedDates, startHour, endHour, banedCells);
+    // 날짜 투표 표는 시작·끝 시각과 잠근 칸을 보내지 않는다(api/table.js).
+    const res = isTimeOn
+      ? await createTable(title, selectedDates, startHour, endHour, banedCells)
+      : await createTable(title, selectedDates, null, null);
     setIsLoading(false);
     if (res?.isRateLimit) return;
     if (res?.success && res.data?.tableId) {
-      trackEvent(EVENTS.CREATE_SUCCESS, res.data.tableId, "quick_create");
+      trackEvent(EVENTS.CREATE_SUCCESS, res.data.tableId, "quick_create", { tableType });
       localStorage.setItem("title", title);
       const newTableId = res.data.tableId;
       const url = `${window.location.origin}/table/${newTableId}`;
@@ -86,6 +94,17 @@ export default function QuickCreatePage() {
       });
     } else {
       Swal.fire("생성 실패", res?.message || "테이블 생성 중 오류가 발생했습니다.", "error");
+    }
+  };
+
+  /** 시간 범위 스위치. 끄면 열린 시간 목록을 닫고, 끔(날짜만)으로 처음 바꿀 때 한 번 Clarity에 남긴다. */
+  const changeTimeOn = (next) => {
+    setTimeOn(next);
+    setStartDropdownOpen(false);
+    setEndDropdownOpen(false);
+    if (!next && !switchOffTracked.current) {
+      switchOffTracked.current = true;
+      trackClarityEvent(CLARITY_EVENTS.TIME_SWITCH_OFF);
     }
   };
 
@@ -124,9 +143,14 @@ export default function QuickCreatePage() {
             <Calendar selectedDates={selectedDates} setSelectedDates={setSelectedDates} />
           </StepCard>
 
-          <StepCard $isOpen={isStartDropdownOpen || isEndDropdownOpen}>
-            <StepTitle>2. 시간 범위 설정</StepTitle>
-            <StepDescription>가능한 시간 범위를 설정해주세요.</StepDescription>
+          <StepCard $isOpen={isTimeOn && (isStartDropdownOpen || isEndDropdownOpen)}>
+            {/* 2026-10-09 날짜 투표: 제목 오른쪽 스위치를 끄면(날짜만) 시간 고르기와 시간 잠금 카드를 감춘다. */}
+            <StepHead>
+              <StepTitle>2. 시간 범위</StepTitle>
+              <TimeRangeSwitch on={isTimeOn} onChange={changeTimeOn} disabled={isLoading} />
+            </StepHead>
+            {isTimeOn && <StepDescription>가능한 시간 범위를 설정해주세요.</StepDescription>}
+            {isTimeOn && (
             <TimeSelection>
               <DropdownContainer ref={startDropdownRef}>
                 <CustomSelectButton onClick={() => setStartDropdownOpen(!isStartDropdownOpen)}>
@@ -185,6 +209,7 @@ export default function QuickCreatePage() {
               </DropdownContainer>
               <TimeSeparator>까지</TimeSeparator>
             </TimeSelection>
+            )}
           </StepCard>
 
           <StepCard>
@@ -199,6 +224,7 @@ export default function QuickCreatePage() {
             />
           </StepCard>
 
+          {isTimeOn && (
           <StepCard>
             <AccordionHeader
               onClick={isPrerequisitesMet ? () => setIsAccordionOpen(!isAccordionOpen) : undefined}
@@ -235,6 +261,7 @@ export default function QuickCreatePage() {
               </TimeGridWrapper>
             )}
           </StepCard>
+          )}
 
           <div style={{ marginTop: "25px" }}>
             <Button
@@ -343,6 +370,19 @@ const CustomInput = styled.input`
     border-color: ${theme.color.primary};
   }
 `;
+/* 단계 제목과 시간 범위 스위치 줄(2026-10-09). */
+const StepHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px 0;
+
+  & > h2 {
+    margin: 0;
+  }
+`;
+
 const StepTitle = styled.h2`
   display: flex;
   align-items: center;

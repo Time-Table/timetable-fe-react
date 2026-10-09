@@ -40,25 +40,13 @@ const pad = (n) => String(n).padStart(2, "0");
  * @param {string} endHour   "20:00"
  * @returns {null | { hours: number[], cells: Record<string, string[]>, maxCount: number, total: number, ranking: Block[], golden: null | Block }}
  */
-export function buildTidyMockTimetable(days, startHour, endHour) {
-  const from = parseInt(startHour, 10);
-  const to = parseInt(endHour, 10);
-  if (!days.length || !Number.isFinite(from) || !Number.isFinite(to) || to <= from) return null;
-
-  const hours = Array.from({ length: to - from }, (_, i) => from + i);
-  const len = hours.length;
-  const center = Math.floor(len / 2);
-  // 모두가 되는 핵심 구간 폭. 시간 범위 길이에 비례한다(10시간이면 3시간).
-  const core = clamp(Math.round(len * 0.3), 1, len);
-  const windows = MOCK_MEMBERS.map((_, k) => {
-    const width = Math.min(core + Math.max(0, k - 1), len);
-    const start = clamp(center - Math.floor(width / 2), 0, len - width);
-    return [start, start + width];
-  });
-
-  // 골든타임 날은 고른 날이 가장 많은 달력 주(월~일)에 둔다(2026-10-02 사람 지시: 미리보기는 기본으로 그 주를 보여 준다).
-  // 그 주에 고른 금요일이 있으면 금요일, 없으면 그 주에서 고른 날의 가운데 날이다. 고른 날 수가 같으면 앞 주다.
-  // 화면은 골든타임이 있는 주를 먼저 펼친다. 일요일에 열면 오늘 하루뿐인 이번 주 대신 엿새를 고른 다음 주가 보인다.
+/**
+ * 골든타임 날의 자리. 고른 날이 가장 많은 달력 주(월~일)에 둔다(2026-10-02 사람 지시: 미리보기는 기본으로 그 주를 보여 준다).
+ * 그 주에 고른 금요일이 있으면 금요일, 없으면 그 주에서 고른 날의 가운데 날이다. 고른 날 수가 같으면 앞 주다.
+ * 화면은 골든타임이 있는 주를 먼저 펼친다. 일요일에 열면 오늘 하루뿐인 이번 주 대신 엿새를 고른 다음 주가 보인다.
+ * 시간 미리보기와 날짜 미리보기(2026-10-09)가 같은 날을 1위로 쓴다.
+ */
+function heroIndexOf(days) {
   const weekOf = (date) => {
     const monday = new Date(date);
     monday.setHours(0, 0, 0, 0);
@@ -76,7 +64,46 @@ export function buildTidyMockTimetable(days, startHour, endHour) {
     if (indexes.length > focus.length) focus = indexes;
   });
   const friday = focus.find((i) => days[i].date.getDay() === 5);
-  const hero = friday !== undefined ? friday : focus[Math.floor((focus.length - 1) / 2)];
+  return friday !== undefined ? friday : focus[Math.floor((focus.length - 1) / 2)];
+}
+
+/**
+ * 날짜 투표 미리보기(2026-10-09). 골든타임 날(시간 미리보기와 같은 날)이 1위이고, 하루 멀어질 때마다 한 명씩 빠진다.
+ * 가장 많은 날도 모두가 되지는 않는다(6명 중 5명). 적어도 한 명은 되게 두어 후보 날이 비지 않게 한다.
+ * @param {{key: string, date: Date}[]} days 선택된 날짜
+ * @returns {null | { counts: Record<string, string[]>, total: number, maxCount: number, hero: {key: string, date: Date} }}
+ */
+export function buildDateMock(days) {
+  if (!days.length) return null;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const hero = days[heroIndexOf(days)];
+  const top = MOCK_MEMBERS.length - 1;
+  const counts = {};
+  days.forEach((day) => {
+    const distance = Math.round(Math.abs(day.date.getTime() - hero.date.getTime()) / DAY_MS);
+    counts[day.key] = MOCK_MEMBERS.slice(0, clamp(top - distance, 1, top));
+  });
+  const maxCount = Math.max(...Object.values(counts).map((members) => members.length));
+  return { counts, total: MOCK_MEMBERS.length, maxCount, hero };
+}
+
+export function buildTidyMockTimetable(days, startHour, endHour) {
+  const from = parseInt(startHour, 10);
+  const to = parseInt(endHour, 10);
+  if (!days.length || !Number.isFinite(from) || !Number.isFinite(to) || to <= from) return null;
+
+  const hours = Array.from({ length: to - from }, (_, i) => from + i);
+  const len = hours.length;
+  const center = Math.floor(len / 2);
+  // 모두가 되는 핵심 구간 폭. 시간 범위 길이에 비례한다(10시간이면 3시간).
+  const core = clamp(Math.round(len * 0.3), 1, len);
+  const windows = MOCK_MEMBERS.map((_, k) => {
+    const width = Math.min(core + Math.max(0, k - 1), len);
+    const start = clamp(center - Math.floor(width / 2), 0, len - width);
+    return [start, start + width];
+  });
+
+  const hero = heroIndexOf(days);
   const cells = {};
   // 거리는 선택된 날짜의 순서가 아니라 실제 달력 날짜 차이로 센다.
   // 후보에서 뺀 날이 있어도 모양이 달력 위에서 그대로 유지된다.

@@ -1,4 +1,7 @@
-import { EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackEventKeepalive, trackClarityEvent, trackBlogView, setActiveTableUi } from "./analytics";
+import {
+  EVENTS, CLARITY_EVENTS, getVisitorId, getSource, trackEvent, trackEventKeepalive, trackClarityEvent, trackBlogView, setActiveTableUi,
+  setActiveTableType, tagTableType, trackPageView, setGaPage, gaPagePathOf, gaLocationOf,
+} from "./analytics";
 import { grantAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
 import { sendEvent, sendEventKeepalive } from "../api/event";
@@ -16,6 +19,9 @@ beforeEach(() => {
   setReferrer("");
   window.history.replaceState({}, "", "/");
   delete window.clarity;
+  delete window.gtag;
+  setActiveTableType(null);
+  setActiveTableUi(null);
 });
 
 describe("Clarity 생성 전환", () => {
@@ -385,15 +391,34 @@ describe("표 화면 A/B 2회차 기록", () => {
     expect(switched).not.toHaveProperty("dwellMs");
   });
 
-  test("실험이 꺼져 화면이 없으면 2회차 기록을 보내지 않는다(상태를 못 받은 기록만 예외)", () => {
+  test("실험이 꺼져 화면이 없으면 화면 기록(ui_view·ui_switch·ui_vote)은 보내지 않는다(상태를 못 받은 기록은 예외)", () => {
     trackEvent(EVENTS.UI_VIEW, "table-1", undefined, { viewId: "v" });
-    trackEvent(EVENTS.JOIN_FAIL, "table-1", undefined, { reason: "network" });
-    trackEventKeepalive(EVENTS.UI_LOAD_FAIL, "table-1", { reason: "chunk_retry" });
+    trackEvent(EVENTS.UI_SWITCH, "table-1", undefined, { viewId: "v" });
+    trackEvent(EVENTS.UI_VOTE, "table-1", undefined, { reason: "vote" });
     expect(sendEvent).not.toHaveBeenCalled();
-    expect(sendEventKeepalive).not.toHaveBeenCalled();
     trackEvent(EVENTS.AB_STATE_FAIL, "table-1", undefined, { reason: "timeout" });
     expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ name: "ab_state_fail", reason: "timeout" }));
     expect(sendEvent.mock.calls[0][0]).not.toHaveProperty("uiVersion");
+  });
+
+  test("실패 기록 3개는 실험 밖에서도 화면 값 없이 보내 상시 실패율로 본다(2026-10-09 사람 결정 8)", () => {
+    setActiveTableType("table-1", "date");
+    trackEvent(EVENTS.JOIN_FAIL, "table-1", undefined, { reason: "network" });
+    trackEvent(EVENTS.SAVE_FAIL, "table-1", undefined, { reason: "server" });
+    trackEventKeepalive(EVENTS.UI_LOAD_FAIL, "table-1", { reason: "chunk_retry" });
+    expect(sendEvent).toHaveBeenCalledTimes(2);
+    for (const [payload] of sendEvent.mock.calls) {
+      expect(payload).not.toHaveProperty("uiVersion");
+      expect(payload).not.toHaveProperty("source");
+      expect(payload.tableType).toBe("date");
+    }
+    expect(sendEvent.mock.calls.map(([payload]) => [payload.name, payload.reason])).toEqual([
+      ["join_fail", "network"],
+      ["save_fail", "server"],
+    ]);
+    expect(sendEventKeepalive).toHaveBeenCalledWith(expect.objectContaining({ name: "ui_load_fail", reason: "chunk_retry", tableType: "date" }));
+    expect(sendEventKeepalive.mock.calls[0][0]).not.toHaveProperty("uiVersion");
+    setActiveTableType(null);
   });
 
   test("참여 성공에는 새 참여/다시 들어옴만 붙이고 원래 필드는 그대로다", () => {
@@ -419,5 +444,126 @@ describe("표 화면 A/B 2회차 기록", () => {
     setActiveTableUi("table-1", "A");
     trackEvent(EVENTS.UI_LOAD_FAIL, "table-1", undefined, { reason: "chunk_failed", uiVersion: "B" });
     expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ name: "ui_load_fail", uiVersion: "B", reason: "chunk_failed" }));
+  });
+});
+
+describe("표 유형(2026-10-09 날짜 투표)", () => {
+  test("생성 이벤트는 부를 때 준 표 유형을, 표 이벤트는 지금 열린 표의 유형을 붙인다", () => {
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing", { tableType: "date" });
+    trackEvent(EVENTS.CREATE_SUCCESS, "new-table", "quick_create", { tableType: "time" });
+    trackEvent(EVENTS.LANDING_VIEW, undefined, undefined, { tableType: "date" });
+    setActiveTableType("table-1", "date");
+    trackEvent(EVENTS.SCHEDULE_SAVE, "table-1");
+    trackEvent(EVENTS.SCHEDULE_SAVE, "other-table");
+    trackEvent(EVENTS.TABLE_VIEW, "table-1");
+    const payloads = sendEvent.mock.calls.map(([payload]) => payload);
+    expect(payloads.map((payload) => [payload.name, payload.tableType])).toEqual([
+      ["create_submit", "date"],
+      ["create_success", "time"],
+      ["landing_view", undefined],
+      ["schedule_save", "date"],
+      ["schedule_save", undefined],
+      ["table_view", undefined],
+    ]);
+  });
+
+  test("Clarity 태그 tt_table_type은 두 값만, 관리자는 남기지 않는다", () => {
+    window.clarity = jest.fn();
+    tagTableType("date");
+    tagTableType("week");
+    expect(window.clarity.mock.calls).toEqual([["set", "tt_table_type", "date"]]);
+    grantAdmin("test-token");
+    tagTableType("time");
+    expect(window.clarity).toHaveBeenCalledTimes(1);
+  });
+
+  test("시간 범위 스위치 끔은 등록된 Clarity 이벤트다", () => {
+    window.clarity = jest.fn();
+    trackClarityEvent(CLARITY_EVENTS.TIME_SWITCH_OFF);
+    trackClarityEvent(CLARITY_EVENTS.B_BEST_OPEN);
+    expect(window.clarity.mock.calls).toEqual([["event", "tt_time_switch_off"], ["event", "tt_b_best_open"]]);
+  });
+});
+
+describe("GA4(2026-10-09, 사람 결정 7)", () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  test("퍼널 이벤트 11개만 같은 이름으로 보내고 매개변수는 정해진 값만 둔다", async () => {
+    window.gtag = jest.fn();
+    setActiveTableUi("table-1", "B");
+    setActiveTableType("table-1", "time");
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing", { tableType: "date" });
+    trackEvent(EVENTS.RANKING_OPEN, "table-1");
+    trackEvent(EVENTS.UI_VIEW, "table-1", undefined, { viewId: "v1" });
+    trackEvent(EVENTS.JOIN_FAIL, "table-1", undefined, { reason: "server" });
+    await flush();
+    const page = { page_location: "http://localhost/", page_title: document.title };
+    expect(window.gtag.mock.calls).toEqual([
+      ["event", "create_submit", { ...page, creation_path: "landing", table_type: "date" }],
+      ["event", "ranking_open", { ...page, table_type: "time", ui_version: "B" }],
+    ]);
+  });
+
+  test("역할 이벤트는 서버 응답 뒤 역할을 붙이고, 응답이 없으면 unknown, 관리자·봇으로 건너뛰면 보내지 않는다", async () => {
+    window.gtag = jest.fn();
+    sendEvent.mockResolvedValueOnce({ success: true, tableRole: "participant" });
+    trackEvent(EVENTS.JOIN_SUCCESS, "table-1", undefined, { joinType: "new" });
+    sendEvent.mockResolvedValueOnce(null);
+    trackEvent(EVENTS.TABLE_VIEW, "table-1");
+    sendEvent.mockResolvedValueOnce({ success: true, skipped: true });
+    trackEvent(EVENTS.SCHEDULE_SAVE, "table-1");
+    await flush();
+    expect(window.gtag.mock.calls.map(([kind, name, params]) => [kind, name, params.table_role])).toEqual([
+      ["event", "join_success", "participant"],
+      ["event", "table_view", "unknown"],
+    ]);
+    const text = JSON.stringify(window.gtag.mock.calls);
+    expect(text).not.toContain("table-1");
+    expect(text).not.toContain(getVisitorId());
+  });
+
+  test("화면 기록은 표 ID를 빼고 유입 구분 검색어만 남기며, 관리자는 보내지 않는다", () => {
+    expect(gaPagePathOf("/table/313fcb21-583e-4e82-942c-713eeb3d607d")).toBe("/table/:id");
+    expect(gaPagePathOf("/blog/abc")).toBe("/blog/abc");
+    expect(
+      gaLocationOf({ origin: "https://timetable2.com", pathname: "/table/abc", search: "?utm_source=kakao&name=민준&gclid=x" }),
+    ).toBe("https://timetable2.com/table/:id?utm_source=kakao&gclid=x");
+    window.gtag = jest.fn();
+    document.title = "동아리 회식 - 타임테이블";
+    trackPageView({ origin: "https://timetable2.com", pathname: "/table/abc-123", search: "" });
+    expect(window.gtag.mock.calls).toEqual([
+      ["set", { page_location: "https://timetable2.com/table/:id", page_title: "표 화면 - 타임테이블" }],
+      ["event", "page_view", { page_location: "https://timetable2.com/table/:id", page_title: "표 화면 - 타임테이블" }],
+    ]);
+    grantAdmin("test-token");
+    trackPageView({ origin: "https://timetable2.com", pathname: "/", search: "" });
+    expect(window.gtag).toHaveBeenCalledTimes(2);
+  });
+
+  test("표 화면에서 보내는 이벤트도 표 ID를 뺀 주소·고정 제목을 붙이고, 주소가 바뀌면 바로 맞춘다", () => {
+    window.gtag = jest.fn();
+    window.history.replaceState({}, "", "/table/secret-table-id?utm_source=kakao&name=민준");
+    document.title = "동아리 회식";
+    trackEvent(EVENTS.RANKING_OPEN, "secret-table-id");
+    setGaPage(window.location);
+    const text = JSON.stringify(window.gtag.mock.calls);
+    expect(text).not.toContain("secret-table-id");
+    expect(text).not.toContain("동아리 회식");
+    expect(text).not.toContain("민준");
+    expect(window.gtag.mock.calls[0][2]).toEqual(expect.objectContaining({
+      page_location: "http://localhost/table/:id?utm_source=kakao", page_title: "표 화면 - 타임테이블",
+    }));
+    expect(window.gtag.mock.calls[1]).toEqual(["set", { page_location: "http://localhost/table/:id?utm_source=kakao", page_title: "표 화면 - 타임테이블" }]);
+  });
+
+  test("gtag가 없거나 예외를 던져도 흐름은 이어진다", async () => {
+    expect(() => trackPageView(window.location)).not.toThrow();
+    window.gtag = () => {
+      throw new Error("blocked");
+    };
+    expect(() => trackEvent(EVENTS.LANDING_VIEW)).not.toThrow();
+    expect(() => trackPageView(window.location)).not.toThrow();
+    await flush();
+    expect(sendEvent).toHaveBeenCalledTimes(1);
   });
 });

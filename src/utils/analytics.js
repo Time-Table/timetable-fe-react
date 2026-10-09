@@ -51,6 +51,28 @@ const AB_FIELDS = ["viewId", "reason", "joinType"];
 const TAB_KEY = "tt_tab_id";
 const SEQ_KEY = "tt_tab_seq";
 
+/**
+ * 표 유형(2026-10-09 날짜 투표): 지금 열린 표가 시간 표(time)인지 날짜 투표 표(date)인지. 표 정보를 받은 뒤 정하고 떠날 때 비운다.
+ * 그 표의 표 이벤트에 tableType으로 붙는다(BE Event.tableType). 생성 이벤트는 호출할 때 extra.tableType으로 준다.
+ */
+let activeTableType = null;
+const TABLE_TYPES = ["time", "date"];
+const CREATION_EVENTS = [EVENTS.CREATE_VIEW, EVENTS.CREATE_CTA_CLICK, EVENTS.CREATE_SUBMIT, EVENTS.CREATE_SUCCESS];
+// 실패 기록 3개는 2026-10-09(사람 결정 8)부터 실험 밖(화면 값 없음)에서도 보내 상시 실패율로 본다. 나머지 2회차 기록은 화면 값이 있어야 보낸다.
+const FAIL_EVENTS = [EVENTS.JOIN_FAIL, EVENTS.SAVE_FAIL, EVENTS.UI_LOAD_FAIL];
+
+export const setActiveTableType = (tableId, type) => {
+  activeTableType = tableId && TABLE_TYPES.includes(type) ? { tableId, type } : null;
+};
+
+/** 지금 열린 표의 유형. */
+export const getActiveTableType = () => activeTableType;
+
+const tableTypeFor = (name, tableId, extra) => {
+  if (TABLE_TYPES.includes(extra?.tableType) && (CREATION_EVENTS.includes(name) || TABLE_UI_EVENTS.includes(name))) return extra.tableType;
+  return TABLE_UI_EVENTS.includes(name) && activeTableType && activeTableType.tableId === tableId ? activeTableType.type : undefined;
+};
+
 export const setActiveTableUi = (tableId, version) => {
   activeTableUi = tableId && (version === "A" || version === "B") ? { tableId, version } : null;
 };
@@ -154,6 +176,7 @@ const payloadOf = (name, tableId, creationPath, extra) => {
   const ab = AB_EVENTS.includes(name);
   // 새 화면 불러오기 실패는 아직 그 화면이 안 그려졌을 수 있어 화면 값을 직접 받는다.
   const uiVersion = ab && (extra?.uiVersion === "A" || extra?.uiVersion === "B") ? extra.uiVersion : uiVersionFor(name, tableId);
+  const tableType = tableTypeFor(name, tableId, extra);
   return {
     name,
     visitorId: getVisitorId(),
@@ -167,6 +190,8 @@ const payloadOf = (name, tableId, creationPath, extra) => {
     ...(ab ? abFieldsOf(extra) : {}),
     // 표 화면 A/B 2회차: 새 참여(201)와 다시 들어옴(200)을 나눈다.
     ...(name === EVENTS.JOIN_SUCCESS && ["new", "returning"].includes(extra?.joinType) ? { joinType: extra.joinType } : {}),
+    // 표 유형(2026-10-09): 시간 표·날짜 투표 표.
+    ...(tableType ? { tableType } : {}),
   };
 };
 
@@ -178,37 +203,116 @@ export const trackEventKeepalive = (name, tableId, extra) => {
   try {
     if (isAdmin()) return;
     const payload = payloadOf(name, tableId, undefined, extra);
-    if (!payload.uiVersion) return;
+    if (!payload.uiVersion && !FAIL_EVENTS.includes(name)) return;
     sendEventKeepalive(payload);
   } catch (error) {
     // 넘어간다
   }
 };
 
+/**
+ * GA4(2026-10-09, 하네스 specs/metrics.md, 사람 결정 7): 서버 퍼널 이벤트 11개를 같은 이름으로 보낸다.
+ * 매개변수는 정해진 값만(creation_path·table_type·ui_version·table_role). 표 ID·방문자 ID·이름·입력값은 보내지 않는다.
+ * gtag는 public/index.html이 늘 만들어 두고, 운영 주소(timetable2.com)의 관리자가 아닌 브라우저에서만 GA 스크립트를 받아
+ * 실제로 전송된다. 그 밖(로컬·관리자)에서는 window.dataLayer에 쌓이기만 한다.
+ */
+const GA_EVENTS = [EVENTS.LANDING_VIEW, EVENTS.CREATE_CTA_CLICK, EVENTS.CREATE_VIEW, EVENTS.CREATE_SUBMIT,
+  EVENTS.CREATE_SUCCESS, EVENTS.INVITE_SHARE, EVENTS.TABLE_VIEW, EVENTS.JOIN_SUBMIT, EVENTS.JOIN_SUCCESS,
+  EVENTS.SCHEDULE_SAVE, EVENTS.RANKING_OPEN];
+const ROLE_EVENTS = [EVENTS.CREATE_SUCCESS, EVENTS.TABLE_VIEW, EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE];
+
+const gaParamsOf = (payload) => ({
+  ...(payload.creationPath ? { creation_path: payload.creationPath } : {}),
+  ...(payload.tableType ? { table_type: payload.tableType } : {}),
+  ...(payload.uiVersion ? { ui_version: payload.uiVersion } : {}),
+});
+
+const sendGaEvent = (name, params) => {
+  try {
+    if (!GA_EVENTS.includes(name) || typeof window.gtag !== "function") return;
+    // 이벤트마다 표 ID를 뺀 지금 주소·제목을 함께 보낸다(화면 기록 설정보다 먼저 나가는 기록에도 원래 주소가 붙지 않게).
+    window.gtag("event", name, { ...gaPageOf(window.location), ...(params || {}) });
+  } catch (error) {
+    // GA 차단·오류는 서비스 동작에 영향을 주지 않는다.
+  }
+};
+
+/**
+ * GA4 화면 기록(page_view). index.html이 gtag("config", …, { send_page_view: false })로 자동 기록을 끄고, 주소가 바뀔 때마다
+ * 여기서 한 번 보낸다(App.js GaPageView). 표 주소의 표 ID와 표 제목은 보내지 않는다: 경로는 /table/:id, 제목은 고정 글.
+ * 검색어는 유입 구분(utm_*·gclid)만 남긴다. 관리자는 보내지 않는다.
+ */
+const KEEP_QUERY = /^(utm_[a-z_]+|gclid)$/;
+export const gaPagePathOf = (pathname = "/") => pathname.replace(/^\/table\/[^/]+/i, "/table/:id");
+export const gaLocationOf = (location) => {
+  const params = new URLSearchParams(location.search || "");
+  const kept = new URLSearchParams();
+  params.forEach((value, key) => {
+    if (KEEP_QUERY.test(key)) kept.append(key, value.slice(0, 100));
+  });
+  const query = kept.toString();
+  return `${location.origin}${gaPagePathOf(location.pathname)}${query ? `?${query}` : ""}`;
+};
+const TABLE_PAGE_TITLE = "표 화면 - 타임테이블";
+/** GA에 쓸 주소·제목. 표 화면 제목은 사용자가 쓴 표 제목이라 고정 글로 바꾼다. */
+const gaPageOf = (location) => ({
+  page_location: gaLocationOf(location),
+  page_title: /^\/table\//i.test(location.pathname || "") ? TABLE_PAGE_TITLE : document.title,
+});
+
+/** 주소가 바뀐 즉시: 이후 기록(앱 이벤트·GA 자체 기록)이 쓸 주소·제목을 표 ID 없이 맞춘다. 관리자는 하지 않는다. */
+export const setGaPage = (location = window.location) => {
+  try {
+    if (isAdmin() || typeof window.gtag !== "function") return;
+    window.gtag("set", gaPageOf(location));
+  } catch (error) {
+    // 넘어간다
+  }
+};
+
+export const trackPageView = (location = window.location) => {
+  try {
+    if (isAdmin() || typeof window.gtag !== "function") return;
+    const page = gaPageOf(location);
+    // 이후 GA가 스스로 보내는 기록(스크롤·바깥 링크 등)도 같은 주소·제목을 쓰게 맞춘다.
+    window.gtag("set", page);
+    window.gtag("event", "page_view", page);
+  } catch (error) {
+    // GA 차단·저장소 오류는 넘어간다.
+  }
+};
+
 export const trackEvent = (name, tableId, creationPath, extra) => {
   let pending;
+  let gaParams = {};
   // 저장소 차단·수집 장애가 생성 요청이나 성공 화면을 막으면 안 된다.
   try {
     if (isAdmin()) return;
     const payload = payloadOf(name, tableId, creationPath, extra);
-    // 2회차 기록은 실험이 켜져 화면이 정해진 표에서만 보낸다(상태를 못 받은 기록만 예외).
-    if (AB_EVENTS.includes(name) && name !== EVENTS.AB_STATE_FAIL && !payload.uiVersion) return;
+    // 2회차 기록은 실험이 켜져 화면이 정해진 표에서만 보낸다(상태를 못 받은 기록과 실패 기록 3개는 예외).
+    if (AB_EVENTS.includes(name) && name !== EVENTS.AB_STATE_FAIL && !FAIL_EVENTS.includes(name) && !payload.uiVersion) return;
     pending = sendEvent(payload);
+    gaParams = gaParamsOf(payload);
   } catch (error) {
     return;
   }
 
-  if ([EVENTS.CREATE_SUCCESS, EVENTS.TABLE_VIEW, EVENTS.JOIN_SUCCESS, EVENTS.SCHEDULE_SAVE].includes(name)) {
+  if (ROLE_EVENTS.includes(name)) {
     // 역할은 현재 URL이나 마지막으로 만든 표가 아니라, 요청한 표의 서버 응답에 묶는다.
     // 태그는 행동별로 구분한다. Clarity 세션에는 여러 표의 역할이 공존할 수 있다.
+    // GA4에도 같은 역할을 매개변수로 붙여 응답 뒤에 보낸다. 응답이 없으면 unknown으로 보낸다(관리자·봇으로 건너뛴 요청은 보내지 않는다).
     Promise.resolve(pending).then((result) => {
-      if (!result?.success || result.skipped || isAdmin() || typeof window.clarity !== "function") return;
-      const role = ["creator", "participant", "unknown"].includes(result.tableRole)
+      if (result?.skipped || isAdmin()) return;
+      const role = result?.success && ["creator", "participant", "unknown"].includes(result.tableRole)
         ? result.tableRole : "unknown";
+      sendGaEvent(name, { ...gaParams, table_role: role });
+      if (!result?.success || typeof window.clarity !== "function") return;
       window.clarity("set", `tt_${name}_role`, role);
     }).catch(() => {
       // 계측 응답·저장소·Clarity 오류를 사용자 동작에 전파하지 않는다.
     });
+  } else if (GA_EVENTS.includes(name)) {
+    sendGaEvent(name, gaParams);
   }
 
   // 기존 버튼 텍스트 기반 스마트 이벤트와 구분한다. 식별자/입력값은 보내지 않는다.
@@ -287,6 +391,25 @@ export const CLARITY_EVENTS = {
   B_HOUR_TOGGLE: "tt_b_hour_toggle", // 입력 중 시간 글자로 그 시간 줄 칠하기·지우기
   B_SAVE_PROMPT: "tt_b_save_prompt", // 표에서 처음 시간을 넣은 사람에게 공유 권유 창이 뜸
   B_PROMPT_SHARE: "tt_b_prompt_share", // 그 창에서 "공유하기"를 누름
+
+  // 날짜 투표(2026-10-09). 생성 화면 3곳(랜딩 v1·v2·빠른 생성)에서 시간 범위 스위치를 켬에서 끔(날짜만)으로 바꿈(화면을 열 때마다 처음 1회).
+  TIME_SWITCH_OFF: "tt_time_switch_off",
+  // 날짜 투표 표의 1위 카드(가장 많이 모이는 날)를 눌러 그 날 명단 창을 엶. 달력 칸·순위 창·요일 고르기는 위 같은 동작 이름을 쓴다
+  // (칸 tt_timetable_cell, 순위 줄 tt_b_rank_jump, 요일 tt_b_day_toggle, 처음 고름 tt_schedule_select).
+  B_BEST_OPEN: "tt_b_best_open",
+};
+
+/**
+ * 표 유형 Clarity 태그(2026-10-09): 표 화면을 열고 표 정보를 받으면 tt_table_type = time | date. 세션 필터용.
+ * 관리자는 제외하고, Clarity 부재·차단은 넘어간다.
+ */
+export const tagTableType = (type) => {
+  try {
+    if (!TABLE_TYPES.includes(type) || isAdmin() || typeof window.clarity !== "function") return;
+    window.clarity("set", "tt_table_type", type);
+  } catch (error) {
+    // 넘어간다
+  }
 };
 
 export const trackClarityEvent = (name) => {

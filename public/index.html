@@ -50,36 +50,75 @@
     <meta name="naver-site-verification" content="990eacb192bb46c8c1ad6ad328922c85b928a7ba" />
     <meta name="google-adsense-account" content="ca-pub-7558566935889139" />
 
-    <!-- 서드파티는 첫 렌더를 막지 않도록 메타 뒤에 둔다. -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-HTPX37RLPD"></script>
+    <!--
+      서드파티는 첫 렌더를 막지 않도록 메타 뒤에 둔다.
+      2026-10-09(하네스 specs/metrics.md, 사람 결정 7): GA·Clarity·애드센스 스크립트는 운영 주소(timetable2.com)에서
+      관리자가 아닌 브라우저만 받는다. 로컬 개발·미리보기 확인과 관리자 사용이 분석·광고 수치에 섞이지 않게 한다.
+      gtag·clarity 함수는 어디서나 만들어 두어 앱 코드가 그대로 부를 수 있다(스크립트가 없으면 쌓이기만 하고 전송되지 않는다).
+      GA 자동 화면 기록은 끄고(send_page_view: false) 앱이 주소가 바뀔 때마다 표 ID를 뺀 주소로 보낸다(src/utils/analytics.js).
+    -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
         dataLayer.push(arguments);
       }
+      window.clarity =
+        window.clarity ||
+        function () {
+          (window.clarity.q = window.clarity.q || []).push(arguments);
+        };
       gtag("js", new Date());
-
-      gtag("config", "G-HTPX37RLPD");
+      // 첫 설정부터 표 ID를 뺀 주소·고정 제목을 쓴다(앱이 첫 화면 기록을 보내기 전에 나가는 기록에도 원래 주소가 붙지 않게).
+      // 규칙은 src/utils/analytics.js gaLocationOf와 같다: /table/<ID> → /table/:id, 검색어는 utm_*·gclid만.
+      (function () {
+        var anon = function (href) {
+          try {
+            var u = new URL(href);
+            var kept = new URLSearchParams();
+            u.searchParams.forEach(function (value, key) {
+              if (/^(utm_[a-z_]+|gclid)$/.test(key)) kept.append(key, value.slice(0, 100));
+            });
+            var query = kept.toString();
+            return u.origin + u.pathname.replace(/^\/table\/[^/]+/i, "/table/:id") + (query ? "?" + query : "");
+          } catch (e) {
+            return "";
+          }
+        };
+        var config = { send_page_view: false, page_location: anon(window.location.href) };
+        if (/^\/table\//i.test(window.location.pathname)) config.page_title = "표 화면 - 타임테이블";
+        try {
+          if (document.referrer && new URL(document.referrer).hostname === window.location.hostname) {
+            config.page_referrer = anon(document.referrer);
+          }
+        } catch (e) {
+          // 넘어간다
+        }
+        gtag("config", "G-HTPX37RLPD", config);
+      })();
+      (function () {
+        var host = window.location.hostname;
+        var production = host === "timetable2.com" || host === "www.timetable2.com";
+        var admin = false;
+        try {
+          admin = !!window.localStorage.getItem("admin_token");
+        } catch (e) {
+          admin = false;
+        }
+        if (!production || admin) return;
+        var add = function (src, attrs) {
+          var el = document.createElement("script");
+          el.async = true;
+          el.src = src;
+          for (var key in attrs || {}) el.setAttribute(key, attrs[key]);
+          document.head.appendChild(el);
+        };
+        add("https://www.googletagmanager.com/gtag/js?id=G-HTPX37RLPD");
+        add("https://www.clarity.ms/tag/vi901h4ed4");
+        add("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7558566935889139", {
+          crossorigin: "anonymous",
+        });
+      })();
     </script>
-    <script type="text/javascript">
-      (function (c, l, a, r, i, t, y) {
-        c[a] =
-          c[a] ||
-          function () {
-            (c[a].q = c[a].q || []).push(arguments);
-          };
-        t = l.createElement(r);
-        t.async = 1;
-        t.src = "https://www.clarity.ms/tag/" + i;
-        y = l.getElementsByTagName(r)[0];
-        y.parentNode.insertBefore(t, y);
-      })(window, document, "clarity", "script", "vi901h4ed4");
-    </script>
-    <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7558566935889139"
-      crossorigin="anonymous"
-    ></script>
   </head>
   <body>
     <noscript>

@@ -416,11 +416,11 @@ const Names = ({ list, can }) => (
 );
 
 /**
- * 칸을 눌렀을 때 뜨는 명단 창. 칸 옆에 붙이고 칸을 향한 모서리 하나만 뾰족하게 한다(랜딩 placePopup과 같은 계산).
+ * 명단 창 자리 잡기. 칸 옆에 붙이고 칸을 향한 모서리 하나만 뾰족하게 한다(랜딩 placePopup과 같은 계산).
  * 스크롤하면 칸을 따라가고, 칸이 화면 밖이면 숨긴다. 창 밖을 누르거나 Esc로 닫는다.
+ * 시간 칸(.tb-cell)과 날짜 투표 칸(.tb-dc, 2026-10-09)이 같이 쓴다. 다른 칸을 누르면 닫지 않고 그 칸으로 옮긴다(TableB onCell).
  */
-export function CellPopup({ cellKey, gridRef, info, names, max, onClose }) {
-  const ref = useRef(null);
+export function usePopPlacement({ ref, gridRef, cellKey, onClose, deps }) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const cellOf = useCallback(() => gridRef.current?.querySelector(`[data-key="${cellKey}"]`), [gridRef, cellKey]);
@@ -456,11 +456,12 @@ export function CellPopup({ cellKey, gridRef, info, names, max, onClose }) {
     el.style.left = `${left}px`;
     el.style.visibility = "";
     el.dataset.corner = corner;
-  }, [cellOf]);
+  }, [ref, cellOf]);
 
   useLayoutEffect(() => {
     place();
-  }, [place, info]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place, deps]);
 
   useEffect(() => {
     let raf = 0;
@@ -472,7 +473,7 @@ export function CellPopup({ cellKey, gridRef, info, names, max, onClose }) {
     const timers = [450, 900].map((ms) => setTimeout(place, ms));
     const onDocClick = (e) => {
       if (ref.current?.contains(e.target)) return;
-      if (e.target.closest?.(".tb-cell.tap")) return;
+      if (e.target.closest?.(".tb-cell.tap, .tb-dc.tap")) return;
       onCloseRef.current();
     };
     const onKey = (e) => {
@@ -497,7 +498,15 @@ export function CellPopup({ cellKey, gridRef, info, names, max, onClose }) {
       document.removeEventListener("click", onDocClick, true);
       document.removeEventListener("keydown", onKey);
     };
-  }, [place, cellOf]);
+  }, [ref, place, cellOf]);
+
+  return cellOf;
+}
+
+/** 칸을 눌렀을 때 뜨는 명단 창(시간 표). 자리 잡기는 usePopPlacement. */
+export function CellPopup({ cellKey, gridRef, info, names, max, onClose }) {
+  const ref = useRef(null);
+  const cellOf = usePopPlacement({ ref, gridRef, cellKey, onClose, deps: info });
 
   const date = cellKey.slice(0, 10);
   const t = cellKey.slice(11);

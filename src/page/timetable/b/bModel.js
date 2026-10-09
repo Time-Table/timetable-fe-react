@@ -199,3 +199,81 @@ const chatTime = (chat) => {
 /** 안 읽은 글: 마지막으로 본 뒤에 다른 사람이 쓴 글. 이 기기에서 본 적 없으면 다른 사람 글 전부. 내 글은 세지 않는다. */
 export const unreadOf = (chats, seenAt, me) =>
   chats.filter((c) => c.name !== me && (seenAt === null || chatTime(c) > seenAt)).length;
+
+// ---------- 날짜 투표 표(2026-10-09, 시안 하네스 캔버스 Final1~5·FinalSpec·FinalMonths) ----------
+// 시간 없이 날짜만 고르는 표. 칸은 날짜 "YYYY-MM-DD"이고, 달마다 달력 한 장을 그린다.
+
+/** 날짜 → { count, members }. 후보 날짜만 보고 한 사람의 같은 날은 한 번만 센다. */
+export const dateInfoOf = (users, table) => {
+  const valid = new Set(datesOf(table));
+  return new Map(timeInfoOf(users, valid).map(({ time, count, members }) => [time, { count, members }]));
+};
+
+/**
+ * 달력 목록. 후보가 있는 달마다 한 장, 그 달의 모든 주(월요일 시작)를 넣는다(후보 없는 주도 건너뛰지 않는다).
+ * [{ key: "YYYY-MM", label: "2026년 10월", weeks: [[{ key, inMonth, on, dnum, col }] × 7] }]
+ */
+export const monthsOf = (dates) => {
+  const on = new Set(dates);
+  const seen = [...new Set(dates.map((d) => d.slice(0, 7)))].sort();
+  return seen.map((ym) => {
+    const [y, m] = ym.split("-").map(Number);
+    const first = new Date(y, m - 1, 1);
+    const start = new Date(first);
+    start.setDate(1 - ((first.getDay() + 6) % 7));
+    const last = new Date(y, m, 0);
+    const weeks = [];
+    for (const w = new Date(start); w <= last; w.setDate(w.getDate() + 7)) {
+      const week = [];
+      for (let i = 0; i < 7; i += 1) {
+        const d = new Date(w);
+        d.setDate(w.getDate() + i);
+        const key = ymd(d);
+        week.push({ key, inMonth: d.getMonth() === m - 1, on: on.has(key), dnum: d.getDate(), col: i });
+      }
+      weeks.push(week);
+    }
+    return { key: ym, label: `${y}년 ${m}월`, weeks };
+  });
+};
+
+/** 칸 진하기: 그날 되는 사람 ÷ 표 참여자 수(아직 안 넣은 사람도 셈). 아무도 없으면 0(흰 칸). 비율 숫자는 쓰지 않는다. */
+export const dayFill = (count, total) => (count > 0 && total > 0 ? 0.12 + 0.88 * Math.min(1, count / total) : 0);
+
+/** 입력 중 안 고른 칸의 바탕: 다른 사람 비율로 옅게. */
+export const dayUnder = (others, total) => (others > 0 && total > 0 ? 0.06 + 0.24 * Math.min(1, others / total) : 0);
+
+/** 날짜 순위. 많이 되는 순, 같으면 이른 날. 인원이 같으면 같은 순위. 아무도 없는 날은 뺀다. */
+export const rankDays = (info, dates) => {
+  const days = dates
+    .map((date) => ({ date, count: info.get(date)?.count || 0, members: info.get(date)?.members || [] }))
+    .filter((d) => d.count > 0)
+    .sort((a, b) => b.count - a.count || a.date.localeCompare(b.date));
+  let rank = 0;
+  let prev = -1;
+  return days.map((d) => {
+    if (d.count !== prev) rank += 1;
+    prev = d.count;
+    return { d, rank };
+  });
+};
+
+/** 고른 사람들이 모두 되는 날(이른 순). */
+export const commonDaysOf = (picks, info, dates) =>
+  dates.filter((date) => {
+    const members = info.get(date)?.members || [];
+    return picks.length > 0 && picks.every((p) => members.includes(p));
+  });
+
+/** 날짜 칸 수 → "3일". */
+export const dayCount = (n) => `${n}일`;
+
+/** "금 10/9" */
+export const shortDate = (d) => shortDay(d);
+
+/** 1위 날 요약(읽기 프로그램). */
+export const daySummaryOf = (ranked, total) => {
+  const top = ranked[0]?.d;
+  if (!top) return "아직 아무도 날짜를 넣지 않았어요.";
+  return `가장 많이 모이는 날은 ${fmtDay(top.date)}, ${total}명 중 ${top.count}명 가능이에요.`;
+};

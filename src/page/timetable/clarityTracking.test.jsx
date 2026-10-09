@@ -231,7 +231,8 @@ test("내 일정: 켜진 저장 버튼을 누르면 서버 결과와 무관하�
     "tt_schedule_select", "tt_schedule_save_click", "tt_schedule_save_click", "tt_schedule_save_click", "tt_schedule_save",
   ]);
   expect(addSchedule).toHaveBeenCalledTimes(3);
-  expect(serverEvents()).toEqual(["schedule_save"]);
+  // 실패 기록은 2026-10-09(사람 결정 8)부터 실험 밖에서도 남는다(서버 실패·네트워크 오류 각 1회).
+  expect(serverEvents()).toEqual(["save_fail", "save_fail", "schedule_save"]);
 });
 
 test("휴대폰 표 화면: 초대 복사, 전체 시간표 열기, 인원, 팁 접기·펼치기를 남긴다", async () => {

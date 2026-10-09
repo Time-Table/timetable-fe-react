@@ -27,6 +27,7 @@ import Swal from "sweetalert2";
 import Seo from "../Seo";
 import { getTrackVisit } from "../api/visit";
 import { getAllTables, updateTable, deleteTable } from "../api/table";
+import { isDateOnlyTable } from "../utils/tableSession";
 import { getFunnels } from "../api/event";
 import {
   adminLogin,
@@ -63,6 +64,7 @@ import {
 import StatTile, { formatStat } from "./manager/StatTile";
 import FunnelCard from "./manager/FunnelCard";
 import ActivationCard from "./manager/ActivationCard";
+import { CoreMetricsCard, OutcomeCard, GrowthCard } from "./manager/MetricsCards";
 import InquiryFeed from "./manager/InquiryFeed";
 import LandingStatsCard from "./manager/LandingStatsCard";
 import { changesOn, formatChangeTime } from "./manager/landingChanges";
@@ -608,6 +610,8 @@ const ManagerPage = () => {
                   {/* 랜딩 첫 화면의 신뢰 표시가 지금 보여 주는 값과 상태(2026-10-04). 기간 선택과 무관하게 랜딩과 같은 공개 집계를
                       읽으므로 관리자 통계(getTrends)가 실패해도 따로 보인다. */}
                   <LandingStatsCard />
+                  {/* 핵심 유저 지표(2026-10-09, 하네스 specs/metrics.md). 스스로 불러와 관리자 통계가 실패해도 따로 보인다. */}
+                  <CoreMetricsCard days={period} />
                   {trends ? <>
                   <Explain label="지표 설명">
                     <SectionCaption>
@@ -808,9 +812,13 @@ const ManagerPage = () => {
               )}
 
               {activeTab === "participation" && (
-                <ActivationCard report={participationReport} loading={participationLoading} failed={participationFailed}
-                  periodDays={participationPeriod} onPeriodChange={setParticipationPeriod}
-                  onRetry={() => setParticipationRefresh((n) => n + 1)} />
+                <Stack>
+                  <ActivationCard report={participationReport} loading={participationLoading} failed={participationFailed}
+                    periodDays={participationPeriod} onPeriodChange={setParticipationPeriod}
+                    onRetry={() => setParticipationRefresh((n) => n + 1)} />
+                  {/* 표 유형별 결과·3명 모이는 데 걸린 시간(2026-10-09, 하네스 specs/metrics.md) */}
+                  <OutcomeCard days={participationPeriod} />
+                </Stack>
               )}
 
               {/* ------------------------------------------------ 퍼널 */}
@@ -912,6 +920,8 @@ const ManagerPage = () => {
                       </div>
                     </Card>
                   )}
+                  {/* 출처별 생성 전환·재방문·다시 만드는 사람(2026-10-09, 하네스 specs/metrics.md) */}
+                  <GrowthCard days={period} />
                 </Stack>
               )}
 
@@ -1240,7 +1250,7 @@ const ManagerPage = () => {
                                 )}
                               </td>
                               <td className="num">
-                                {table.dates?.length || 0}일 · {table.startHour}~{table.endHour}
+                                {table.dates?.length || 0}일 · {hoursLabel(table)}
                               </td>
                               <td className="mono" data-label="생성일">{formatDateTime(table.createdAt)}</td>
                               <td className="mono" data-label="ID">{table.tableId.slice(0, 8)}</td>
@@ -1355,7 +1365,7 @@ const ManagerPage = () => {
                     <CardTitle>{detail.table.title}</CardTitle>
                     <CardSubtitle>
                       {formatDateTime(detail.table.createdAt)} 생성 · {detail.table.dates?.length}일
-                      후보 · {detail.table.startHour}~{detail.table.endHour}
+                      후보 · {hoursLabel(detail.table)}
                     </CardSubtitle>
                   </div>
                   <IconButton onClick={() => setDetail(null)} aria-label="닫기">
@@ -1450,6 +1460,10 @@ const ManagerPage = () => {
                   onChange={(e) => setEditing({ ...editing, title: e.target.value })}
                 />
               </FormRow>
+              {/* 날짜 투표 표(2026-10-09)는 시간 범위가 없고 시간 표로 바꿀 수 없다(서버도 막는다, 사람 결정 5). */}
+              {isDateOnlyTable(editing) ? (
+                <EditNote>날짜만 고르는 표예요. 시간 범위가 없고 시간 표로 바꿀 수 없어요.</EditNote>
+              ) : (
               <TwoUp>
                 <FormRow>
                   <label htmlFor="edit-start">시작</label>
@@ -1468,6 +1482,7 @@ const ManagerPage = () => {
                   />
                 </FormRow>
               </TwoUp>
+              )}
             </ModalBody>
             <ModalFoot>
               <Button onClick={() => setEditing(null)}>취소</Button>
@@ -1480,7 +1495,7 @@ const ManagerPage = () => {
                     setEditing(null);
                     loadTab();
                   } else {
-                    Toast.fire({ icon: "error", title: "수정에 실패했습니다." });
+                    Toast.fire({ icon: "error", title: res?.data?.message || "수정에 실패했습니다." });
                   }
                 }}
               >
@@ -1493,6 +1508,16 @@ const ManagerPage = () => {
     </Shell>
   );
 };
+
+/** 표의 시간 범위 글. 날짜 투표 표(2026-10-09, 시작·끝 시각 없음)는 "날짜만". */
+const hoursLabel = (table) => (isDateOnlyTable(table) ? "날짜만" : `${table.startHour}~${table.endHour}`);
+
+const EditNote = styled.p`
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: ${t.color.muted};
+`;
 
 /* ------------------------------------------------------------------ 레이아웃 */
 

@@ -2,7 +2,12 @@ import { instance as axios } from "./interceptors";
 import { getVisitorId } from "../utils/analytics";
 import { isAdmin } from "../utils/admin";
 
+/**
+ * 표 만들기. 시작·끝 시각이 없으면(null) 날짜 투표 표다(2026-10-09). 그때는 두 값과 잠근 칸을 보내지 않는다
+ * (하네스 specs/api-contract.md "날짜 투표 표"). 옛 BE는 시각이 없으면 400을 주므로 BE를 먼저 배포한다.
+ */
 export const createTable = async (title, dates, startHour, endHour, banedCells) => {
+  const dateOnly = !startHour && !endHour;
   let creatorVisitorId;
   try {
     if (!isAdmin()) creatorVisitorId = getVisitorId();
@@ -13,9 +18,7 @@ export const createTable = async (title, dates, startHour, endHour, banedCells) 
     const res = await axios.post("/api/tables", {
       title,
       dates,
-      startHour,
-      endHour,
-      banedCells,
+      ...(dateOnly ? {} : { startHour, endHour, banedCells }),
       ...(creatorVisitorId ? { creatorVisitorId } : {}),
     });
     return res;

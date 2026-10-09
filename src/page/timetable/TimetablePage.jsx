@@ -6,7 +6,7 @@ import DashboardPanel from "./components/DashboardPanel";
 import PersonalSchedule from "./components/PersonalSchedule";
 import JoinForm from "./components/JoinForm";
 import RankingModal from "./components/RankingModal";
-import { useEffect, useState, useCallback, useMemo, useRef, Fragment, Suspense } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef, Fragment, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { getTableInfo } from "../../api/table";
 import { getAllSchedule } from "../../api/user";
@@ -16,6 +16,7 @@ import Seo from "../../Seo";
 import { trackVisit } from "../../api/visit";
 import {
   trackEvent, trackEventKeepalive, EVENTS, trackClarityEvent, CLARITY_EVENTS, setActiveTableUi, getActiveTableUi,
+  setActiveTableType, getActiveTableType, tagTableType,
 } from "../../utils/analytics";
 import {
   experimentVisitorId,
@@ -29,7 +30,7 @@ import { getTableAbState } from "../../api/experiment";
 import useUiSegment from "./useUiSegment";
 import { clearTableScopedStorage, readStorage, writeStorage } from "../../utils/storage";
 import { setShellWidth } from "../../utils/siteShell";
-import { readTableState, writeTableState, timeInfoOf, validCellsOf } from "../../utils/tableSession";
+import { readTableState, writeTableState, timeInfoOf, validCellsOf, isDateOnlyTable } from "../../utils/tableSession";
 import TimeGridModal from "./components/TimeGridModal";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiUserPlus, FiShare2, FiCalendar, FiGrid, FiUsers, FiAward, FiChevronRight } from "react-icons/fi";
@@ -43,11 +44,15 @@ import { lazyPage } from "../../utils/lazyPage";
 // 새 화면(B)은 B를 볼 때만 받는다(기존 화면만 보는 사람의 첫 로딩에 넣지 않는다). 조각을 못 받으면 한 번 새로고침하고,
 // 그래도 안 되면 앱의 불러오기 실패 안내가 뜬다(utils/lazyPage.js). 기존 화면으로 대신 그리면 B 배정 기록과 어긋난다.
 // 표 화면 A/B 2회차: 조각을 못 받아 새로고침하기 직전(chunk_retry)과 끝내 못 받았을 때(chunk_failed)를 남긴다(실험 중일 때만).
+// 2026-10-09(사람 결정 8): 실험 밖의 날짜 투표 표(늘 새 화면)도 남긴다. 화면 값(uiVersion)은 실험 중일 때만 붙인다.
 const reportBLoadFail = (reason) => {
   const active = getActiveTableUi();
-  if (!active) return;
-  if (reason === "chunk_retry") trackEventKeepalive(EVENTS.UI_LOAD_FAIL, active.tableId, { reason, uiVersion: "B" });
-  else trackEvent(EVENTS.UI_LOAD_FAIL, active.tableId, undefined, { reason, uiVersion: "B" });
+  const typed = getActiveTableType();
+  const tableId = active?.tableId || (typed?.type === "date" ? typed.tableId : null);
+  if (!tableId) return;
+  const extra = active ? { reason, uiVersion: "B" } : { reason };
+  if (reason === "chunk_retry") trackEventKeepalive(EVENTS.UI_LOAD_FAIL, tableId, extra);
+  else trackEvent(EVENTS.UI_LOAD_FAIL, tableId, undefined, extra);
 };
 const TableB = lazyPage(() => import("./b/TableB"), {
   onRetry: () => reportBLoadFail("chunk_retry"),
@@ -366,14 +371,32 @@ function TimetablePageView() {
     };
   }, []);
   const stateFailSent = useRef(false);
+
+  // 날짜 투표 표(2026-10-09): 시작·끝 시각이 없는 표는 실험 배정·띠와 관계없이 늘 새 화면(B)이다(사람 결정).
+  // 기존 화면(A)에는 날짜 투표 모양이 없다. 실험 대상이 아니라 띠·화면 기록(ui_view)·uiVersion을 붙이지 않는다(사람 결정 3).
+  const tableLoaded = isValidTableId === true && tableInfo?.tableId === tableId;
+  const dateOnly = tableLoaded && isDateOnlyTable(tableInfo);
+  const abOn = Boolean(abState?.running && visitorId && tableLoaded && !dateOnly);
+  const uiVersion = dateOnly ? "B" : abOn ? uiChoice || resolveTableUi({ running: true, visitorId }) : "A";
+
+  // 실험 상태를 못 받은 기록. 날짜 투표 표는 실험 대상이 아니라 남기지 않는다(2026-10-09 사람 결정 3).
+  // 그래서 표 정보를 받은 뒤 정한다. 표를 못 받았으면(없는 표·오류) 지금처럼 남긴다.
   useEffect(() => {
     if (!abState || abState.ok || !visitorId || stateFailSent.current) return;
+    if (isValidTableId === null || isValidTableId === undefined || dateOnly) return;
     stateFailSent.current = true;
     trackEvent(EVENTS.AB_STATE_FAIL, tableId, undefined, { reason: abState.reason });
-  }, [abState, visitorId, tableId]);
+  }, [abState, visitorId, tableId, isValidTableId, dateOnly]);
 
-  const abOn = Boolean(abState?.running && visitorId && isValidTableId === true && tableInfo?.tableId === tableId);
-  const uiVersion = abOn ? uiChoice || resolveTableUi({ running: true, visitorId }) : "A";
+  // 표 유형(2026-10-09): 이 표의 표 이벤트에 tableType을 붙이고 Clarity 태그 tt_table_type을 남긴다.
+  // 화면이 그려진 직후(첫 누름 전)에 정해야 그 화면에서 남기는 기록에 빠지지 않는다(그리기 뒤 효과로 두면 늦을 수 있다).
+  const tableType = tableLoaded ? (dateOnly ? "date" : "time") : null;
+  useLayoutEffect(() => {
+    if (!tableType) return undefined;
+    setActiveTableType(tableId, tableType);
+    tagTableType(tableType);
+    return () => setActiveTableType(null);
+  }, [tableId, tableType]);
 
   useEffect(() => {
     if (!abOn) return undefined;
@@ -747,13 +770,16 @@ function TimetablePageView() {
     // 새 화면(B). 자료·공유 상태는 여기서 들고 화면·흐름은 TableB가 맡는다(확정 시안, 2026-10-01).
     return (
       <BShell>
-        <TableUiBand
-          version="B"
-          onSwitch={handleSwitchUi}
-          vote={uiVote}
-          onVote={handleVoteUi}
-          narrowWidth={bColumnWidth}
-        />
+        {/* 띠는 실험 중인 시간 표에만. 날짜 투표 표는 늘 새 화면이라 바꿀 화면이 없다. */}
+        {abOn && (
+          <TableUiBand
+            version="B"
+            onSwitch={handleSwitchUi}
+            vote={uiVote}
+            onVote={handleVoteUi}
+            narrowWidth={bColumnWidth}
+          />
+        )}
         <Seo
           title={`${title || "테이블"}`}
           description="팀 일정 조율이 더 쉬워집니다. 최적의 시간을 선택해 보세요."
