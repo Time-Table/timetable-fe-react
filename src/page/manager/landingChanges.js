@@ -14,6 +14,7 @@ export const LANDING_CHANGES = [
   { at: "2026-10-04T02:26:00+09:00", side: "AB", title: "신뢰 표시 숫자를 집계 API로(100명 이하 숨김)", detail: "FE aa9926a·42260a8·52f3013, BE 3debd10·6956990" },
   { at: "2026-10-04T02:42:44+09:00", side: "AB", title: "A PC 신뢰 표시 두 줄 배치, 숫자 색 primary", detail: "FE f7451e6·41d6f5a" },
   { at: "2026-10-10T00:01:22+09:00", side: "AB", title: "생성 폼 시간 범위 스위치(끄면 날짜만 투표)·미리보기 달력", detail: "FE 8c43935·641d5b0, BE 5c609e7. 기본 켬이라 지금 흐름 그대로" },
+  { at: "2026-10-10T08:02:27+09:00", side: "AB", title: "날짜 표 완료 창 안내 \"날짜를\"(시간 표는 그대로)", detail: "FE 73303b7. 생성 성공 뒤 문구라 생성까지의 비교에는 영향 없음" },
 ];
 
 const KST = "Asia/Seoul";
