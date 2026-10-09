@@ -79,12 +79,12 @@ test("기간 중 변경 카드가 최근 변경부터 시각·쪽·내용을 보
   expect(within(card).getAllByRole("listitem")).toHaveLength(LANDING_CHANGES.length);
   expect(within(card).getByText("A/B 1회차 시작(startAt)")).toBeInTheDocument();
   expect(within(card).getByText("FE f7451e6·41d6f5a")).toBeInTheDocument();
-  expect(within(card).getAllByText("A·B 둘 다")).toHaveLength(6);
+  expect(within(card).getAllByText("A·B 둘 다")).toHaveLength(7);
   expect(within(card).getByText("B만")).toBeInTheDocument();
   expect(within(card).getByText("계측")).toBeInTheDocument();
   // 최근 것이 먼저다.
   const first = within(card).getAllByRole("listitem")[0];
-  expect(first).toHaveTextContent("10-04 02:42");
+  expect(first).toHaveTextContent("10-10 00:01");
 });
 
 test("대시보드 표의 '변경'에서 왔으면(focusChangesKey) 기간 중 변경 카드로 초점을 옮기고 화면에 보이게 한다", async () => {

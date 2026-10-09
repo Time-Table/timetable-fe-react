@@ -13,6 +13,7 @@ export const LANDING_CHANGES = [
   { at: "2026-10-04T01:38:00+09:00", side: "AB", title: "신뢰 표시 세 줄, 휴대폰 만들기 버튼 폼 아래, A 문구 줄·흐림", detail: "FE 9ea772d·8715151" },
   { at: "2026-10-04T02:26:00+09:00", side: "AB", title: "신뢰 표시 숫자를 집계 API로(100명 이하 숨김)", detail: "FE aa9926a·42260a8·52f3013, BE 3debd10·6956990" },
   { at: "2026-10-04T02:42:44+09:00", side: "AB", title: "A PC 신뢰 표시 두 줄 배치, 숫자 색 primary", detail: "FE f7451e6·41d6f5a" },
+  { at: "2026-10-10T00:01:22+09:00", side: "AB", title: "생성 폼 시간 범위 스위치(끄면 날짜만 투표)·미리보기 달력", detail: "FE 8c43935·641d5b0, BE 5c609e7. 기본 켬이라 지금 흐름 그대로" },
 ];
 
 const KST = "Asia/Seoul";
