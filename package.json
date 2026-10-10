@@ -27,6 +27,7 @@
     "start": "react-scripts start",
     "prebuild": "node scripts/generate-llms.js",
     "build": "react-scripts build",
+    "postbuild": "node scripts/og-image.js",
     "test": "react-scripts test",
     "test:ci": "CI=true react-scripts test --watchAll=false",
     "lint": "eslint src --ext .js,.jsx --max-warnings 0",

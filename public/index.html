@@ -32,6 +32,9 @@
     <!--
       og:image는 public/ 에 두고 고정 경로로 참조한다.
       src/assets/ 의 이미지는 빌드마다 해시가 바뀌고, 코드에서 import하지 않으면 아예 빌드되지 않는다.
+      빌드 뒤 scripts/og-image.js 가 og:image·twitter:image 두 곳의 og-image-v2.png 를
+      최근 30일 참여 등록 건수에 맞는 이미지(og-image-100.png ~ og-image-500.png)로 바꾼다.
+      이 주소를 바꾸면 스크립트의 DEFAULT_IMAGE 도 함께 바꾼다.
     -->
     <meta id="og-image" property="og:image" content="https://timetable2.com/og-image-v2.png" />
     <meta property="og:type" content="website" />

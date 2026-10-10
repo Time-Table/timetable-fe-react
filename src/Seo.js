@@ -9,6 +9,13 @@ import { useLocation } from "react-router-dom";
 export const SITE_URL = "https://timetable2.com";
 
 /**
+ * 공유 미리보기 이미지. 빌드 뒤 scripts/og-image.js 가 index.html 의 정적 og:image 를 최근 참여 등록 건수에
+ * 맞는 이미지로 바꾸므로 Helmet·구조화 데이터도 그 값을 따른다. 정적 태그가 없으면(테스트) 기본 이미지.
+ */
+export const OG_IMAGE =
+  document.getElementById("og-image")?.getAttribute("content") || `${SITE_URL}/og-image-v2.png`;
+
+/**
  * 같은 화면이 여러 주소로 열릴 때 정본으로 삼을 주소.
  * 랜딩을 StartPage 로 바꾸면서 옛 `/create`·`/start` 는 `/` 로 모은다.
  * 라우터가 리다이렉트하고 `public/_redirects` 가 크롤러용 301 을 담당하지만,
@@ -32,7 +39,7 @@ const canonicalFor = (pathname) => {
 const Seo = ({
   title = "타임테이블 - 쉽고 빠른 모임 일정 조율 서비스",
   description = "팀 일정 조율이 더 쉬워집니다. 최적의 시간을 찾아보세요.",
-  image = `${SITE_URL}/og-image-v2.png`,
+  image = OG_IMAGE,
   noindex,
 }) => {
   const { pathname } = useLocation();

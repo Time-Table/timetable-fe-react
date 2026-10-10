@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "react-router-dom";
-import { SITE_URL } from "../Seo";
+import { OG_IMAGE, SITE_URL } from "../Seo";
 
 /**
  * 서비스 자체를 설명하는 구조화 데이터.
@@ -22,7 +22,7 @@ const jsonLd = {
   operatingSystem: "All",
   browserRequirements: "최신 웹 브라우저",
   inLanguage: "ko-KR",
-  image: `${SITE_URL}/og-image-v2.png`,
+  image: OG_IMAGE,
   // 무료라는 사실은 경쟁 도구와 갈리는 지점이라 명시한다.
   offers: {
     "@type": "Offer",
