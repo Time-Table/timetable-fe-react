@@ -42,6 +42,7 @@ const formatWhen = (value) =>
 const pct = (value) => (value === null || value === undefined ? "-" : `${value.toLocaleString()}%`);
 const num = (value) => (value === null || value === undefined ? "-" : value.toLocaleString());
 const range = (ci) => (ci ? `${pct(ci[0])}~${pct(ci[1])}` : "-");
+const share = (part, total) => (total ? Math.round((part / total) * 1000) / 10 : null);
 
 const clamp = (value) => Math.max(0, Math.min(100, value));
 /**
@@ -208,11 +209,42 @@ export default function TableAbPanel() {
   );
   if (status === "off") return <Stack>{head}</Stack>;
 
-  const { assignment, tables, preference, failures, joins, votes, verdict } = data;
+  const { assignment, tables, preference, failures, joins, votes, lastUi, verdict } = data;
   const pref = preference.conditional;
   return (
     <Stack aria-busy={state.loading}>
       {head}
+      {/* 마지막으로 켜 둔 화면(2026-10-10 사람 지시 "그냥 마지막으로 켜둔 상태만 보고 싶어"). 옛 BE 응답에는 없어서 그때는 숨긴다. */}
+      {lastUi && (
+        <Card>
+          <CardTitle>마지막으로 켜 둔 화면</CardTitle>
+          <CardSubtitle>
+            실험 시작 뒤 표 화면을 본 브라우저마다 지금 마지막으로 켜 둔 화면입니다(어느 표에서든 마지막으로 보거나 바꾼 화면, {formatWhen(experiment.asOf)} 기준).
+            수는 브라우저 수입니다. 참고용이고 판정에는 쓰지 않습니다.
+          </CardSubtitle>
+          <Big>
+            기존 화면 {num(lastUi.A)} · 새 화면 {num(lastUi.B)}
+          </Big>
+          <Gauges>
+            {["A", "B"].map((ui) => (
+              <Gauge
+                key={ui}
+                label={
+                  <>
+                    <b>{ui}</b> {ui === "A" ? "기존 화면" : "새 화면"}
+                  </>
+                }
+                value={share(lastUi[ui], lastUi.total)}
+                detail={`브라우저 ${num(lastUi[ui])} / ${num(lastUi.total)}`}
+                fill
+              />
+            ))}
+          </Gauges>
+          {lastUi.unknown > 0 && (
+            <Note>순서를 알 수 없는 브라우저 {num(lastUi.unknown)}곳(다른 탭에서 30초 안에 서로 다른 화면을 켬)은 어느 쪽에도 넣지 않았습니다.</Note>
+          )}
+        </Card>
+      )}
       <Card>
         <CardTitle>주 지표 · 교체한 브라우저가 마감 때 유지한 화면(조건부 선호)</CardTitle>
         <CardSubtitle>

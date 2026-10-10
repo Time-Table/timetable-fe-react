@@ -29,6 +29,7 @@ const running = {
   failures: { A: failures("A"), B: failures("B") },
   joins: { A: { new: 3, returning: 1, unknown: 0 }, B: { new: 4, returning: 2, unknown: 0 } },
   votes: { A: 3, B: 7, voters: 10, exposed: 40, rate: 25 },
+  lastUi: { A: 30, B: 50, unknown: 2, total: 82 },
   verdict: "rule_pending",
 };
 
@@ -75,6 +76,24 @@ test("진행 중이면 조건부 선호·배정 점검·실패를 보이고, 판
   // 하트 투표: 수와 투표율만(2026-10-02 사람 지시 "단순 투표 수 양만").
   expect(screen.getByText("기존 화면 3표 · 새 화면 7표")).toBeInTheDocument();
   expect(screen.getByText(/투표율 25% \(투표한 브라우저 10 \/ 화면을 본 브라우저 40\)/)).toBeInTheDocument();
+});
+
+test("마지막으로 켜 둔 화면: A·B 브라우저 수와 비율, 순서 모름은 따로 알리고, 옛 응답(값 없음)이면 숨긴다", async () => {
+  getTableAb.mockResolvedValue(running);
+  const view = render(<TableAbPanel />);
+  expect(await screen.findByText("마지막으로 켜 둔 화면")).toBeInTheDocument();
+  expect(screen.getByText("기존 화면 30 · 새 화면 50")).toBeInTheDocument();
+  expect(screen.getByText("브라우저 30 / 82")).toBeInTheDocument();
+  expect(screen.getByText("브라우저 50 / 82")).toBeInTheDocument();
+  expect(screen.getByText("36.6%")).toBeInTheDocument();
+  expect(screen.getByText("61%")).toBeInTheDocument();
+  expect(screen.getByText(/순서를 알 수 없는 브라우저 2곳/)).toBeInTheDocument();
+  view.unmount();
+
+  getTableAb.mockResolvedValue({ ...running, lastUi: undefined });
+  render(<TableAbPanel />);
+  expect(await screen.findByText(/^평균 70%/)).toBeInTheDocument();
+  expect(screen.queryByText("마지막으로 켜 둔 화면")).not.toBeInTheDocument();
 });
 
 test("이미 시작한 실험이면 알리고, BE가 없으면 배포 안내를 보인다", async () => {
