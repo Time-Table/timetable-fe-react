@@ -1,4 +1,4 @@
-import { getLandingStats, fetchLandingStats } from "./stats";
+import { fetchLandingStats } from "./stats";
 import { instance as axios } from "./interceptors";
 
 // setupTests가 전체 테스트용으로 바꿔 둔 이 모듈을 여기서는 진짜로 쓴다.
@@ -8,20 +8,20 @@ jest.mock("./interceptors", () => ({ instance: { get: jest.fn() } }));
 const GOOD = { success: true, data: { count: 223, asOf: "2026-10-03", startDate: "2026-09-04", days: 30 } };
 const withData = (patch) => ({ ...GOOD, data: { ...GOOD.data, ...patch } });
 
-describe("getLandingStats (랜딩 신뢰 표시 집계)", () => {
+describe("fetchLandingStats (랜딩 신뢰 표시 집계, 매니저 카드 참고용)", () => {
   afterEach(() => {
     axios.get.mockReset();
   });
 
-  test("정상 응답이면 count와 asOf를 돌려주고, 2.5초 제한과 조용한 실패 옵션으로 부른다", async () => {
+  test("정상 응답이면 집계를 돌려주고, 2.5초 제한과 조용한 실패 옵션으로 부른다", async () => {
     axios.get.mockResolvedValue(GOOD);
-    await expect(getLandingStats()).resolves.toEqual({ count: 223, asOf: "2026-10-03" });
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: true, count: 223, asOf: "2026-10-03", startDate: "2026-09-04", days: 30 });
     expect(axios.get).toHaveBeenCalledWith("/api/stats/landing", { timeout: 2500, silent: true });
   });
 
-  test("0건도 정상 응답이다(숨김 판단은 화면이 한다)", async () => {
+  test("0건도 정상 응답이다", async () => {
     axios.get.mockResolvedValue(withData({ count: 0 }));
-    await expect(getLandingStats()).resolves.toEqual({ count: 0, asOf: "2026-10-03" });
+    await expect(fetchLandingStats()).resolves.toMatchObject({ ok: true, count: 0 });
   });
 
   test.each([
@@ -40,16 +40,12 @@ describe("getLandingStats (랜딩 신뢰 표시 집계)", () => {
     ["asOf가 없음", withData({ asOf: undefined })],
     ["startDate가 없음", withData({ startDate: undefined })],
     ["startDate 형식이 다름", withData({ startDate: "9월 4일" })],
-  ])("모양이 다르면 null: %s", async (_, body) => {
+  ])("모양이 다르면 invalid: %s", async (_, body) => {
     axios.get.mockResolvedValue(body);
-    await expect(getLandingStats()).resolves.toBeNull();
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "invalid" });
   });
 
-  test("fetchLandingStats는 실패 이유를 구분해 돌려준다(매니저 페이지용)", async () => {
-    axios.get.mockResolvedValue(GOOD);
-    await expect(fetchLandingStats()).resolves.toEqual({ ok: true, count: 223, asOf: "2026-10-03", startDate: "2026-09-04", days: 30 });
-    axios.get.mockResolvedValue(withData({ days: 29 }));
-    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "invalid" });
+  test("실패 이유를 구분해 돌려준다", async () => {
     axios.get.mockRejectedValue({ response: { status: 404 } });
     await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "missing" });
     axios.get.mockRejectedValue({ code: "ECONNABORTED", message: "timeout of 2500ms exceeded" });
@@ -58,12 +54,8 @@ describe("getLandingStats (랜딩 신뢰 표시 집계)", () => {
     await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "error" });
   });
 
-  test("실패(404·시간 초과·네트워크)는 null이다", async () => {
-    axios.get.mockRejectedValue({ response: { status: 404 } });
-    await expect(getLandingStats()).resolves.toBeNull();
-    axios.get.mockRejectedValue({ code: "ECONNABORTED", message: "timeout of 2500ms exceeded" });
-    await expect(getLandingStats()).resolves.toBeNull();
+  test("네트워크 실패는 error다", async () => {
     axios.get.mockRejectedValue(new Error("Network Error"));
-    await expect(getLandingStats()).resolves.toBeNull();
+    await expect(fetchLandingStats()).resolves.toEqual({ ok: false, reason: "error" });
   });
 });

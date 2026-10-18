@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import styled from "@emotion/styled";
-import { FiEye, FiEyeOff, FiAlertCircle } from "react-icons/fi";
+import { FiLock } from "react-icons/fi";
 import t from "./tokens";
 import { Card, CardTitle, CardSubtitle, Tag } from "./ui";
 import { fetchLandingStats } from "../../api/stats";
-import { HIDE_AT_OR_BELOW, floorTens } from "../start/mauStats";
+import { LANDING_COUNT } from "../start/mauStats";
 
 /**
- * 대시보드 "랜딩 신뢰 표시" 카드(2026-10-04 사람 지시 1번). 랜딩 첫 화면의 "최근 30일 동안 N+명"이 지금 무엇을 어떻게
- * 보여 주는지 매니저에서 바로 본다. 랜딩과 같은 공개 집계(GET /api/stats/landing, 어제까지 30일 참여 등록 건수)를 읽으므로
- * 대시보드 "참여 등록 건수"(오늘 포함 30일)와 숫자가 다를 수 있다. 100명 이하면 랜딩은 숨긴다.
+ * 대시보드 "랜딩 신뢰 표시" 카드(2026-10-04 사람 지시 1번). 랜딩 첫 화면의 "최근 30일 동안 N+명"이 지금 무엇을 보여 주는지
+ * 매니저에서 바로 본다. 2026-10-19부터 랜딩 숫자는 사람이 정한 고정값(mauStats LANDING_COUNT, 공유 미리보기 이미지와 같은 숫자)이다.
+ * 숫자를 바꿀지 판단하도록 공개 집계(GET /api/stats/landing, 어제까지 30일 참여 등록 건수)를 참고로 함께 보여 준다.
+ * 대시보드 "참여 등록 건수"(오늘 포함 30일)와 숫자가 다를 수 있다.
  */
 const REASONS = {
   missing: "BE에 집계 경로가 없습니다(배포 전).",
@@ -49,8 +50,6 @@ export default function LandingStatsCard() {
     };
   }, []);
 
-  const shown = result?.ok && result.count > HIDE_AT_OR_BELOW;
-
   return (
     <Card aria-labelledby="landing-stats-title" aria-busy={result === null}>
       <Head>
@@ -58,45 +57,27 @@ export default function LandingStatsCard() {
           <CardTitle id="landing-stats-title">랜딩 신뢰 표시</CardTitle>
           <CardSubtitle>첫 화면의 "최근 30일 동안 N+명 타임테이블로 시간을 아꼈어요"가 지금 보여 주는 값</CardSubtitle>
         </div>
-        {/* 상태와 값은 읽기 도구에도 바뀐 결과가 전해지게 상태 영역으로 둔다. */}
-        {result === null ? (
-          <Tag role="status">불러오는 중</Tag>
-        ) : !result.ok ? (
-          <Tag $tone="critical">
-            <FiAlertCircle size={13} aria-hidden="true" />
-            응답 실패
-          </Tag>
-        ) : shown ? (
-          <Tag>
-            <FiEye size={13} aria-hidden="true" />
-            표시 중
-          </Tag>
-        ) : (
-          <Tag $tone="critical">
-            <FiEyeOff size={13} aria-hidden="true" />
-            숨김 · {HIDE_AT_OR_BELOW}명 이하
-          </Tag>
-        )}
+        <Tag>
+          <FiLock size={13} aria-hidden="true" />
+          고정값
+        </Tag>
       </Head>
-      {result === null && <Value>—</Value>}
-      {result && result.ok && (
-        <Live role="status" aria-live="polite">
-          <Value>{shown ? `${floorTens(result.count).toLocaleString()}+명` : "표시 안 함"}</Value>
+      <Value>{`${LANDING_COUNT.toLocaleString()}+명`}</Value>
+      <Caption>사람이 정한 숫자입니다. 공유 미리보기 이미지와 같은 숫자이고 집계가 바뀌어도 그대로입니다.</Caption>
+      {/* 참고 집계는 읽기 도구에도 바뀐 결과가 전해지게 상태 영역으로 둔다. */}
+      <Live role="status" aria-live="polite">
+        {result === null && <Caption>참고 집계 불러오는 중</Caption>}
+        {result?.ok && (
           <Caption>
-            집계 {result.count.toLocaleString()}건 · {monthDay(result.startDate)}~{monthDay(result.asOf)}(어제까지 {result.days}일) ·{" "}
-            {HIDE_AT_OR_BELOW + 1}명 이상이면 표시 · 한국시간 자정에 갱신
+            참고 집계 {result.count.toLocaleString()}건 · {monthDay(result.startDate)}~{monthDay(result.asOf)}(어제까지 {result.days}일) · 한국시간
+            자정에 갱신
           </Caption>
-          <Caption>
-            대시보드 "참여 등록 건수"는 오늘을 포함한 30일이라 이 값과 다를 수 있습니다. 같은 사람이 여러 표에 참여하면 여러 번 셉니다.
-          </Caption>
-        </Live>
-      )}
-      {result && !result.ok && (
-        <Live role="status" aria-live="polite">
-          <Value>표시 안 함</Value>
-          <Caption>{REASONS[result.reason] || REASONS.error} 랜딩은 응답을 못 받으면 세 줄을 그리지 않습니다.</Caption>
-        </Live>
-      )}
+        )}
+        {result && !result.ok && <Caption>참고 집계를 못 받았습니다. {REASONS[result.reason] || REASONS.error}</Caption>}
+      </Live>
+      <Caption>
+        대시보드 "참여 등록 건수"는 오늘을 포함한 30일이라 참고 집계와 다를 수 있습니다. 같은 사람이 여러 표에 참여하면 여러 번 셉니다.
+      </Caption>
     </Card>
   );
 }

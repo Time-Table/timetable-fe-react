@@ -2,6 +2,7 @@ import { instance as axios } from "./interceptors";
 
 /**
  * 랜딩 신뢰 표시용 공개 집계(2026-10-04, BE GET /api/stats/landing). 어제까지 30일 참여 등록 건수.
+ * 2026-10-19부터 랜딩 숫자는 고정값이라 매니저 카드만 참고로 읽는다.
  * 모양 검사: success가 true, count는 0 이상 정수, days는 30, asOf·startDate는 YYYY-MM-DD. 하나라도 다르면 못 받은 것으로 본다.
  */
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -38,12 +39,4 @@ export const fetchLandingStats = async ({ timeoutMs = 2500 } = {}) => {
     const timeout = error?.code === "ECONNABORTED" || /timeout/i.test(String(error?.message || ""));
     return { ok: false, reason: timeout ? "timeout" : "error" };
   }
-};
-
-/**
- * 랜딩 화면용. { count, asOf } 또는 null(못 받았거나 모양이 다를 때. 화면은 표시를 숨긴다).
- */
-export const getLandingStats = async (options) => {
-  const result = await fetchLandingStats(options);
-  return result.ok ? { count: result.count, asOf: result.asOf } : null;
 };
