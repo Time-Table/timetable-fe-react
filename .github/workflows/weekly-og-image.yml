@@ -1,0 +1,23 @@
+# 매주 월요일 02:00 KST 에 Netlify 빌드 훅으로 운영을 다시 빌드한다.
+# 빌드 뒤 scripts/og-image.js 가 최근 30일 참여 등록 건수에 맞는 공유 미리보기 이미지를 고른다.
+# 비밀값 NETLIFY_BUILD_HOOK: Netlify 사이트 설정 > Build & deploy > Build hooks 에서 만든 main 브랜치 훅 주소.
+name: 주간 공유 미리보기 이미지 갱신
+
+on:
+  schedule:
+    - cron: "0 17 * * 0" # UTC 일요일 17:00 = KST 월요일 02:00. GitHub 예약 실행은 몇 분~수십 분 늦을 수 있다.
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Netlify 빌드 훅 호출
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -z "$NETLIFY_BUILD_HOOK" ]; then
+            echo "::error::비밀값 NETLIFY_BUILD_HOOK 이 없습니다"
+            exit 1
+          fi
+          curl -fsS -X POST -d '{}' "${NETLIFY_BUILD_HOOK}?trigger_title=weekly+og-image"
