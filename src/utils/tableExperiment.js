@@ -49,9 +49,12 @@ const readChoice = () => {
   }
 };
 
-/** 이 브라우저가 볼 화면. 실험이 꺼져 있거나 브라우저를 식별 못 하면 A, 띠로 고른 적이 있으면 그 선택, 없으면 배정. */
+/**
+ * 이 브라우저가 볼 화면. 띠로 고른 적이 있으면 그 선택, 없으면 배정.
+ * 실험이 꺼져 있거나 브라우저를 식별 못 하면 B(2026-11-28 2회차 종료, 사람 결정 "전부 B". 그 전에는 A였다).
+ */
 export const resolveTableUi = ({ running, visitorId }) => {
-  if (!running || !visitorId) return "A";
+  if (!running || !visitorId) return "B";
   return readChoice() || assignedTableUi(visitorId);
 };
 

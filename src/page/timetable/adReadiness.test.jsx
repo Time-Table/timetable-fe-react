@@ -13,6 +13,11 @@ jest.mock("react-router-dom", () => ({
   useParams: () => ({ tableId: "313fcb21-583e-4e82-942c-713eeb3d607d" }),
 }));
 jest.mock("../../api/table", () => ({ getTableInfo: jest.fn() }));
+// 2회차 종료(2026-11-28) 뒤로는 꺼진 실험이면 새 화면(B)이다. 이 파일은 기존 화면(A)의 동작을 보므로 꺼졌을 때 A가 뜨게 둔다.
+jest.mock("../../utils/tableExperiment", () => ({
+  ...jest.requireActual("../../utils/tableExperiment"),
+  resolveTableUi: () => "A",
+}));
 jest.mock("../../api/user", () => ({ getAllSchedule: jest.fn() }));
 jest.mock("../../api/schedule", () => ({ getSchedule: jest.fn() }));
 jest.mock("../../api/visit", () => ({ trackVisit: jest.fn() }));

@@ -96,9 +96,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test("꺼져 있으면(서버 상태 off) 띠가 없고 실험 기록·화면 값이 없다", async () => {
-  localStorage.setItem("visitor_id", V_B);
-  const { ranking } = await renderTable();
+test("꺼져 있으면(서버 상태 off) A 배정·A를 고른 브라우저도 새 화면(B)이고 띠·실험 기록·화면 값이 없다(2026-11-28 전부 B)", async () => {
+  localStorage.setItem("visitor_id", V_A);
+  localStorage.setItem(TABLE_UI_KEY, JSON.stringify({ key: "table-ab-2", ui: "A" }));
+  const { ranking } = await renderTable({ ui: "B" });
   expect(band()).not.toBeInTheDocument();
   fireEvent.click(ranking);
   expect(sentEvents("ranking_open")[0]).not.toHaveProperty("uiVersion");
@@ -106,10 +107,10 @@ test("꺼져 있으면(서버 상태 off) 띠가 없고 실험 기록·화면 �
   expect(sentEvents("ab_state_fail")).toHaveLength(0);
 });
 
-test("상태를 못 받으면 이번 화면은 꺼짐(A)으로 그리고 ab_state_fail만 남긴다", async () => {
-  localStorage.setItem("visitor_id", V_B);
+test("상태를 못 받으면 이번 화면은 꺼짐(B)으로 그리고 ab_state_fail만 남긴다", async () => {
+  localStorage.setItem("visitor_id", V_A);
   getTableAbState.mockResolvedValue({ ok: false, running: false, reason: "timeout" });
-  await renderTable();
+  await renderTable({ ui: "B" });
   expect(band()).not.toBeInTheDocument();
   await waitFor(() => expect(sentEvents("ab_state_fail")).toHaveLength(1));
   expect(sentEvents("ab_state_fail")[0]).toEqual(expect.objectContaining({ tableId: TABLE_1, reason: "timeout" }));
@@ -310,26 +311,25 @@ test("관리자 브라우저는 띠로 바꿀 수 있지만 실험 기록을 보
   expect(sendEventKeepalive).not.toHaveBeenCalled();
 });
 
-test("저장소 접근이 전부 막혀도 표 화면은 멈추지 않고 참여 화면(A)을 그리며 실험에서 빠진다", async () => {
+test("저장소 접근이 전부 막혀도 표 화면은 멈추지 않고 새 화면(B)을 그리며 실험에서 빠진다", async () => {
   getTableAbState.mockResolvedValue(RUNNING);
   const blocked = () => {
     throw new Error("SecurityError");
   };
   ["getItem", "setItem", "removeItem", "clear", "key"].forEach((method) => jest.spyOn(Storage.prototype, method).mockImplementation(blocked));
-  await renderTable();
-  expect(screen.getByRole("button", { name: /참여|등록/ })).toBeInTheDocument();
+  await renderTable({ ui: "B" });
   expect(band()).not.toBeInTheDocument();
   expect(sentEvents("ui_view")).toHaveLength(0);
 });
 
-test("저장소를 못 쓰는 브라우저는 실험에서 뺀다(A, 띠·기록 없음)", async () => {
+test("저장소를 못 쓰는 브라우저는 실험에서 뺀다(B, 띠·기록 없음)", async () => {
   getTableAbState.mockResolvedValue(RUNNING);
   const original = Storage.prototype.getItem;
   jest.spyOn(Storage.prototype, "getItem").mockImplementation(function getItem(key) {
     if (key === "visitor_id") throw new Error("blocked");
     return original.call(this, key);
   });
-  await renderTable();
+  await renderTable({ ui: "B" });
   expect(band()).not.toBeInTheDocument();
   expect(sentEvents("ui_view")).toHaveLength(0);
 });

@@ -45,10 +45,11 @@ import { lazyPage } from "../../utils/lazyPage";
 // 그래도 안 되면 앱의 불러오기 실패 안내가 뜬다(utils/lazyPage.js). 기존 화면으로 대신 그리면 B 배정 기록과 어긋난다.
 // 표 화면 A/B 2회차: 조각을 못 받아 새로고침하기 직전(chunk_retry)과 끝내 못 받았을 때(chunk_failed)를 남긴다(실험 중일 때만).
 // 2026-10-09(사람 결정 8): 실험 밖의 날짜 투표 표(늘 새 화면)도 남긴다. 화면 값(uiVersion)은 실험 중일 때만 붙인다.
+// 2026-11-28 2회차 종료 뒤로는 실험 밖의 시간 표도 새 화면이라 표 유형과 관계없이 남긴다.
 const reportBLoadFail = (reason) => {
   const active = getActiveTableUi();
   const typed = getActiveTableType();
-  const tableId = active?.tableId || (typed?.type === "date" ? typed.tableId : null);
+  const tableId = active?.tableId || typed?.tableId || null;
   if (!tableId) return;
   const extra = active ? { reason, uiVersion: "B" } : { reason };
   if (reason === "chunk_retry") trackEventKeepalive(EVENTS.UI_LOAD_FAIL, tableId, extra);
@@ -377,7 +378,10 @@ function TimetablePageView() {
   const tableLoaded = isValidTableId === true && tableInfo?.tableId === tableId;
   const dateOnly = tableLoaded && isDateOnlyTable(tableInfo);
   const abOn = Boolean(abState?.running && visitorId && tableLoaded && !dateOnly);
-  const uiVersion = dateOnly ? "B" : abOn ? uiChoice || resolveTableUi({ running: true, visitorId }) : "A";
+  // 2회차 종료(2026-11-28 사람 결정 "전부 B"): 실험이 꺼져 있으면 시간 표도 새 화면(B)이다(resolveTableUi). 띠·화면 기록은 날짜 투표 표처럼 없다.
+  const uiVersion = dateOnly
+    ? "B"
+    : abOn ? uiChoice || resolveTableUi({ running: true, visitorId }) : resolveTableUi({ running: false, visitorId });
 
   // 실험 상태를 못 받은 기록. 날짜 투표 표는 실험 대상이 아니라 남기지 않는다(2026-10-09 사람 결정 3).
   // 그래서 표 정보를 받은 뒤 정한다. 표를 못 받았으면(없는 표·오류) 지금처럼 남긴다.

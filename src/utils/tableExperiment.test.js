@@ -29,9 +29,10 @@ describe("배정", () => {
     expect(assignedTableUi(V_B)).toBe("B");
   });
 
-  test("실험이 꺼져 있거나 브라우저를 식별 못 하면 A", () => {
-    expect(resolveTableUi({ running: false, visitorId: V_B })).toBe("A");
-    expect(resolveTableUi({ running: true, visitorId: null })).toBe("A");
+  test("실험이 꺼져 있거나 브라우저를 식별 못 하면 B(2026-11-28 2회차 종료, 전부 B)", () => {
+    expect(resolveTableUi({ running: false, visitorId: V_A })).toBe("B");
+    expect(resolveTableUi({ running: true, visitorId: null })).toBe("B");
+    expect(resolveTableUi({ running: true, visitorId: V_A })).toBe("A");
     expect(resolveTableUi({ running: true, visitorId: V_B })).toBe("B");
   });
 
