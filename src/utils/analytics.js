@@ -1,3 +1,4 @@
+import { track as amplitudeTrack } from "@amplitude/analytics-browser";
 import { sendEvent, sendEventKeepalive } from "../api/event";
 import { sendBlogView } from "../api/blogView";
 import { isAdmin } from "./admin";
@@ -238,6 +239,20 @@ const sendGaEvent = (name, params) => {
 };
 
 /**
+ * Amplitude(2026-11-28): GA와 같은 퍼널 이벤트 11개를 같은 이름·같은 매개변수로 보낸다. 표 ID·방문자 ID·이름·입력값은 보내지 않는다.
+ * 서버가 관리자·봇으로 건너뛴 요청은 보내지 않아(trackEvent에서 응답 뒤 호출) 수치 기준을 서버와 맞춘다.
+ * 초기화는 src/index.js가 키가 있고 관리자가 아닐 때만 한다. 초기화 전 호출은 쌓이기만 하고 전송되지 않는다.
+ */
+const sendAmplitudeEvent = (name, params) => {
+  try {
+    if (!GA_EVENTS.includes(name)) return;
+    amplitudeTrack(name, params || {});
+  } catch (error) {
+    // Amplitude 차단·오류는 서비스 동작에 영향을 주지 않는다.
+  }
+};
+
+/**
  * GA4 화면 기록(page_view). index.html이 gtag("config", …, { send_page_view: false })로 자동 기록을 끄고, 주소가 바뀔 때마다
  * 여기서 한 번 보낸다(App.js GaPageView). 표 주소의 표 ID와 표 제목은 보내지 않는다: 경로는 /table/:id, 제목은 고정 글.
  * 검색어는 유입 구분(utm_*·gclid)만 남긴다. 관리자는 보내지 않는다.
@@ -300,12 +315,13 @@ export const trackEvent = (name, tableId, creationPath, extra) => {
   if (ROLE_EVENTS.includes(name)) {
     // 역할은 현재 URL이나 마지막으로 만든 표가 아니라, 요청한 표의 서버 응답에 묶는다.
     // 태그는 행동별로 구분한다. Clarity 세션에는 여러 표의 역할이 공존할 수 있다.
-    // GA4에도 같은 역할을 매개변수로 붙여 응답 뒤에 보낸다. 응답이 없으면 unknown으로 보낸다(관리자·봇으로 건너뛴 요청은 보내지 않는다).
+    // GA4·Amplitude에도 같은 역할을 매개변수로 붙여 응답 뒤에 보낸다. 응답이 없으면 unknown으로 보낸다(관리자·봇으로 건너뛴 요청은 보내지 않는다).
     Promise.resolve(pending).then((result) => {
       if (result?.skipped || isAdmin()) return;
       const role = result?.success && ["creator", "participant", "unknown"].includes(result.tableRole)
         ? result.tableRole : "unknown";
       sendGaEvent(name, { ...gaParams, table_role: role });
+      sendAmplitudeEvent(name, { ...gaParams, table_role: role });
       if (!result?.success || typeof window.clarity !== "function") return;
       window.clarity("set", `tt_${name}_role`, role);
     }).catch(() => {
@@ -313,6 +329,13 @@ export const trackEvent = (name, tableId, creationPath, extra) => {
     });
   } else if (GA_EVENTS.includes(name)) {
     sendGaEvent(name, gaParams);
+    // GA는 지금처럼 바로 보낸다. Amplitude는 서버가 관리자·봇으로 건너뛰지 않은 것만 응답 뒤에 보낸다.
+    Promise.resolve(pending).then((result) => {
+      if (result?.skipped || isAdmin()) return;
+      sendAmplitudeEvent(name, gaParams);
+    }).catch(() => {
+      // 계측 응답·저장소·Amplitude 오류를 사용자 동작에 전파하지 않는다.
+    });
   }
 
   // 기존 버튼 텍스트 기반 스마트 이벤트와 구분한다. 식별자/입력값은 보내지 않는다.

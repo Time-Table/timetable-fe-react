@@ -7,7 +7,6 @@ import { trackVisit } from "../../api/visit";
 import { trackEvent, EVENTS } from "../../utils/analytics";
 import { isAdmin } from "../../utils/admin";
 import { assignLandingVariant, tagLandingVariant } from "../../utils/landingExperiment";
-import { track } from "@amplitude/unified";
 
 /**
  * v2는 배정받은 사람만 받는다. v1 방문자의 첫 로딩 번들을 키우지 않으려고 따로 떼어 둔다.
@@ -42,8 +41,6 @@ export default function LandingRoute() {
     tracked.current = true;
     trackVisit("landing");
     trackEvent(EVENTS.LANDING_VIEW);
-    // Amplitude에도 같은 이름으로 남긴다. 관리자는 다른 집계처럼 뺀다.
-    if (!readIsAdmin()) track(EVENTS.LANDING_VIEW);
     if (inExperiment) tagLandingVariant(variant);
   }, [variant, inExperiment]);
 

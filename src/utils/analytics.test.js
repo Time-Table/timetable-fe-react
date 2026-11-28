@@ -6,9 +6,11 @@ import { grantAdmin } from "./admin";
 import { VISITOR_KEY, SOURCE_KEY } from "./storage";
 import { sendEvent, sendEventKeepalive } from "../api/event";
 import { sendBlogView } from "../api/blogView";
+import { track as amplitudeTrack } from "@amplitude/analytics-browser";
 
 jest.mock("../api/event", () => ({ sendEvent: jest.fn(), sendEventKeepalive: jest.fn() }));
 jest.mock("../api/blogView", () => ({ sendBlogView: jest.fn() }));
+jest.mock("@amplitude/analytics-browser", () => ({ track: jest.fn() }));
 
 const setReferrer = (value) =>
   Object.defineProperty(document, "referrer", { value, configurable: true });
@@ -563,6 +565,64 @@ describe("GA4(2026-10-09, 사람 결정 7)", () => {
     };
     expect(() => trackEvent(EVENTS.LANDING_VIEW)).not.toThrow();
     expect(() => trackPageView(window.location)).not.toThrow();
+    await flush();
+    expect(sendEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Amplitude(2026-11-28)", () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  test("퍼널 이벤트 11개만 서버 응답 뒤 GA와 같은 이름·매개변수로 보낸다", async () => {
+    let finish;
+    sendEvent.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    setActiveTableUi("table-1", "B");
+    setActiveTableType("table-1", "time");
+    trackEvent(EVENTS.CREATE_SUBMIT, undefined, "landing", { tableType: "date" });
+    expect(amplitudeTrack).not.toHaveBeenCalled();
+    finish({ success: true });
+    trackEvent(EVENTS.RANKING_OPEN, "table-1");
+    trackEvent(EVENTS.UI_VIEW, "table-1", undefined, { viewId: "v1" });
+    trackEvent(EVENTS.JOIN_FAIL, "table-1", undefined, { reason: "server" });
+    await flush();
+    expect(amplitudeTrack.mock.calls).toEqual([
+      ["create_submit", { creation_path: "landing", table_type: "date" }],
+      ["ranking_open", { table_type: "time", ui_version: "B" }],
+    ]);
+  });
+
+  test("서버가 관리자·봇으로 건너뛰면 보내지 않고, 응답이 없으면 보낸다. 역할 이벤트는 역할을 붙인다", async () => {
+    sendEvent.mockResolvedValueOnce({ success: true, skipped: true });
+    trackEvent(EVENTS.LANDING_VIEW);
+    sendEvent.mockResolvedValueOnce({ success: true, skipped: true });
+    trackEvent(EVENTS.CREATE_SUCCESS, "table-1", "quick_create");
+    sendEvent.mockResolvedValueOnce(null);
+    trackEvent(EVENTS.LANDING_VIEW);
+    sendEvent.mockResolvedValueOnce({ success: true, tableRole: "creator" });
+    trackEvent(EVENTS.CREATE_SUCCESS, "table-1", "landing");
+    await flush();
+    expect(amplitudeTrack.mock.calls).toEqual([
+      ["landing_view", {}],
+      ["create_success", { creation_path: "landing", table_role: "creator" }],
+    ]);
+    const text = JSON.stringify(amplitudeTrack.mock.calls);
+    expect(text).not.toContain("table-1");
+    expect(text).not.toContain(getVisitorId());
+  });
+
+  test("관리자 브라우저는 보내지 않는다", async () => {
+    grantAdmin("test-token");
+    trackEvent(EVENTS.LANDING_VIEW);
+    trackEvent(EVENTS.CREATE_SUCCESS, "table-1", "landing");
+    await flush();
+    expect(amplitudeTrack).not.toHaveBeenCalled();
+  });
+
+  test("Amplitude가 예외를 던져도 흐름은 이어진다", async () => {
+    amplitudeTrack.mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(() => trackEvent(EVENTS.LANDING_VIEW)).not.toThrow();
     await flush();
     expect(sendEvent).toHaveBeenCalledTimes(1);
   });
