@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <h1 style={{ color: theme.color.primaryText, fontSize: theme.font.size.title2 }}>
             개인정보처리방침
           </h1>
-          <p>수정일: 2026년 9월 28일</p>
+          <p>수정일: 2026년 11월 28일</p>
           <p>
             타임테이블 운영팀은 모임 일정 조율 서비스를 제공하며, 아래와 같이 정보를 처리합니다.
             회원가입은 필요하지 않지만, 모임 참여와 일정 수정에는 이름과 비밀번호를 사용합니다.
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
             <li>참여 정보: 입력한 이름, 비밀번호, 가능한 시간을 참여자 확인·일정 저장·결과 집계에 사용합니다. 비밀번호는 원문 대신 해시 값으로 저장합니다.</li>
             <li>채팅: 입력한 이름, 메시지, 작성 시각을 모임 내 대화에 사용합니다.</li>
             <li>이용 기록: 방문·생성·참여·저장 등의 행동, 방문한 블로그 글, 시각, 유입 경로, 기기 구분, 모임 식별자, 생성·참여 역할과 무작위 브라우저 식별자를 서비스 이용 통계와 개선에 사용합니다.</li>
-            <li>표별 입력 달성 통계: 모임 식별자, 생성 시각과 생성 당시 분석 마감, 최초 3명의 표별 가명 참여키와 첫 유효 입력 시각, 달성·수집 상태를 서비스 개선에 사용합니다. 가명 참여키는 같은 표 안의 같은 이름을 구분하도록 서버에서 만들며, 이 통계에 이름·비밀번호·가능 시간 원문을 복사하지 않습니다. 이 기록은 Google Analytics나 Microsoft Clarity로 보내지 않습니다.</li>
+            <li>표별 입력 달성 통계: 모임 식별자, 생성 시각과 생성 당시 분석 마감, 최초 3명의 표별 가명 참여키와 첫 유효 입력 시각, 달성·수집 상태를 서비스 개선에 사용합니다. 가명 참여키는 같은 표 안의 같은 이름을 구분하도록 서버에서 만들며, 이 통계에 이름·비밀번호·가능 시간 원문을 복사하지 않습니다. 이 기록은 Google Analytics, Microsoft Clarity, Amplitude로 보내지 않습니다.</li>
             <li>요청 처리: IP 주소를 과도한 요청 제한 등 서비스 보호 과정에서 처리합니다.</li>
             <li>문의: 이메일이나 문의 양식으로 제공한 연락처(이메일)와 문의 유형·내용을 답변 및 요청 확인에 사용합니다.</li>
             <li>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
 
           <h2 style={sectionHeading}>4. 이용 분석과 Google 광고</h2>
           <p>
-            방문 현황과 사용성을 파악하기 위해 Google Analytics와 Microsoft Clarity를 사용하며,
+            방문 현황과 사용성을 파악하기 위해 Google Analytics, Microsoft Clarity, Amplitude를 사용하며,
             광고 게재에는 Google AdSense를 사용합니다. 이 서비스들은 쿠키, 웹 비콘, IP 주소와 기타 식별자를 이용해 정보를 수집할 수 있습니다.
           </p>
           <ul>
@@ -89,6 +89,13 @@ export default function PrivacyPage() {
               Microsoft Clarity는 클릭·스크롤·페이지 이용 및 화면 구성 정보를 바탕으로 히트맵과 세션 재생을 제공해 사용성을 분석합니다.
               생성·참여 등의 행동과 역할 구분도 분석에 사용합니다.
               자세한 내용은 <a href="https://privacy.microsoft.com/ko-kr/privacystatement" style={linkStyle}>Microsoft 개인정보처리방침</a>을 확인해 주세요.
+            </li>
+            <li>
+              Amplitude는 방문·생성·참여·일정 저장 등의 행동 기록과 생성 경로·표 종류·화면 구분·생성·참여 역할 구분,
+              무작위 기기·세션 식별자, 브라우저·기기 정보와 언어, IP 주소와 이를 바탕으로 추정한 대략적 위치를 이용해
+              방문 현황과 재방문을 분석합니다. 모임 식별자·이름·입력한 시간은 보내지 않으며, 화면 녹화와 클릭 자동 수집은 사용하지 않습니다.
+              정보는 미국 Amplitude, Inc.의 서버에 저장됩니다.
+              자세한 내용은 <a href="https://amplitude.com/privacy" style={linkStyle}>Amplitude 개인정보처리방침</a>을 확인해 주세요.
             </li>
             <li>
               Google 및 제3자 광고 공급업체는 쿠키를 이용하여 이 사이트나 다른 사이트의 이전 방문 기록을 바탕으로 광고를 게재할 수 있습니다.
